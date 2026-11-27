@@ -157,6 +157,38 @@
     ".bss": 136
    }
   },
+  "armv8-a/none-all/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 41729,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 355612,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1256,
+    ".data": 640,
+    ".got.plt": 104,
+    ".bss": 136
+   }
+  },
   "armv8-a/none-all/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -370,6 +402,38 @@
     ".got": 8,
     ".relro_padding": 696,
     ".data": 704,
+    ".got.plt": 104,
+    ".bss": 136
+   }
+  },
+  "armv8-a/none-auto/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 41729,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 355612,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1256,
+    ".data": 640,
     ".got.plt": 104,
     ".bss": 136
    }
@@ -591,6 +655,38 @@
     ".bss": 136
    }
   },
+  "armv8-a/none-off/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 41729,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 355772,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1096,
+    ".data": 640,
+    ".got.plt": 104,
+    ".bss": 136
+   }
+  },
   "armv8-a/none-off/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -804,6 +900,38 @@
     ".got": 8,
     ".relro_padding": 1944,
     ".data": 528,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
+  "armv8-a/size-all/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 32007,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 95428,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 824,
+    ".data": 448,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1025,6 +1153,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/size-auto/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 32007,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 95428,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 824,
+    ".data": 448,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -1238,6 +1398,38 @@
     ".got": 8,
     ".relro_padding": 1880,
     ".data": 528,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
+  "armv8-a/size-off/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 32007,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 95496,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 760,
+    ".data": 448,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1459,6 +1651,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/speed-all/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 31738,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 102876,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1832,
+    ".data": 448,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -1672,6 +1896,38 @@
     ".got": 8,
     ".relro_padding": 1960,
     ".data": 528,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
+  "armv8-a/speed-auto/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 31738,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 102876,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1832,
+    ".data": 448,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1893,6 +2149,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/speed-off/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 31738,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 103328,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1384,
+    ".data": 448,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -2106,6 +2394,38 @@
     ".got": 8,
     ".relro_padding": 728,
     ".data": 704,
+    ".got.plt": 104,
+    ".bss": 136
+   }
+  },
+  "armv8.1-a/none-all/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 41729,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 355580,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1288,
+    ".data": 640,
     ".got.plt": 104,
     ".bss": 136
    }
@@ -2327,6 +2647,38 @@
     ".bss": 136
    }
   },
+  "armv8.1-a/none-auto/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 41729,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 355580,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1288,
+    ".data": 640,
+    ".got.plt": 104,
+    ".bss": 136
+   }
+  },
   "armv8.1-a/none-auto/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -2540,6 +2892,38 @@
     ".got": 8,
     ".relro_padding": 568,
     ".data": 704,
+    ".got.plt": 104,
+    ".bss": 136
+   }
+  },
+  "armv8.1-a/none-off/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 41729,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 355740,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1128,
+    ".data": 640,
     ".got.plt": 104,
     ".bss": 136
    }
@@ -2761,6 +3145,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/size-all/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 32007,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 95396,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 856,
+    ".data": 448,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -2974,6 +3390,38 @@
     ".got": 8,
     ".relro_padding": 1976,
     ".data": 528,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/size-auto/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 32007,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 95396,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 856,
+    ".data": 448,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3195,6 +3643,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/size-off/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 32007,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 95464,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 792,
+    ".data": 448,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -3408,6 +3888,38 @@
     ".got": 8,
     ".relro_padding": 1992,
     ".data": 528,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/speed-all/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 31738,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 102844,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1864,
+    ".data": 448,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3629,6 +4141,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/speed-auto/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 31738,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 102844,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1864,
+    ".data": 448,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
     ".interp": 21,
@@ -3842,6 +4386,38 @@
     ".got": 8,
     ".relro_padding": 1880,
     ".data": 528,
+    ".got.plt": 104,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/speed-off/pidigits": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 31738,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 103296,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 240,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 1416,
+    ".data": 448,
     ".got.plt": 104,
     ".bss": 124
    }

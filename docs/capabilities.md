@@ -107,9 +107,10 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   its expected output by [the board tools](../environments/boards/README.md),
   which record a RAM run, loaded into SRAM without writing flash, and a
   boot check from power-on separately (D593-D596, D647-D655, D901, D902).
-  The gate runs both on the maintainer's rig on every push to `main`,
-  weekly and by dispatch, never for a branch, and never reuses physical
-  evidence (D904, D905).
+  The gate runs both on the maintainer's rig on a push to `main`, daily
+  and by dispatch, never for a branch, and takes a passed run's legs only
+  when its images, harness, records and board jobs are the same bytes
+  (D904, D905, D1647, D2774, D2775).
   The derived linker script is written as `OUT.ld`, or alone with its
   limits by `--emit=linker-script` (D589), a developer's own is linked with
   `--linker-script=FILE` and held to a contract of five clauses, among
@@ -927,10 +928,11 @@ injector as arguments, as providers.
   caller's allocator (D2532).
 - **Comparison.** The comparison concepts are a module of their own,
   `core/cmp`, with library-supplied evidence for integer keys and ordering,
-  Boolean and byte slice keys, and UTF-8 keys and ordering. Every shipped
-  hash is SipHash-1-3 keyed by a seed, and a map hashes under the seed it
-  is made with: a hosted program draws one from its entropy, and firmware
-  gives one (D1360).
+  Boolean and byte slice keys, UTF-8 keys and ordering, and `f32` and
+  `f64` ordering by IEEE 754's totalOrder (D2815). Every shipped hash is
+  SipHash-1-3 keyed by a seed, and a map hashes under the seed it is made
+  with: a hosted program draws one from its entropy, and firmware gives
+  one (D1360).
 - **Text.** Byte-oriented and validated text. Positions over `utf8` step
   a whole scalar and keep its byte offset, and searches for text or a
   scalar return where the match begins, so the parts around it are
@@ -1302,7 +1304,7 @@ process ignores SIGPIPE and gives its children the default back.
   level and of the nine optimization and specialization profiles, and the
   instructions each executes under QEMU on RV64 and the Cortex-M machines,
   and fails on any change its commit does not record in the committed
-  baselines. The weekly schedule and a dispatch also time the hosted
+  baselines. The daily schedule and a dispatch also time the hosted
   workloads natively, the candidate's images against its base's on one
   processor, and the firmware workloads by each board's cycle counter on
   the rig. [Measuring generated code](measurement.md) is the contract,
@@ -1395,7 +1397,7 @@ Add `--target=darwin-arm64` for native macOS output, then open
   [`examples.md`](../examples.md)
   runs on every hosted target against its recorded output: everyday tools,
   the printing and failure lessons, the classic exercises from FizzBuzz to
-  merge sort, the sensor-polling program, and five Benchmark Game ports at
+  merge sort, the sensor-polling program, and six Benchmark Game ports at
   correctness scale. Its firmware example builds for Cortex-M0 and is held
   to its serial output on the emulator.
 
@@ -1405,7 +1407,7 @@ The recurring gate runs Linux, macOS and Windows programs natively, FreeBSD
 programs in accelerated VMs, where it also builds and tests `refine` on
 FreeBSD x86-64, and Cortex-M firmware under QEMU, with separate runtime,
 C ABI and debugger verdicts; RV64 Linux runs under QEMU's user emulation, as
-above. On a push to `main`, weekly and by dispatch it also runs all eight
+above. On a push to `main`, daily and by dispatch it also runs all eight
 board ports on the physical rig, each RAM run followed by its boot check.
 The gate's scripts job holds every workflow to the pinned actionlint, which
 runs the pinned shellcheck over every `run:` script. The

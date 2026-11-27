@@ -33,7 +33,7 @@
 #  artifacts are not acceptance records.
 #
 #  The physical boards run on a board-scope event: a push to main, the
-#  weekly schedule and a manual dispatch, in this repository only.  The
+#  daily schedule and a manual dispatch, in this repository only.  The
 #  schedule, and a dispatch with scope `boards`, run boards, documents and
 #  scripts and no software lane; scripts/gate_inputs.py's `scope` decides.
 
@@ -41,7 +41,7 @@ name: gate
 
 #  An empty name leaves GitHub's own, the commit message or the title.
 run-name: >-
-  ${{ github.event_name == 'schedule' && 'gate: boards only, weekly on main'
+  ${{ github.event_name == 'schedule' && 'gate: boards only, daily on main'
   || inputs.scope == 'boards' && format('gate: boards only on {0}', github.ref_name)
   || '' }}
 
@@ -55,10 +55,11 @@ on:
         type: choice
         options: [full, boards]
         default: full
-  #  Recurring physical evidence while main is idle; GitHub runs a
-  #  schedule on the default branch's latest commit.
+  #  Recurring physical evidence, daily when main moved and weekly while it
+  #  is idle (D2775); GitHub runs a schedule on the default branch's latest
+  #  commit.
   schedule:
-    - cron: '0 4 * * 1'
+    - cron: '0 4 * * *'
 
 permissions:
   contents: read
@@ -149,7 +150,7 @@ jobs:
             'determinism / manifest (aarch64-darwin 3)' \
             'determinism / manifest (aarch64-darwin 4)' 'determinism / agree' gate \
             >> "$GITHUB_OUTPUT"
-      - name: Whether main's boards or a dispatch's timing were already passed for this tree
+      - name: Whether main's boards, a dispatch's timing or the schedule's were already passed
         id: physical
         env:
           GH_TOKEN: ${{ github.token }}
@@ -3373,8 +3374,12 @@ jobs:
   #  board-bundles and every board leg run on each board-scope event
   #  whether or not the software lanes reuse a pass, and the aggregate fails
   #  a board-scope event whose board jobs were skipped, cancelled or failed,
-  #  with one exception: main's push takes the boards of a passed run of the
-  #  same tree, or of an explanatory base, when `inputs` finds one (D1647).
+  #  with three exceptions: main's push takes the boards of a passed run of
+  #  the same tree, or of an explanatory base, when `inputs` finds one
+  #  (D1647); the schedule takes them from a passed schedule run of the same
+  #  commit (D2775); and a dispatch or main's push takes its legs from a
+  #  passed run whose board identity board-bundles finds is this run's
+  #  (D2774), which the aggregate then reads the evidence of.
   #
   #  board-bundles builds the release compiler from this commit and every
   #  board's boot and RAM bundles, strict against the hardware records, so
@@ -3382,18 +3387,27 @@ jobs:
   #  event that times the boards the timing runs' images as well, every
   #  firmware workload at every profile on each port (docs/measurement.md).
   #  One artifact carries them with provenance.json and files.sha256; its
-  #  id, its digest and the list's sha256 are this job's outputs.
+  #  id, its digest and the list's sha256 are this job's outputs.  Then the
+  #  board identity, written as this job's annotation whatever is decided,
+  #  and whether a passed run's legs stand in for this run's.
   board-bundles:
     needs: inputs
     if: needs.inputs.outputs.boards == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    permissions:
+      actions: read
+      checks: read
+      contents: read
     env:
       LANDIN_BUILD_MODE: release
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
       artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
       manifest: ${{ steps.provenance.outputs.manifest }}
+      legs-reuse: ${{ steps.legs.outputs.legs-reuse }}
+      legs-run: ${{ steps.legs.outputs.legs-run }}
+      legs-from: ${{ steps.legs.outputs.legs-from }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -3436,6 +3450,14 @@ jobs:
           include-hidden-files: true
           retention-days: 14
 
+      - name: The board identity, and whether a passed run's legs stand in for these
+        id: legs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 scripts/gate_inputs.py legs gate.yml "$RUNNER_TEMP/board-bundles"
+          >> "$GITHUB_OUTPUT"
+
   #  One leg per port on the rig's one runner, one at a time; each leg is
   #  self-contained, RAM then boot, so legs of two runs may interleave.  On
   #  an event that times the boards each port's timing runs come before its
@@ -3448,7 +3470,7 @@ jobs:
   board:
     name: board-${{ matrix.port }}
     needs: [inputs, board-bundles]
-    if: needs.inputs.outputs.boards == 'true' && needs.board-bundles.result == 'success'
+    if: needs.inputs.outputs.boards == 'true' && needs.board-bundles.result == 'success' && needs.board-bundles.outputs.legs-reuse != 'true'
     #  The rig's runner carries this one label and none of GitHub's
     #  defaults, so no workflow that asks only for `self-hosted` lands on
     #  it; a job that also named `self-hosted` would queue there forever.
@@ -3587,7 +3609,8 @@ jobs:
             determinism, board-bundles, board]
     runs-on: ubuntu-24.04
     #  Reading the jobs' logs and the base run's manifests for the
-    #  selection in shadow.
+    #  selection in shadow, and the leg evidence of a run whose legs
+    #  board-bundles took.
     permissions:
       actions: read
       contents: read
@@ -3598,27 +3621,42 @@ jobs:
         with:
           fetch-depth: 0
       #  Each leg's outcome, so the verdict names it; a leg that never
-      #  started has no artifact, which the verdict reports by port.
+      #  started has no artifact, which the verdict reports by port.  When
+      #  board-bundles took the legs of a passed run of this board identity,
+      #  that run's evidence, which the verdict holds to its run id.
       - name: Every board leg's evidence
-        if: needs.inputs.outputs.boards == 'true'
+        if: needs.inputs.outputs.boards == 'true' && needs.board-bundles.outputs.legs-reuse != 'true'
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: board-evidence-*
           path: ${{ runner.temp }}/board-evidence
+      - name: The evidence of the run whose legs board-bundles took
+        if: needs.inputs.outputs.boards == 'true' && needs.board-bundles.outputs.legs-reuse == 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: board-evidence-*
+          path: ${{ runner.temp }}/board-evidence
+          run-id: ${{ needs.board-bundles.outputs.legs-run }}
+          github-token: ${{ github.token }}
       - name: Every job succeeded, or was skipped for a verified reused pass or this event's scope
         env:
           NEEDS: ${{ toJSON(needs) }}
+          LEGS_RUN: ${{ needs.board-bundles.outputs.legs-run }}
         run: >-
           python3 scripts/gate_inputs.py verdict
-          --evidence "$RUNNER_TEMP/board-evidence" --always documents scripts
+          --evidence "$RUNNER_TEMP/board-evidence" --evidence-run "${LEGS_RUN:-$GITHUB_RUN_ID}"
+          --always documents scripts
       #  The board legs' timing runs, each port's latest attempt, held to the
       #  base commit's baselines within each port's tolerance from its noise
       #  study; a difference the candidate's baselines do not record fails.
+      #  Legs taken from a run of this board identity give that run's.
       - name: Every port's cycles against the base commit's baselines
         if: >-
           always() && needs.inputs.outputs.timing == 'true'
-          && needs.inputs.outputs.boards == 'true' && needs.board.result == 'success'
+          && needs.inputs.outputs.boards == 'true' && (needs.board.result == 'success'
+          || needs.board-bundles.outputs.legs-reuse == 'true')
         run: |
           set -eu
           python3 environments/boards/timing.py figures --evidence "$RUNNER_TEMP/board-evidence" \
@@ -3628,7 +3666,8 @@ jobs:
       - name: Keep the cycles figures
         if: >-
           always() && needs.inputs.outputs.timing == 'true'
-          && needs.inputs.outputs.boards == 'true' && needs.board.result == 'success'
+          && needs.inputs.outputs.boards == 'true' && (needs.board.result == 'success'
+          || needs.board-bundles.outputs.legs-reuse == 'true')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: measure-cycles

@@ -57,6 +57,18 @@
     ".bss": 248
    }
   },
+  "x86-64-v1/none-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 266837,
+    ".rodata": 48735,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 864,
+    ".bss": 248
+   }
+  },
   "x86-64-v1/none-all/reverse-complement": {
    "sections": {
     ".text": 115449,
@@ -131,6 +143,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 912,
+    ".bss": 248
+   }
+  },
+  "x86-64-v1/none-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 266837,
+    ".rodata": 48735,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 864,
     ".bss": 248
    }
   },
@@ -211,6 +235,18 @@
     ".bss": 248
    }
   },
+  "x86-64-v1/none-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 266865,
+    ".rodata": 48735,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 864,
+    ".bss": 248
+   }
+  },
   "x86-64-v1/none-off/reverse-complement": {
    "sections": {
     ".text": 115471,
@@ -285,6 +321,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v1/size-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 90191,
+    ".rodata": 36237,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -365,6 +413,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v1/size-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 90191,
+    ".rodata": 36237,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v1/size-auto/reverse-complement": {
    "sections": {
     ".text": 42318,
@@ -439,6 +499,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v1/size-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 90263,
+    ".rodata": 36237,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -519,6 +591,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v1/speed-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 110374,
+    ".rodata": 35948,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v1/speed-all/reverse-complement": {
    "sections": {
     ".text": 47404,
@@ -593,6 +677,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v1/speed-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 110374,
+    ".rodata": 35948,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -673,6 +769,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v1/speed-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 110758,
+    ".rodata": 35948,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v1/speed-off/reverse-complement": {
    "sections": {
     ".text": 47724,
@@ -747,6 +855,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 920,
+    ".bss": 248
+   }
+  },
+  "x86-64-v2/none-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 271229,
+    ".rodata": 49222,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 872,
     ".bss": 248
    }
   },
@@ -827,6 +947,18 @@
     ".bss": 248
    }
   },
+  "x86-64-v2/none-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 271229,
+    ".rodata": 49222,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 872,
+    ".bss": 248
+   }
+  },
   "x86-64-v2/none-auto/reverse-complement": {
    "sections": {
     ".text": 119841,
@@ -901,6 +1033,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 920,
+    ".bss": 248
+   }
+  },
+  "x86-64-v2/none-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 271257,
+    ".rodata": 49222,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 872,
     ".bss": 248
    }
   },
@@ -981,6 +1125,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v2/size-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 91995,
+    ".rodata": 36724,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v2/size-all/reverse-complement": {
    "sections": {
     ".text": 44122,
@@ -1055,6 +1211,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v2/size-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 91995,
+    ".rodata": 36724,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -1135,6 +1303,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v2/size-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 92067,
+    ".rodata": 36724,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v2/size-off/reverse-complement": {
    "sections": {
     ".text": 44187,
@@ -1209,6 +1389,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v2/speed-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 112486,
+    ".rodata": 36379,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -1289,6 +1481,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v2/speed-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 112486,
+    ".rodata": 36379,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v2/speed-auto/reverse-complement": {
    "sections": {
     ".text": 49516,
@@ -1363,6 +1567,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v2/speed-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 112870,
+    ".rodata": 36379,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -1443,6 +1659,18 @@
     ".bss": 248
    }
   },
+  "x86-64-v3/none-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 273614,
+    ".rodata": 49278,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 876,
+    ".bss": 248
+   }
+  },
   "x86-64-v3/none-all/reverse-complement": {
    "sections": {
     ".text": 122419,
@@ -1517,6 +1745,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 924,
+    ".bss": 248
+   }
+  },
+  "x86-64-v3/none-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 273614,
+    ".rodata": 49278,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 876,
     ".bss": 248
    }
   },
@@ -1597,6 +1837,18 @@
     ".bss": 248
    }
   },
+  "x86-64-v3/none-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 273642,
+    ".rodata": 49278,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 876,
+    ".bss": 248
+   }
+  },
   "x86-64-v3/none-off/reverse-complement": {
    "sections": {
     ".text": 122441,
@@ -1671,6 +1923,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v3/size-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 92699,
+    ".rodata": 36780,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -1751,6 +2015,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v3/size-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 92699,
+    ".rodata": 36780,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v3/size-auto/reverse-complement": {
    "sections": {
     ".text": 44844,
@@ -1825,6 +2101,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v3/size-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 92771,
+    ".rodata": 36780,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -1905,6 +2193,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v3/speed-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 113254,
+    ".rodata": 36435,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v3/speed-all/reverse-complement": {
    "sections": {
     ".text": 50284,
@@ -1979,6 +2279,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v3/speed-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 113254,
+    ".rodata": 36435,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -2059,6 +2371,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v3/speed-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 113638,
+    ".rodata": 36435,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v3/speed-off/reverse-complement": {
    "sections": {
     ".text": 50604,
@@ -2133,6 +2457,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 924,
+    ".bss": 248
+   }
+  },
+  "x86-64-v4/none-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 275022,
+    ".rodata": 49335,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 876,
     ".bss": 248
    }
   },
@@ -2213,6 +2549,18 @@
     ".bss": 248
    }
   },
+  "x86-64-v4/none-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 275022,
+    ".rodata": 49335,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 876,
+    ".bss": 248
+   }
+  },
   "x86-64-v4/none-auto/reverse-complement": {
    "sections": {
     ".text": 123827,
@@ -2287,6 +2635,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 924,
+    ".bss": 248
+   }
+  },
+  "x86-64-v4/none-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 275050,
+    ".rodata": 49335,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 876,
     ".bss": 248
    }
   },
@@ -2367,6 +2727,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v4/size-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 93085,
+    ".rodata": 36837,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v4/size-all/reverse-complement": {
    "sections": {
     ".text": 45230,
@@ -2441,6 +2813,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v4/size-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 93085,
+    ".rodata": 36837,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -2521,6 +2905,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v4/size-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 93157,
+    ".rodata": 36837,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v4/size-off/reverse-complement": {
    "sections": {
     ".text": 45295,
@@ -2595,6 +2991,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v4/speed-all/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 113702,
+    ".rodata": 36492,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },
@@ -2675,6 +3083,18 @@
     ".bss": 240
    }
   },
+  "x86-64-v4/speed-auto/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 113702,
+    ".rodata": 36492,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
+    ".bss": 240
+   }
+  },
   "x86-64-v4/speed-auto/reverse-complement": {
    "sections": {
     ".text": 50732,
@@ -2749,6 +3169,18 @@
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 664,
+    ".bss": 240
+   }
+  },
+  "x86-64-v4/speed-off/pidigits": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 114086,
+    ".rodata": 36492,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 240,
+    ".data": 584,
     ".bss": 240
    }
   },

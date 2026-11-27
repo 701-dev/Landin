@@ -3710,13 +3710,33 @@ recorded with the map's share measured.
 
 ### R22.23 — pidigits ported
 
-Status: planned
+Status: complete
 Depends on: R22.13
 
 Gibbons' spigot over R22.13's integers, with no GMP.
 
 Exit evidence: the game's output for 30 digits as a runtime fixture,
 pinned and published as R22.21's are; 10,000 digits timed.
+
+Done: `runtime/benchmark-game-pidigits` runs the game's step-by-step
+spigot over `core/big`, both extractions kept, and prints the game's
+30-digit file byte for byte, its digest pinned in `check.py`; it is in
+`examples.md` and in `workloads.json`'s hosted set, timed at 500 digits.
+10,000 digits, the output equal to Python's, took 9.5 s on the EPYC
+host, 4.5 of them the system's: a product written over an operand above
+64 limbs and every division's scratch each took a block of their own,
+which the hosted heap maps and unmaps. `big.multiply` by one limb now
+works in place and a division takes its scratch from the remainder's
+block (D2735, pinned by `runtime/big-integer-in-place` in an 8 KiB
+arena), and the run takes 4.6 s, 0.02 of it the system's, against 0.49 s
+for the game's C program over GMP; 56% of it is Algorithm D's
+normalizing passes for a quotient of a limb or two, so `SR-1928` is
+restated rather than met. Met on the way and fixed: `compiler/tests/README.md`
+counted twenty-three examples where the gate runs thirty, and `measure.py
+time` refused a hosted workload the base's tree has no fixture for, so the
+commit adding one failed every dispatch's timing; it is now named new.
+Landed on R22.33's train: gate 45932328693, boards 45927672738 and
+45933311148.
 
 ### R22.24 — Tools that say what they need
 
@@ -3939,7 +3959,7 @@ control it names.
 
 ### R22.33 — Boards reused on identical images
 
-Status: planned
+Status: complete
 Depends on: none
 
 A promotion's boards taken from the last passed boards run when every
@@ -3968,6 +3988,25 @@ does not; a dispatch whose images match a passed run's taking it and one
 whose images differ running the legs, both named runs; the nightly run's
 first pass; process.md's "Physical boards and promotion" and AGENTS.md's
 gate paragraph saying the rule.
+
+Done: `board-bundles` writes the board identity as its annotation, digests
+of the bundles' files less what names the tree or the build's clock, of the
+timing bundle when the event times, of the blobs under
+`environments/boards/` and `compiler/tests/board/` with the hardware
+records apart, and of the board jobs' text less comments, and
+`gate_inputs.py legs` takes the legs of a passed run under a week old whose
+identity matches part for part, naming each part that differed (D2774); the
+aggregate reads the taken run's evidence, held to its run id, and compares
+its cycles. The schedule runs daily and leaves out a commit a passed
+schedule run already ran (D2775). Two board-bundles artifacts of different
+commits, runs 45840509189 and 45855853447, give one identity. Boards run
+45893119145 ran every leg and passed; dispatch 45906315984 on the same
+head took its legs and passed in 13 minutes. On the train with R22.23,
+boards 45927672738 refused that run's legs, its harness alone differing,
+and ran them, and 45933311148 on the next commit took 45927672738's legs,
+timing images included; the train's gate is 45932328693. `item.py boards` met no
+`SR-1988` of its own: the item fixes that landed first record a queued
+dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
 

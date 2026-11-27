@@ -1,0 +1,72 @@
+--  Floats are ordered by core/cmp's own evidence, IEEE 754's totalOrder:
+--  a sort of them needs none of the program's, and every bit pattern,
+--  NaNs of both signs and both zeros among them, has its one place.
+import core/cmp
+import core/sort
+
+from_bits_f64: (bits: u64) -> (x: f64) =
+    view: ptr f64 = ptr(usize(addr bits))
+    x = view.val
+end from_bits_f64
+bits_f64: (x: f64) -> (bits: u64) =
+    view: ptr u64 = ptr(usize(addr x))
+    bits = view.val
+end bits_f64
+from_bits_f32: (bits: u32) -> (x: f32) =
+    view: ptr f32 = ptr(usize(addr bits))
+    x = view.val
+end from_bits_f32
+bits_f32: (x: f32) -> (bits: u32) =
+    view: ptr u32 = ptr(usize(addr x))
+    bits = view.val
+end bits_f32
+
+public main: () -> (code: i32) =
+    code = 1
+    --  The order totalOrder gives, as bits: a negative quiet NaN with a
+    --  payload, the negative quiet NaN, a negative signalling NaN,
+    --  negative infinity, -1.5, the least negative subnormal, -0.0, +0.0,
+    --  the least subnormal, 1.0, the largest finite, infinity, a positive
+    --  signalling NaN, the positive quiet NaN.
+    wanted: [14]u64 = [0xfff8000000000001, 0xfff8000000000000,
+                       0xfff0000000000001, 0xfff0000000000000,
+                       0xbff8000000000000, 0x8000000000000001,
+                       0x8000000000000000, 0x0000000000000000,
+                       0x0000000000000001, 0x3ff0000000000000,
+                       0x7fefffffffffffff, 0x7ff0000000000000,
+                       0x7ff0000000000001, 0x7ff8000000000000]
+    shuffle: [14]usize = [7, 12, 0, 9, 3, 13, 5, 10, 1, 6, 11, 2, 8, 4]
+    mut values: [14]f64 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                           0.0, 0.0, 0.0, 0.0]
+    for at in usize(0)..<14 do
+        values[at] = from_bits_f64(wanted[shuffle[at]])
+    end for
+    sort.sort(values[0..<14])
+    for at in usize(0)..<14 do
+        return when bits_f64(values[at]) <> wanted[at]
+    end for
+
+    code = 2
+    wanted_32: [14]u32 = [0xffc00001, 0xffc00000, 0xff800001, 0xff800000,
+                          0xbfc00000, 0x80000001, 0x80000000, 0x00000000,
+                          0x00000001, 0x3f800000, 0x7f7fffff, 0x7f800000,
+                          0x7f800001, 0x7fc00000]
+    mut values_32: [14]f32 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0]
+    for at in usize(0)..<14 do
+        values_32[at] = from_bits_f32(wanted_32[shuffle[at]])
+    end for
+    sort.sort(values_32[0..<14])
+    for at in usize(0)..<14 do
+        return when bits_f32(values_32[at]) <> wanted_32[at]
+    end for
+
+    --  Ordinary numbers sort as `<` orders them.
+    code = 3
+    mut readings: [5]f64 = [2.5, -3.0, 0.125, 1.0e10, -1.0e-10]
+    sort.sort(readings[0..<5])
+    for at in usize(1)..<5 do
+        return when not (readings[at - 1] < readings[at])
+    end for
+    code = 42
+end main

@@ -63,6 +63,11 @@ cannot ask has no pass to point at.
                                     software lanes and the physical boards
     bundles DIR REFINE              write DIR's provenance.json and
                                     files.sha256; print the manifest's sha256
+    identity DIR                    print DIR's board identity, the parts
+                                    the legs' verdict depends on
+    legs WORKFLOW DIR               print legs-reuse, legs-run and legs-from:
+                                    whether a passed run's legs stand in for
+                                    this run's, by DIR's board identity
     verdict [--evidence DIR] [--always JOB ...]
                                     judge the `needs` context in $NEEDS
 
@@ -73,10 +78,25 @@ skipped.  On a board-scope event a skipped, cancelled or failed board job
 fails the gate: missing physical evidence is not a pass.  One pass stands
 in for it (D1647): main's push takes the boards of a passed run of a
 board-scope event on the identical tree, or on a base the explanatory
-rule above accepts, under a week old, every board job run and passed; the
-schedule and a dispatch always run them.  A dispatch's timing jobs are
-left out when a dispatch of the same key on its branch was timed and
-passed (D1649); the schedule always times.
+rule above accepts, under a week old, every board job run and passed.
+The daily schedule takes its boards and timing from a passed schedule run
+of the same commit under a week old, so an unmoved main is not run again
+until the week ends (D2775).  A dispatch's timing jobs are left out when a
+dispatch of the same key on its branch was timed and passed (D1649).
+
+A dispatch, or main's push that found no such run, builds its bundles and
+then takes its board legs from a passed run whose board identity is this
+run's (D2774): `board-bundles` writes the identity as an annotation, and
+`legs` reads the annotations of the passed runs under a week old whose
+legs ran and passed.  The identity is the bytes the legs' verdict depends
+on and nothing that only names the tree: every image, link script and
+report the bundles hold, their metadata less the compiler's and the
+source's digests and the build's own clock; the timing images likewise
+when the event times the boards; the harness the legs run and the
+hardware records the strict build compared against, by their blobs; and
+the text of the board jobs.  The aggregate reads the taken run's leg
+evidence, and on a timed event compares its cycles, as it would its own.
+The schedule always runs its legs.
 """
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -146,6 +166,18 @@ BOARD_PORTS = ("rp2040", "pico2", "stm32h753", "esp32c3", "esp32c5", "esp32",
 #  GITHUB_REPOSITORY_ID: a fork has its own, and a transfer or a rename
 #  keeps it, so the owner's name is written nowhere here.
 BOARD_REPOSITORY_ID = "1349851794"
+#  The board identity's parts (D2774).  The harness is what the legs'
+#  sparse checkout runs, less the library roots it also carries, which
+#  reach a board only through the images; the records are the files the
+#  strict build compares each image with.  Metadata that names the tree or
+#  the build's clock is left out of the bundle files it sits in, by key.
+HARNESS_ROOTS = ("environments/boards/", "compiler/tests/board/")
+RECORDS = re.compile(r"environments/boards/[^/]+/(?:ram-)?record\.json")
+BOARD_WORKFLOW_JOBS = ("board-bundles", "board")
+NAMES_THE_TREE = {"bundle.json": ("compiler_identity", "source_identity"),
+                  "timing.json": ("compiler", "source_identity", "build_seconds")}
+IDENTITY_PARTS = ("images", "harness", "records", "workflow")
+IDENTITY_TITLE = "board identity"
 
 
 def entries(rev, cwd=None):
@@ -435,6 +467,179 @@ def decide_boards(event_name, event, api, key_of, candidate_key_of,
     return False, "; ".join(reasons) or "no recent run passed the boards", ""
 
 
+def decide_unmoved(event_name, sha, api, workflow, now):
+    """(reuse, reason, url): whether the schedule may leave its boards and
+    timing out because main has not moved since a passed schedule run
+    (D2775).
+
+    The run is this repository's schedule run of SHA itself under a week
+    old, successful, whose board jobs and timing legs ran and passed; one
+    that itself left them out never counts, so an unmoved main still runs
+    once a week.
+    """
+    if event_name != "schedule":
+        return False, "only the schedule leaves out an unmoved main", ""
+    runs = api("actions/workflows/%s/runs?event=schedule&status=success&per_page=30"
+               % workflow).get("workflow_runs", [])
+    for run in runs:
+        if run.get("event") != "schedule" or run.get("head_sha") != sha \
+                or not recent_run(run, now) or run.get("conclusion") != "success":
+            continue
+        if passed_jobs(run_jobs(api, run["id"]), board_jobs() + TIMING_LEGS):
+            return True, "main has not moved since %s ran its boards on %s" % (
+                run["html_url"], sha[:12]), run["html_url"]
+    return False, "no passed schedule run under a week old ran %s" % sha[:12], ""
+
+
+def normalised(path, data):
+    """DATA, the bytes of a bundle file at PATH, less what names the tree."""
+    name = path.rsplit("/", 1)[-1]
+    if name in NAMES_THE_TREE:
+        value = json.loads(data)
+        for field in NAMES_THE_TREE[name]:
+            value.pop(field, None)
+        return json.dumps(value, sort_keys=True).encode("utf-8")
+    if name == "commands.json":
+        #  Each command's wall time, the build's own clock.
+        value = [{field: entry[field] for field in entry if field != "seconds"}
+                 for entry in json.loads(data)]
+        return json.dumps(value, sort_keys=True).encode("utf-8")
+    return data
+
+
+def digest_rows(rows):
+    digest = hashlib.sha256()
+    for row in rows:
+        digest.update(row.encode("utf-8", "surrogateescape") + b"\0")
+    return digest.hexdigest()
+
+
+def workflow_jobs_text(text, names=BOARD_WORKFLOW_JOBS):
+    """The lines of each job in NAMES of the workflow TEXT, comments left out.
+
+    A job runs from its `  NAME:` line to the next job's; a line that is
+    only a comment says nothing a runner does.
+    """
+    found, current = {}, None
+    in_jobs = False
+    for line in text.splitlines():
+        if line == "jobs:":
+            in_jobs = True
+            continue
+        if not in_jobs:
+            continue
+        heading = re.fullmatch(r"  ([A-Za-z0-9_-]+):", line)
+        if heading:
+            current = heading[1] if heading[1] in names else None
+            if current is not None:
+                found[current] = []
+        if current is not None and not line.lstrip().startswith("#"):
+            found[current].append(line)
+    missing = [name for name in names if name not in found]
+    if missing:
+        raise ValueError("the workflow has no job %s" % ", ".join(missing))
+    return [line for name in names for line in found[name]]
+
+
+def board_identity(directory, workflow_text, tree_rows):
+    """DIRECTORY's board identity (D2774), a dict of its parts' digests.
+
+    DIRECTORY is board-bundles' output, timing/ under it on a timed event;
+    WORKFLOW_TEXT is gate.yml's; TREE_ROWS are `entries` of the commit.
+    `images` covers every bundle file but provenance.json and files.sha256,
+    which name the run, `timing` the timing bundle's, or None when the
+    event built none; the metadata in them by `normalised`.
+    """
+    directory = Path(directory)
+    images, timing = [], []
+    for path in sorted(directory.rglob("*")):
+        relative = path.relative_to(directory).as_posix()
+        if not path.is_file() or relative in ("provenance.json", "files.sha256"):
+            continue
+        data = normalised(relative, path.read_bytes())
+        row = "%s %s" % (hashlib.sha256(data).hexdigest(), relative)
+        (timing if relative.startswith("timing/") else images).append(row)
+    if not images:
+        raise ValueError("no bundles under %s" % directory)
+    harness, records = [], []
+    for mode, kind, name, path in tree_rows:
+        decoded = path.decode("utf-8", "surrogateescape")
+        if not decoded.startswith(HARNESS_ROOTS):
+            continue
+        row = "%s %s %s %s" % (mode.decode(), kind.decode(), name.decode(), decoded)
+        (records if RECORDS.fullmatch(decoded) else harness).append(row)
+    return {"format": 1, "images": digest_rows(images),
+            "timing": digest_rows(timing) if timing else None,
+            "harness": digest_rows(harness), "records": digest_rows(records),
+            "workflow": digest_rows(workflow_jobs_text(workflow_text))}
+
+
+def identity_differences(ours, theirs):
+    """The parts of the identity THEIRS does not share with OURS.
+
+    When this run built timing images, the other run must have timed the
+    same ones; when it built none, the other run's timing is not read.
+    """
+    if not isinstance(theirs, dict) or theirs.get("format") != ours["format"]:
+        return ["the identity's format"]
+    differ = [part for part in IDENTITY_PARTS if theirs.get(part) != ours[part]]
+    if ours["timing"] is not None and theirs.get("timing") != ours["timing"]:
+        differ.append("timing" if theirs.get("timing") else "timing (it did not time)")
+    return differ
+
+
+def recorded_identity(api, job):
+    """The board identity JOB, a board-bundles job, wrote as an annotation."""
+    for note in api("check-runs/%d/annotations?per_page=50" % job["id"]):
+        if note.get("title") == IDENTITY_TITLE:
+            try:
+                return json.loads(note.get("message", ""))
+            except ValueError:
+                return None
+    return None
+
+
+def decide_legs(event_name, ref, own_run, identity, api, workflow, now):
+    """(reuse, reason, run_id, url): whether this run's board legs may be
+    taken from a passed run of the same board identity (D2774).
+
+    The run is one of this repository's on a board-scope event, under a
+    week old, successful, with board-bundles and every leg run and passed
+    in a complete listing, whose board-bundles recorded an identity whose
+    every part is this run's.  A run that itself took its legs skipped them
+    and is never one.  The schedule always runs its legs.
+    """
+    if event_name == "schedule" or not (event_name == "workflow_dispatch" or (
+            event_name == "push" and ref == "refs/heads/main")):
+        return False, "a %s run always runs its legs" % event_name, "", ""
+    reasons = []
+    for run in board_runs(api, workflow):
+        board_scope = run.get("event") in ("workflow_dispatch", "schedule") or (
+            run.get("event") == "push" and run.get("head_branch") == "main")
+        if str(run["id"]) == str(own_run) or not board_scope \
+                or not recent_run(run, now) or run.get("conclusion") != "success":
+            continue
+        listing = run_jobs(api, run["id"])
+        if not passed_jobs(listing, board_jobs()):
+            reasons.append("run %s did not run and pass every board job" % run["id"])
+            continue
+        bundles = [job for job in listing["jobs"] if job["name"] == "board-bundles"]
+        theirs = recorded_identity(api, bundles[0])
+        if theirs is None:
+            reasons.append("run %s recorded no board identity" % run["id"])
+            continue
+        differ = identity_differences(identity, theirs)
+        if differ:
+            reasons.append("run %s: %s differ" % (run["id"], ", ".join(differ)))
+            continue
+        return True, ("taking the legs of %s, on %s, whose images, harness,"
+                      " records and board jobs are this run's%s" % (
+                          run["html_url"], run["head_sha"][:12],
+                          " and its timing images too" if identity["timing"] else "")
+                      ), str(run["id"]), run["html_url"]
+    return False, "; ".join(reasons) or "no recent run passed the boards", "", ""
+
+
 def timing_base(api, sha):
     """The commit `measure.py base` times SHA against, as main stands now:
     SHA's parent when SHA is main's tip, else its merge base with main."""
@@ -570,7 +775,7 @@ def fetched_candidate_key(rev):
 def scope(event_name, ref, repository_id, event):
     """Whether this event runs the software lanes and the physical boards.
 
-    Boards run on a push to main, the weekly schedule and a manual
+    Boards run on a push to main, the daily schedule and a manual
     dispatch of this repository, never for a pull request or another
     branch: a branch candidate gets boards by a dispatch.  The software
     lanes run unless the event asks for boards alone -- the schedule, or a
@@ -585,19 +790,23 @@ def scope(event_name, ref, repository_id, event):
         event_name == "workflow_dispatch" and requested == "boards")
     timing = event_name in ("schedule", "workflow_dispatch")
     #  Which of those a pass may stand in for: main's boards, by a passed
-    #  boards run of the same tree (D1647), and a dispatch's timing, by a
-    #  timed run of the same key on its branch (D1649).
+    #  boards run of the same tree (D1647); a dispatch's timing, by a timed
+    #  run of the same key on its branch (D1649); the schedule's boards and
+    #  timing, by a passed schedule run of the same commit (D2775); and the
+    #  legs of a dispatch or main's push, by a passed run of the same board
+    #  identity (D2774).
     return {"software": not boards_only, "boards": boards, "timing": timing,
             "scope": "boards" if boards_only else "full",
-            "boards_reusable": boards and event_name == "push",
-            "timing_reusable": timing and event_name == "workflow_dispatch"}
+            "boards_reusable": boards and event_name in ("push", "schedule"),
+            "timing_reusable": timing and event_name in ("workflow_dispatch", "schedule"),
+            "legs_reusable": boards and event_name != "schedule"}
 
 
 def flag(value):
     return "true" if value else "false"
 
 
-def outcomes(directory):
+def outcomes(directory, run_id=None):
     """{port: outcome} from the board legs' evidence artifacts under DIRECTORY.
 
     Each leg uploads one directory named after its port, holding
@@ -608,7 +817,9 @@ def outcomes(directory):
     leaves its earlier attempts' evidence in the run, so each port is judged
     by its latest attempt, the one the job listing reports; two of the same
     attempt are ambiguous.  A port with no transfer.json never started on the
-    rig; one with no outcome stopped before the board tool wrote it.
+    rig; one with no outcome stopped before the board tool wrote it.  With
+    RUN_ID, a leg whose transfer.json names another run is not its evidence:
+    the aggregate reads its own run's legs, or those of the run it took.
     """
     found = {}
     if directory is None:
@@ -632,6 +843,14 @@ def outcomes(directory):
             found[port] = "ambiguous: %d evidence directories of attempt %d" % (
                 len(latest), max(attempts))
             continue
+        if run_id is not None:
+            try:
+                named = str(json.loads(latest[0].read_text(encoding="utf-8"))["run_id"])
+            except (OSError, ValueError, KeyError, TypeError):
+                named = None
+            if named != str(run_id):
+                found[port] = "evidence of run %s, not of run %s" % (named, run_id)
+                continue
         outcome = latest[0].parent / "evidence" / "outcome.json"
         try:
             label = json.loads(outcome.read_text(encoding="utf-8")).get("outcome")
@@ -685,14 +904,25 @@ def verdict(needs, always, expected=None, evidence=None):
             problems.append("inputs says %s=%s, but this event's scope is %s=%s"
                             % (name, said, name, flag(expected[name])))
     software, boards = expected["software"], expected["boards"]
-    if not software and not boards:
+    if not software and not boards and not expected.get("boards_reusable"):
         problems.append("a boards-only event outside repository %s runs no board "
                         "and no software lane, so there is nothing to pass"
                         % BOARD_REPOSITORY_ID)
     reuse = inputs.get("result") == "success" and outputs.get("reuse") == "true"
+    #  board-bundles' word that a passed run of this board identity stands
+    #  in for the legs (D2774), on an event that takes one.
+    bundles = needs.get("board-bundles") or {}
+    taken = (bundles.get("outputs") or {}).get("legs-reuse") == "true"
+    if taken and not (boards and expected.get("legs_reusable")
+                      and bundles.get("result") == "success"):
+        problems.append("board-bundles took its legs from another run on an event"
+                        " that runs its own")
+        taken = False
     for name, job in sorted(needs.items()):
         if name in always:
             wanted = "success"
+        elif name == "board" and taken:
+            wanted = "skipped"
         elif name in PHYSICAL:
             wanted = "success" if boards else "skipped"
         elif name in TIMING:
@@ -732,6 +962,7 @@ def report(needs, problems, expected, evidence):
         lines.append("- software lanes: skipped for a verified reused pass")
     else:
         lines.append("- software lanes: every lane ran")
+    legs = (needs.get("board-bundles") or {}).get("outputs") or {}
     if (inputs.get("outputs") or {}).get("boards-reuse") == "true":
         lines.append("- physical boards: taken from %s, a passed boards run"
                      " of this tree" % (inputs.get("outputs") or {}).get(
@@ -739,7 +970,12 @@ def report(needs, problems, expected, evidence):
     elif not expected["boards"]:
         lines.append("- physical boards: not run for this event")
     else:
-        lines.append("- physical boards, never reused:")
+        if legs.get("legs-reuse") == "true":
+            lines.append("- physical boards: bundles built, legs taken from %s,"
+                         " a passed run of the same board identity:"
+                         % legs.get("legs-from", "an earlier run"))
+        else:
+            lines.append("- physical boards, run here:")
         for port in BOARD_PORTS:
             lines.append("  - board-%s: %s" % (port, (evidence or {}).get(port, "not read")))
     timing = sorted(name for name in needs if name in TIMING)
@@ -834,6 +1070,12 @@ def bundle_provenance(directory, refine, environ, cwd=None):
     return hashlib.sha256(text).hexdigest()
 
 
+def identity_here(directory):
+    """The board identity of DIRECTORY, built from this checkout's commit."""
+    text = Path(".github/workflows/gate.yml").read_text(encoding="utf-8")
+    return board_identity(directory, text, entries("HEAD"))
+
+
 def sha256_file(path):
     digest = hashlib.sha256()
     with open(path, "rb") as stream:
@@ -895,11 +1137,22 @@ def main(argv):
         name = os.environ["GITHUB_EVENT_NAME"]
         now = datetime.now(timezone.utc)
         found = event_scope(os.environ)
+        unmoved = []
+
+        def schedule_unmoved():
+            #  One answer for both: the schedule leaves out its boards and
+            #  its timing together, or runs both (D2775).
+            if not unmoved:
+                unmoved.append(decide_unmoved(name, checkout()[0], github, argv[1], now))
+            return unmoved[0]
+
         for what, wanted, decide_one in (
-                ("boards", found["boards_reusable"], lambda: decide_boards(
+                ("boards", found["boards_reusable"], schedule_unmoved
+                 if name == "schedule" else lambda: decide_boards(
                     name, event, github, fetched_key, fetched_candidate_key,
                     checkout(), argv[1], now)),
-                ("timing", found["timing_reusable"], lambda: decide_timing(
+                ("timing", found["timing_reusable"], schedule_unmoved
+                 if name == "schedule" else lambda: decide_timing(
                     name, os.environ.get("GITHUB_REF_NAME", ""), checkout()[0],
                     github, fetched_key, argv[1], now))):
             reuse, why, url = False, "this event never takes one", ""
@@ -928,15 +1181,45 @@ def main(argv):
     if len(argv) == 3 and argv[0] == "bundles":
         print("manifest=" + bundle_provenance(argv[1], argv[2], os.environ))
         return 0
+    if len(argv) == 2 and argv[0] == "identity":
+        print(json.dumps(identity_here(argv[1]), indent=2))
+        return 0
+    if len(argv) == 3 and argv[0] == "legs":
+        #  The identity is written whatever the decision, so a later run can
+        #  take these legs; any doubt runs them.
+        identity = identity_here(argv[2])
+        print("::notice title=%s::%s" % (IDENTITY_TITLE, json.dumps(
+            identity, sort_keys=True, separators=(",", ":"))), file=sys.stderr)
+        reuse, why, run_id, url = False, "", "", ""
+        try:
+            reuse, why, run_id, url = decide_legs(
+                os.environ["GITHUB_EVENT_NAME"], os.environ.get("GITHUB_REF", ""),
+                os.environ.get("GITHUB_RUN_ID", ""), identity, github, argv[1],
+                datetime.now(timezone.utc))
+        except Unanswered as error:
+            why = "could not ask GitHub, so the legs run (%s)" % error
+        except Exception as error:  # noqa: BLE001 -- doubt runs them
+            why = "%s: %s" % (type(error).__name__, error)
+        print("gate_inputs: legs: " + why, file=sys.stderr)
+        if os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
+                stream.write("## board legs: %s\n\n%s\n" % (
+                    "taken" if reuse else "run here", why))
+        print("legs-reuse=" + flag(reuse))
+        print("legs-run=" + run_id)
+        print("legs-from=" + url)
+        return 0
     if argv[:1] == ["verdict"]:
-        rest, directory = argv[1:], None
+        rest, directory, run_id = argv[1:], None, None
         if rest[:1] == ["--evidence"] and len(rest) >= 2:
             directory, rest = rest[1], rest[2:]
+        if rest[:1] == ["--evidence-run"] and len(rest) >= 2:
+            run_id, rest = rest[1], rest[2:]
         if rest[:1] in ([], ["--always"]):
             always = ("inputs",) + tuple(rest[1:])
             needs = json.loads(os.environ["NEEDS"])
             expected = event_scope(os.environ) if "GITHUB_EVENT_PATH" in os.environ else None
-            evidence = outcomes(directory) if directory is not None else None
+            evidence = outcomes(directory, run_id) if directory is not None else None
             problems = verdict(needs, always, expected, evidence)
             for name, job in sorted(needs.items()):
                 print("%s: %s" % (name, job.get("result")))
@@ -951,8 +1234,8 @@ def main(argv):
             return 1 if problems else 0
     print("usage: gate_inputs.py key [REV] | same A B"
           " | reuse WORKFLOW JOB ... | physical WORKFLOW | scope"
-          " | bundles DIR REFINE"
-          " | verdict [--evidence DIR] [--always JOB ...]",
+          " | bundles DIR REFINE | identity DIR | legs WORKFLOW DIR"
+          " | verdict [--evidence DIR] [--evidence-run RUN] [--always JOB ...]",
           file=sys.stderr)
     return 2
 

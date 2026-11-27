@@ -30561,8 +30561,10 @@ unpushed tree; or automatically refreshing a hardware record from a build.
 
 ### D904 — Physical boards run in the gate on trusted events only, and their evidence is never reused
 
-**Superseded in part by D1647:** a push to `main` takes its boards from a
-passed run of the same tree instead of running them again.
+**Superseded in part by D1647, D2774 and D2775:** a push to `main` takes its
+boards from a passed run of the same tree instead of running them again, a
+dispatch and `main`'s push take their legs from a passed run of the same
+board identity, and the schedule runs daily.
 
 **The tour said** nothing about where physical evidence comes from; D901
 and D902 made boot checks and RAM runs the closing evidence of a board
@@ -30620,6 +30622,11 @@ verdict; and `scripts/tests/test_board_gate.py`'s `Sequence`.
 
 ### D1647 — Main's push takes its boards from a passed run of the same tree
 
+**Superseded in part by D2774 and D2775:** a dispatch, and `main`'s push on
+another tree, take their board legs from a passed run of the same board
+identity, and the schedule runs daily and leaves out a commit it already
+ran.
+
 **The tour said** nothing. D904 ran the boards fresh on every push to
 `main` and listed reusing a candidate's board evidence at promotion among
 its alternatives without a reason. In the 3.4 days surveyed on 2026-11-20,
@@ -30658,7 +30665,84 @@ difference.
 
 **Pinned by** `scripts/tests/test_gate_inputs.py`'s `BoardsReuse` cases and
 `BoardVerdict`'s `test_a_main_push_may_take_its_boards_from_a_passed_run`
-and `test_a_dispatch_or_the_schedule_never_takes_boards`.
+and `test_a_dispatch_never_takes_boards`.
+
+### D2774 — Board legs are taken from a passed run of the same board identity
+
+**The tour said** nothing. D904 ran every leg on every board-scope event
+and D1647 let `main`'s push take a passed run of the identical tree. The
+gate-time study of 2026-11-26 found 31 of the 39 boards runs from
+2026-11-20 ran boot, RAM and timing images byte-identical to the passed run
+before them, 23 of those with the board harness and the whole workflow
+unchanged too, while the rig, one leg at a time, was busy seven to eleven
+hours a day and found two defects in about 270 runs, both in its own
+harness. The maintainer accepted reuse on byte-identical images and inputs
+that day.
+
+**Chosen:** `board-bundles` still builds every bundle on a board-scope
+event, strict against the hardware records, and then writes its board
+identity as an annotation titled `board identity`: digests of every file
+the bundles hold but `provenance.json` and `files.sha256`, with
+`bundle.json` read without its compiler and source identities; the timing
+bundle's files likewise, `timing.json` without its compiler, source identity
+and build time and `commands.json` without each command's seconds, or none
+when the event builds no timing images; the blobs and modes of every file
+under `environments/boards/` and `compiler/tests/board/` but the hardware
+records, which are a part of their own; and the text of the `board-bundles`
+and `board` jobs less their comment lines. A dispatch, or `main`'s push
+that D1647 does not cover, skips its legs when a run of `gate.yml` in this
+repository on a board-scope event, under a week old and successful, ran and
+passed `board-bundles` and every leg in a complete listing and recorded an
+identity whose every part is this run's, its timing part too when this run
+times. The aggregate downloads that run's leg evidence, holds every leg's
+`transfer.json` to its run id, requires every port `passed`, compares its
+cycles with this tree's base when the event times the boards, and names the
+run in its summary. A run that took its legs is never a source, and the
+schedule always runs its own.
+
+**The reason:** a leg's verdict is a function of the bytes it loads, the
+harness that loads and judges them and the rig; the identity holds the
+first two exactly and leaves out only what names the commit or the build's
+clock, so a run taken is evidence of the same inputs on the rig at most a
+week ago, which the daily schedule (D2775) and every dispatch with new
+images keep sampling. The library roots the legs' checkout also carries
+reach a board only through the images, so they are not part of it.
+
+**The alternatives:** hashing `files.sha256`, which names the commit
+through `bundle.json` and so never repeats; keying by the gate's tree key,
+which changes with any source file and so reuses no more than D1647; the
+library roots in the harness part, which a change to an unrelated module
+would break; storing the identity as an artifact, which the reading run
+would have to download for every candidate; and boards on a schedule
+alone, which turns `main` red a day after the candidate that broke them.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Identity`,
+`LegsReuse` and `LegsVerdict` cases.
+
+### D2775 — The schedule runs the boards daily, and an unmoved main weekly
+
+**The tour said** nothing; D904 ran the boards weekly on `main`, and D1647
+listed a daily schedule among its alternatives. With legs taken by identity
+(D2774) a board or probe that degrades would show only when the images
+change; the maintainer's rhythm of 2026-11-26 runs the complete evidence on
+`main` once a day when it moved.
+
+**Chosen:** the schedule fires at 04:00 UTC every day. Its `inputs` job
+leaves out its boards and its timing together when a schedule run of the
+same commit under a week old succeeded with every board job and timing leg
+run and passed, and the aggregate accepts that on the schedule and names
+the run. A schedule run never takes its legs by identity.
+
+**The reason:** a day bounds how long a degraded board goes unseen while
+work lands; an unmoved `main` has nothing new to test, and the week bound
+still samples an idle rig once a week, as before.
+
+**The alternatives:** a daily run whatever main did, which spends a rig
+hour a day on a tree already tested; and keeping the weekly run, which
+leaves a degraded board unseen for days now that dispatches take legs.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Unmoved` cases and
+`BoardVerdict`'s `test_an_unmoved_schedule_takes_its_boards_and_timing_together`.
 
 ### D905 — A board run reports one outcome, stops cleanly when cancelled, and shares one rig state
 
@@ -42334,6 +42418,16 @@ and for a host string is not defined.
 `runtime/core-mem-blocks`, `runtime/tree-copy`,
 `runtime/directory-listing` and `runtime/library-builtin-evidence`.
 
+### D2815 — `f32` and `f64` are `cmp.ordered` by IEEE 754's totalOrder
+
+**The tour said** at [1280] that a type has one evidence for a concept and no override, and `cmp.ordered`'s `less` must be a strict weak order. IEEE's `<` is not one once a NaN is among the values, so floats had no evidence and a sort of them declared its own.
+
+**Chosen:** the maintainer's answer: `core/cmp` declares `f32 is ordered` and `f64 is ordered` by IEEE 754's totalOrder, a strict order of every bit pattern: negative NaNs, a larger payload first, negative infinity, the negative numbers, -0.0, +0.0, the positive numbers, infinity, and positive NaNs, a larger payload last. It agrees with `<` on every pair of numbers except the two zeros, so a sort of measurements is the order a reader expects and a NaN has one place, at an end. `less` reads each float's bits through its address and compares keys as unsigned integers: a negative float's bits inverted, a positive one's sign bit set. Another order goes on a distinct type, as for an integer.
+
+**The alternatives:** no evidence, a program declaring a distinct type with the order it wants; and evidence by `<`, valid only where no NaN is sorted, which breaks the concept's own requirement on the values a float can hold.
+
+**Pinned by** `runtime/cmp-float-total-order`, which sorts NaNs of both signs, quiet and signalling, the infinities, both zeros, subnormals and ordinary numbers at both widths on every hosted target and on Cortex-M0.
+
 ### D353 — The hosted provider maps a path's errno, opens and closes once
 
 **The tour said** nothing of the providers' insides, and D297 wrote the
@@ -46244,12 +46338,21 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The tour said** nothing; `LICENSE` says that linking `core/*` places no condition on a program. The roadmap names musl's and FreeBSD's msun and CORE-MATH as sources.
 
-**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. It is the default of a question the maintainer has not yet answered.
+**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. The maintainer kept it, and D2814 makes its condition the rule for all of `core/*`.
 
 **The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
 
 **Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.
 
+### D2814 — Third-party code enters `core/*` only under terms that ask no more than a notice kept with its source
+
+**The tour said** nothing; `LICENSE` says that compiling a program places no licensing condition on it, and neither does linking `core/*` into it. D2554 kept that promise for `core/math` and `core/unicode`'s tables kept it by the same reading, each as the default of a question.
+
+**Chosen:** the maintainer's rule: material from outside the project enters `core/*` only under terms whose sole condition is a notice kept with the source, and that ask nothing of a program that links it: no notice in its documentation, no attribution at run time, no licence of its own. The notice stays in the files that hold the material, and `LICENSE` names each such source among its third-party material without changing its promise. `core/math`'s msun code under Sun's notice and `core/unicode`'s tables, generated from the Unicode Character Database, whose notice is `core/unicode/LICENSE.unicode` and is named in the header of `tables.ldn`, are the two today: a compiled program carries the tables' values, not the Data Files. Code under terms that ask more, BSD-2-Clause's notice in a binary's documentation or MIT's notice with substantial portions, is written here from the mathematics or the standard instead.
+
+**The alternatives:** admitting BSD and MIT sources with a notice every linking program reproduces, which would add an obligation for the project's users, and which the maintainer refused; and porting nothing, which replaces measured code with new code for no licensing gain.
+
+**Pinned by** `LICENSE`'s list of third-party material, the notice in `core/math/math.ldn` and each `core/math` file's opening comment naming the msun files it ports, and `core/unicode/LICENSE.unicode` named in `tables.ldn`'s header.
 ### D2594 — `core/big` keeps a number in 32-bit limbs on every target, in two layers
 
 **The tour said** nothing about numbers wider than `u64`, and D237 left `u128` out of the language. The roadmap asks for arbitrary precision in two layers: one over the caller's limbs with no allocator, as GMP's `mpn` is, for firmware and a parser that may not allocate, and one that grows through the caller's allocator.
@@ -46329,6 +46432,16 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** Toom-4 and FFT multiplication, which the roadmap leaves out; and divide-and-conquer division now, which no consumer in the repository reaches at the lengths where it wins.
 
 **Pinned by** `runtime/big-limbs`'s drawn products and quotients, at lengths on either side of each threshold and with operands of all one bits, and compiler/tests/big/README.md's timing.
+
+### D2735 — A `core/big` product by one limb, and a division's scratch, take no block a step
+
+**The tour said** that arenas are the idiom [1360]; D2595 worked a result written over an operand out on the stack up to 64 limbs and apart above, and D2596 kept a looping routine's temporaries, which left the public routines themselves taking a block a call.
+
+**Chosen:** `big.multiply` of a value by an integer of one limb is one pass of the limb layer's `multiply_limb`, in place when the destination is the long operand, so `x = x * k` takes nothing from the allocator but `x`'s growth at any length. A division into results that are not its operands takes its scratch from the remainder's block, past the limbs it keeps, which the division reserves for it, so a loop dividing into the same quotient and remainder allocates only while they grow; the remainder keeps a block as long as the numerator and twice the divisor in consequence. pidigits' 10,000 digits took 9.5 s, 4.5 of them in the system's mapping and unmapping of a block a step, before this, and 4.6 s, 0.02 in the system, after, on the host of compiler/tests/big/README.md.
+
+**The alternatives:** a public room parameter, `divide_with`'s, on every division, which would put the layer's bookkeeping into every caller's signature as D2596 declined; and leaving it to the caller to multiply into a value of its own and exchange the handles, which `core/big` gives no public routine for.
+
+**Pinned by** `runtime/big-integer-in-place`, which multiplies a hundred-limb value by one limb in place and divides it by that limb a thousand times in an 8 KiB arena, and which runs out of the arena without either change; and `runtime/benchmark-game-pidigits`.
 
 ### D2614 — `core/unicode`'s tables are generated from a pinned database into multi-stage tables a program links only in part
 

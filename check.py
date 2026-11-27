@@ -235,6 +235,8 @@ RUNNING_EXAMPLES = [
      "main.ldn"),
     ("Benchmark Game binary-trees",
      "compiler/tests/fixtures/runtime/benchmark-game-binary-trees/main.ldn"),
+    ("Benchmark Game pidigits",
+     "compiler/tests/fixtures/runtime/benchmark-game-pidigits/main.ldn"),
 ]
 
 #  A firmware example is a program a reader copies too, and no host runs
@@ -259,7 +261,7 @@ READING_EXAMPLES = {"Word count", "Line numbers",
 ARGUMENT_EXAMPLES = {"Adding up the arguments",
                      "Benchmark Game fannkuch-redux",
                      "Benchmark Game Mandelbrot", "Benchmark Game FASTA",
-                     "Benchmark Game binary-trees"}
+                     "Benchmark Game binary-trees", "Benchmark Game pidigits"}
 
 #  A routine a published example shares with the fixtures that run it where
 #  the example cannot: the same declarations, byte for byte, in each.
@@ -304,6 +306,8 @@ BENCHMARK_GAME_ORACLES = {
         "549dcdcc7df2685145e6cbdfd682469bd9c12ff1beec93c270f8ba447acd4855",
     "compiler/tests/fixtures/runtime/benchmark-game-binary-trees/output.txt":
         "b7f92c56b5d8aeb0a4d698842d1d87a57b4909865c3c84e5e10313e16663c3cb",
+    "compiler/tests/fixtures/runtime/benchmark-game-pidigits/output.txt":
+        "dbf95cc20ad23ff1a385d30436f0c63b5ae7f41bb1003cf204f5e4888b74a39c",
 }
 
 #  Every word the language reserves. Kept here rather than imported from
@@ -11038,8 +11042,9 @@ PROCESS_SECTION_BUDGETS = {
     #  when the token waited for a passed gate and branches that are no
     #  item rode trains, beside main's flake-tools row of the same day;
     #  and again when the failure causes and the selection in shadow
-    #  joined it.
-    "The mechanical gate": 55500,
+    #  joined it, and when board legs taken by identity and the daily
+    #  schedule did.
+    "The mechanical gate": 58000,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

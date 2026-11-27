@@ -1161,6 +1161,7 @@ def gate_closure(workflow):
 
 
 TIMING_IF = "needs.inputs.outputs.timing == 'true'"
+LEGS_IF = "needs.board-bundles.outputs.legs-reuse != 'true'"
 
 
 def scope_gaps(workflow):
@@ -1179,6 +1180,10 @@ def scope_gaps(workflow):
             if condition != TIMING_IF:
                 gaps.append("%s: a timing job runs by the timing scope alone" % identity)
         elif identity in gate_inputs.PHYSICAL:
+            #  The legs alone may skip, and only for board-bundles' word that
+            #  a passed run of their board identity stands in (D2774).
+            if identity == "board":
+                condition = condition.replace(" && " + LEGS_IF, "", 1)
             if BOARDS_IF not in condition or "reuse" in condition or "software" in condition:
                 gaps.append("%s: a physical job runs by the boards scope alone" % identity)
             if "secrets." in text:
@@ -1365,7 +1370,7 @@ class Physical(unittest.TestCase):
 
     def test_the_events_and_their_concurrency(self):
         head = self.source.split("\njobs:\n", 1)[0]
-        self.assertIn("    - cron: '0 4 * * 1'", head)
+        self.assertIn("    - cron: '0 4 * * *'", head)
         self.assertIn("        options: [full, boards]\n        default: full", head)
         self.assertIn("cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}", head)
         self.assertIn("format('main-{0}', github.run_id)", head)
@@ -1474,11 +1479,19 @@ class BoardVerdict(unittest.TestCase):
         needs["inputs"]["outputs"]["boards-reuse"] = "false"
         self.assertTrue(gate_inputs.verdict(needs, self.ALWAYS, self.MAIN, {}))
 
-    def test_a_dispatch_or_the_schedule_never_takes_boards(self):
-        for scope in (self.BOARDS, self.SCHEDULE):
-            with self.subTest(scope=scope["scope"]):
-                needs = self.reused(scope, "boards", "true", timing="skipped")
-                self.assertTrue(gate_inputs.verdict(needs, self.ALWAYS, scope, {}))
+    def test_a_dispatch_never_takes_boards(self):
+        needs = self.reused(self.BOARDS, "boards", "true", timing="skipped")
+        self.assertTrue(gate_inputs.verdict(needs, self.ALWAYS, self.BOARDS, {}))
+
+    def test_an_unmoved_schedule_takes_its_boards_and_timing_together(self):
+        """D2775: the schedule leaves both out on a commit a passed
+        schedule run ran; either alone is missing evidence."""
+        needs = self.reused(self.SCHEDULE, "boards", "true", timing="skipped")
+        self.assertTrue(gate_inputs.verdict(needs, self.ALWAYS, self.SCHEDULE, {}))
+        needs["inputs"]["outputs"].update({"timing": "false", "timing-reuse": "true"})
+        self.assertEqual(gate_inputs.verdict(needs, self.ALWAYS, self.SCHEDULE, {}), [])
+        needs["inputs"]["outputs"]["boards-reuse"] = "false"
+        self.assertTrue(gate_inputs.verdict(needs, self.ALWAYS, self.SCHEDULE, {}))
 
     def test_a_dispatch_may_take_its_timing_from_a_timed_run(self):
         needs = self.reused(self.BOARDS, "timing", "true", boards="success",
@@ -1487,10 +1500,6 @@ class BoardVerdict(unittest.TestCase):
                                              PASSED), [])
         self.assertIn("- timing: taken from https://example/run/9",
                       gate_inputs.report(needs, [], self.BOARDS, PASSED))
-        needs = self.reused(self.SCHEDULE, "timing", "true", boards="success",
-                            timing="skipped")
-        self.assertTrue(gate_inputs.verdict(needs, self.ALWAYS, self.SCHEDULE,
-                                            PASSED))
 
     def test_a_main_push_with_every_board_passed(self):
         self.assertEqual(self.verdict(self.MAIN, "success", "success"), [])
@@ -1686,6 +1695,381 @@ class Outcomes(unittest.TestCase):
         found = gate_inputs.outcomes(self.root / "absent")
         self.assertEqual(set(found), set(gate_inputs.BOARD_PORTS))
         self.assertTrue(all(label.startswith("no evidence") for label in found.values()))
+
+
+class Identity(unittest.TestCase):
+    """D2774: the board identity is every byte the legs' verdict depends on,
+    and an image, the harness, a record or the board jobs' text each breaks
+    it, while what only names another commit does not."""
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root)
+        self.bundles = self.root / "bundles"
+        for board, mode in (("rp2040", "boot"), ("rp2040", "ram")):
+            directory = self.bundles / board / mode
+            directory.mkdir(parents=True)
+            (directory / "board.elf").write_bytes(b"image " + mode.encode())
+            (directory / "board.elf.ld").write_text("MEMORY {}\n")
+            (directory / "build.json").write_text('{"crc": 1}\n')
+            (directory / "bundle.json").write_text(json.dumps({
+                "board": board, "mode": mode, "files": {"elf": {"sha256": "e"}},
+                "compiler_identity": {"sha256": "c1"},
+                "source_identity": {"sha256": "s1", "files": {"core/a.ldn": "1"}}}))
+        (self.bundles / "summary.json").write_text("[]\n")
+        (self.bundles / "provenance.json").write_text('{"commit": "a", "run_id": "1"}')
+        (self.bundles / "files.sha256").write_text("x  provenance.json\n")
+        self.tree = [(b"100644", b"blob", b"1" * 40, b"environments/boards/gate.py"),
+                     (b"100644", b"blob", b"2" * 40, b"environments/boards/rp2040/record.json"),
+                     (b"100644", b"blob", b"3" * 40, b"compiler/tests/board/rp2040/app/main.ldn"),
+                     (b"100644", b"blob", b"4" * 40, b"core/io/io.ldn"),
+                     (b"100644", b"blob", b"5" * 40, b"README.md")]
+        self.workflow = GATE.read_text()
+        self.base = self.identity()
+
+    def identity(self):
+        return gate_inputs.board_identity(self.bundles, self.workflow, self.tree)
+
+    def timing(self, seconds="1.0", compiler="c1"):
+        timing = self.bundles / "timing"
+        (timing / "images/rp2040").mkdir(parents=True, exist_ok=True)
+        (timing / "images/rp2040/sieve.elf").write_bytes(b"timed")
+        (timing / "timing.json").write_text(json.dumps({
+            "format": "landin-board-timing-1", "boards": {"rp2040": {"images": []}},
+            "source_identity": "s1", "compiler": {"sha256": compiler},
+            "build_seconds": seconds}))
+        (timing / "commands.json").write_text(json.dumps([
+            {"name": "compile-rp2040", "argv": ["refine"], "seconds": float(seconds)}]))
+
+    def differ(self):
+        return gate_inputs.identity_differences(self.base, self.identity())
+
+    def test_the_parts(self):
+        self.assertEqual(set(self.base), {"format", "timing"} | set(gate_inputs.IDENTITY_PARTS))
+        self.assertIsNone(self.base["timing"])
+        self.assertEqual(self.differ(), [])
+
+    def test_an_image_or_a_link_script_breaks_it(self):
+        for name in ("board.elf", "board.elf.ld", "build.json"):
+            with self.subTest(name=name):
+                path = self.bundles / "rp2040/ram" / name
+                saved = path.read_bytes()
+                path.write_bytes(saved + b"!")
+                self.assertEqual(self.differ(), ["images"])
+                path.write_bytes(saved)
+        (self.bundles / "rp2040/ram/extra.bin").write_bytes(b"")
+        self.assertEqual(self.differ(), ["images"])
+
+    def test_what_a_bundle_says_beyond_the_tree_breaks_it(self):
+        path = self.bundles / "rp2040/boot/bundle.json"
+        value = json.loads(path.read_text())
+        value["files"]["elf"]["sha256"] = "f"
+        path.write_text(json.dumps(value))
+        self.assertEqual(self.differ(), ["images"])
+
+    def test_the_harness_breaks_it(self):
+        self.tree[0] = self.tree[0][:2] + (b"9" * 40,) + self.tree[0][3:]
+        self.assertEqual(self.differ(), ["harness"])
+        self.tree[0] = (b"100755",) + self.tree[0][1:]
+        self.assertEqual(self.differ(), ["harness"])
+
+    def test_a_board_source_is_harness(self):
+        self.tree[2] = self.tree[2][:2] + (b"9" * 40,) + self.tree[2][3:]
+        self.assertEqual(self.differ(), ["harness"])
+
+    def test_a_record_breaks_it(self):
+        self.tree[1] = self.tree[1][:2] + (b"9" * 40,) + self.tree[1][3:]
+        self.assertEqual(self.differ(), ["records"])
+        self.tree.append((b"100644", b"blob", b"6" * 40,
+                          b"environments/boards/rp2040/ram-record.json"))
+        self.assertEqual(self.differ(), ["records"])
+
+    def test_the_board_jobs_text_breaks_it(self):
+        for job, line in (("board-bundles", "--mode=both --records=strict --output"),
+                          ("board", "      max-parallel: 1")):
+            with self.subTest(job=job):
+                self.workflow = GATE.read_text()
+                self.assertEqual(self.workflow.count(line), 1)
+                self.workflow = self.workflow.replace(line, line + "0")
+                self.assertEqual(self.differ(), ["workflow"])
+
+    def test_what_names_another_commit_does_not(self):
+        path = self.bundles / "rp2040/boot/bundle.json"
+        value = json.loads(path.read_text())
+        value["compiler_identity"]["sha256"] = "c2"
+        value["source_identity"] = {"sha256": "s2", "files": {"core/a.ldn": "2"}}
+        path.write_text(json.dumps(value, indent=3))
+        (self.bundles / "provenance.json").write_text('{"commit": "b", "run_id": "2"}')
+        (self.bundles / "files.sha256").write_text("y  provenance.json\n")
+        #  The library sources reach a board through its images alone, and
+        #  the rest of the tree not at all.
+        self.tree[3] = self.tree[3][:2] + (b"9" * 40,) + self.tree[3][3:]
+        self.tree[4] = self.tree[4][:2] + (b"9" * 40,) + self.tree[4][3:]
+        #  Another job's text, and a comment in the board jobs.
+        self.workflow = self.workflow.replace(
+            "  board-bundles:\n", "  board-bundles:\n    # a comment\n", 1).replace(
+            "    timeout-minutes: 30\n", "    timeout-minutes: 31\n", 1)
+        self.assertEqual(self.differ(), [])
+
+    def test_the_timing_images_are_their_own_part(self):
+        self.timing()
+        self.base = self.identity()
+        self.assertIsNotNone(self.base["timing"])
+        self.timing(seconds="9.5", compiler="c2")
+        self.assertEqual(self.differ(), [])
+        (self.bundles / "timing/images/rp2040/sieve.elf").write_bytes(b"other")
+        self.assertEqual(self.differ(), ["timing"])
+
+    def test_a_timed_run_takes_only_timed_legs_and_an_untimed_one_any(self):
+        untimed = dict(self.base)
+        self.timing()
+        timed = self.identity()
+        self.assertEqual(gate_inputs.identity_differences(timed, untimed),
+                         ["timing (it did not time)"])
+        self.assertEqual(gate_inputs.identity_differences(untimed, timed), [])
+        self.assertEqual(gate_inputs.identity_differences(untimed, {"format": 2}),
+                         ["the identity's format"])
+
+    def test_the_board_jobs_are_read_from_the_workflow(self):
+        lines = gate_inputs.workflow_jobs_text(GATE.read_text())
+        self.assertEqual(lines[0], "  board-bundles:")
+        self.assertIn("  board:", lines)
+        self.assertNotIn("  gate:", lines)
+        self.assertFalse([line for line in lines if line.lstrip().startswith("#")])
+        with self.assertRaises(ValueError):
+            gate_inputs.workflow_jobs_text("jobs:\n  board:\n    runs-on: x\n")
+
+    def test_the_identity_of_a_real_checkout(self):
+        """`identity` reads this checkout's tree and workflow."""
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts/gate_inputs.py"), "identity",
+             str(self.bundles)], cwd=ROOT, stdout=subprocess.PIPE, text=True,
+            check=True, timeout=HANG)
+        found = json.loads(result.stdout)
+        self.assertEqual(found["images"], self.base["images"])
+        self.assertEqual(len(found["harness"]), 64)
+
+
+class LegsReuse(unittest.TestCase):
+    """D2774: a dispatch or main's push takes its legs from a passed run of
+    the same board identity, and only from one that ran them."""
+
+    IDENTITY = {"format": 1, "images": "i", "timing": None, "harness": "h",
+                "records": "r", "workflow": "w"}
+
+    def setUp(self):
+        self.run = {"id": 7, "head_sha": BASE, "event": "workflow_dispatch",
+                    "head_branch": "topic", "conclusion": "success",
+                    "html_url": "https://example/run/7",
+                    "run_started_at": (NOW - timedelta(days=1)).isoformat()}
+        self.jobs = [{"name": name, "conclusion": "success", "id": 100 + n}
+                     for n, name in enumerate(gate_inputs.board_jobs())]
+        self.theirs = dict(self.IDENTITY)
+        self.ours = dict(self.IDENTITY)
+        self.event_name, self.ref = "workflow_dispatch", "refs/heads/other"
+        self.asked = []
+
+    def api(self, path):
+        self.asked.append(path)
+        if path.startswith("actions/workflows/"):
+            return {"workflow_runs": [self.run]}
+        if path.startswith("actions/runs/7/jobs"):
+            return {"total_count": len(self.jobs), "jobs": self.jobs}
+        if path.startswith("check-runs/100/annotations"):
+            notes = [{"title": "other", "message": "x"}]
+            if self.theirs is not None:
+                notes.append({"title": gate_inputs.IDENTITY_TITLE,
+                              "message": json.dumps(self.theirs)})
+            return notes
+        raise AssertionError(path)
+
+    def decide(self):
+        return gate_inputs.decide_legs(self.event_name, self.ref, 8, self.ours,
+                                       self.api, "gate.yml", NOW)
+
+    def test_a_dispatch_of_the_same_identity_takes_the_legs(self):
+        reuse, why, run, url = self.decide()
+        self.assertTrue(reuse, why)
+        self.assertEqual((run, url), ("7", "https://example/run/7"))
+        self.assertIn("taking the legs of https://example/run/7", why)
+
+    def test_mains_push_takes_them_too(self):
+        self.event_name, self.ref = "push", "refs/heads/main"
+        self.assertTrue(self.decide()[0])
+
+    def test_the_schedule_and_a_branch_push_never_take_them(self):
+        for name, ref in (("schedule", "refs/heads/main"), ("push", "refs/heads/topic"),
+                          ("pull_request", "refs/pull/1/merge")):
+            with self.subTest(event=name):
+                self.event_name, self.ref = name, ref
+                self.assertFalse(self.decide()[0])
+
+    def test_each_part_that_differs_runs_the_legs_and_is_named(self):
+        for part in gate_inputs.IDENTITY_PARTS:
+            with self.subTest(part=part):
+                self.theirs = dict(self.IDENTITY, **{part: "other"})
+                reuse, why, run, _ = self.decide()
+                self.assertFalse(reuse)
+                self.assertEqual(run, "")
+                self.assertIn("run 7: %s differ" % part, why)
+
+    def test_a_timed_run_needs_the_same_timing_images(self):
+        self.ours["timing"] = "t"
+        self.assertFalse(self.decide()[0])
+        self.theirs["timing"] = "u"
+        self.assertFalse(self.decide()[0])
+        self.theirs["timing"] = "t"
+        self.assertTrue(self.decide()[0])
+
+    def test_a_run_that_did_not_run_every_leg_is_no_source(self):
+        for index in range(len(self.jobs)):
+            with self.subTest(job=self.jobs[index]["name"]):
+                saved = list(self.jobs)
+                self.jobs[index] = dict(self.jobs[index], conclusion="skipped")
+                reuse, why, _, _ = self.decide()
+                self.assertFalse(reuse)
+                self.assertIn("did not run and pass every board job", why)
+                self.jobs = saved
+
+    def test_a_run_without_an_identity_old_failed_or_its_own_is_none(self):
+        self.theirs = None
+        self.assertIn("recorded no board identity", self.decide()[1])
+        self.theirs = dict(self.IDENTITY)
+        self.run["run_started_at"] = (NOW - timedelta(days=8)).isoformat()
+        self.assertFalse(self.decide()[0])
+        self.run["run_started_at"] = (NOW - timedelta(days=1)).isoformat()
+        self.run["conclusion"] = "failure"
+        self.assertFalse(self.decide()[0])
+        self.run["conclusion"] = "success"
+        self.assertTrue(gate_inputs.decide_legs(
+            self.event_name, self.ref, 8, self.ours, self.api, "gate.yml", NOW)[0])
+        self.assertFalse(gate_inputs.decide_legs(
+            self.event_name, self.ref, 7, self.ours, self.api, "gate.yml", NOW)[0])
+
+    def test_a_branch_push_run_is_no_source(self):
+        self.run.update(event="push", head_branch="topic")
+        self.assertFalse(self.decide()[0])
+
+
+class Unmoved(unittest.TestCase):
+    """D2775: the daily schedule leaves out a commit it ran and passed."""
+
+    def setUp(self):
+        self.run = {"id": 5, "head_sha": HEAD, "event": "schedule",
+                    "head_branch": "main", "conclusion": "success",
+                    "html_url": "https://example/run/5",
+                    "run_started_at": (NOW - timedelta(days=1)).isoformat()}
+        self.jobs = [{"name": name, "conclusion": "success"}
+                     for name in gate_inputs.board_jobs() + gate_inputs.TIMING_LEGS]
+
+    def api(self, path):
+        if path.startswith("actions/workflows/"):
+            self.assertIn("event=schedule", path)
+            return {"workflow_runs": [self.run]}
+        if path.startswith("actions/runs/5/jobs"):
+            return {"total_count": len(self.jobs), "jobs": self.jobs}
+        raise AssertionError(path)
+
+    def decide(self, event="schedule", sha=HEAD):
+        return gate_inputs.decide_unmoved(event, sha, self.api, "gate.yml", NOW)[0]
+
+    def test_an_unmoved_main_is_left_out(self):
+        self.assertTrue(self.decide())
+
+    def test_a_moved_main_runs(self):
+        self.assertFalse(self.decide(sha=MAIN))
+
+    def test_only_the_schedule_and_only_a_run_that_ran_its_legs(self):
+        self.assertFalse(self.decide(event="workflow_dispatch"))
+        self.jobs[1]["conclusion"] = "skipped"
+        self.assertFalse(self.decide())
+
+    def test_a_week_old_run_runs_it_again(self):
+        self.run["run_started_at"] = (NOW - timedelta(days=8)).isoformat()
+        self.assertFalse(self.decide())
+
+
+class LegsVerdict(unittest.TestCase):
+    """The aggregate accepts taken legs on an event that takes them, with
+    the taken run's evidence, and names that run."""
+
+    ALWAYS = BoardVerdict.ALWAYS
+    MAIN, BOARDS, SCHEDULE = BoardVerdict.MAIN, BoardVerdict.BOARDS, BoardVerdict.SCHEDULE
+
+    def needs(self, scope, taken="true", board="skipped"):
+        needs = BoardVerdict.needs(BoardVerdict(), scope, "skipped" if not scope["software"]
+                                   else "success", "success")
+        needs["board"] = job(board)
+        needs["board-bundles"] = job("success", **{
+            "legs-reuse": taken, "legs-run": "7", "legs-from": "https://example/run/7"})
+        return needs
+
+    def test_a_dispatch_and_mains_push_take_legs(self):
+        for scope in (self.BOARDS, self.MAIN):
+            with self.subTest(scope=scope["scope"]):
+                needs = self.needs(scope)
+                self.assertEqual(gate_inputs.verdict(needs, self.ALWAYS, scope, PASSED), [])
+                summary = gate_inputs.report(needs, [], scope, PASSED)
+                self.assertIn("legs taken from https://example/run/7", summary)
+                self.assertIn("board-rp2040: passed", summary)
+
+    def test_taken_legs_still_need_every_port_passed(self):
+        evidence = dict(PASSED, esp32="evidence of run 8, not of run 7")
+        problems = gate_inputs.verdict(self.needs(self.BOARDS), self.ALWAYS,
+                                       self.BOARDS, evidence)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("board-esp32: evidence of run 8", problems[0])
+
+    def test_the_schedule_never_takes_legs(self):
+        problems = gate_inputs.verdict(self.needs(self.SCHEDULE), self.ALWAYS,
+                                       self.SCHEDULE, PASSED)
+        self.assertIn("board-bundles took its legs from another run on an event"
+                      " that runs its own", problems)
+        self.assertIn("board is skipped, not success: physical evidence missing is not a pass",
+                      problems)
+
+    def test_legs_that_ran_beside_a_taken_run_fail(self):
+        problems = gate_inputs.verdict(self.needs(self.BOARDS, board="success"),
+                                       self.ALWAYS, self.BOARDS, PASSED)
+        self.assertTrue(problems)
+
+    def test_skipped_legs_without_the_word_fail(self):
+        problems = gate_inputs.verdict(self.needs(self.BOARDS, taken="false"),
+                                       self.ALWAYS, self.BOARDS, PASSED)
+        self.assertTrue(problems)
+
+    def test_the_evidence_is_held_to_its_run(self):
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root)
+        for port, run in (("rp2040", "7"), ("esp32", "8")):
+            leg = root / ("board-evidence-%s-1" % port) / port
+            (leg / "evidence").mkdir(parents=True)
+            (leg / "transfer.json").write_text(json.dumps(
+                {"port": port, "run_id": run, "run_attempt": "1"}))
+            (leg / "evidence/outcome.json").write_text('{"outcome": "passed"}')
+        found = gate_inputs.outcomes(root, "7")
+        self.assertEqual(found["rp2040"], "passed")
+        self.assertEqual(found["esp32"], "evidence of run 8, not of run 7")
+        self.assertEqual(gate_inputs.outcomes(root)["esp32"], "passed")
+
+    def test_the_workflow_wires_the_taken_run(self):
+        jobs = workflow_jobs(GATE.read_text())
+        bundles = "\n".join(jobs["board-bundles"])
+        self.assertIn("legs-run: ${{ steps.legs.outputs.legs-run }}", bundles)
+        self.assertIn("gate_inputs.py legs gate.yml", bundles)
+        self.assertLess(bundles.index("id: provenance"), bundles.index("id: legs"))
+        for permission in ("actions: read", "checks: read"):
+            self.assertIn("      " + permission, bundles)
+        self.assertIn(LEGS_IF, gate_inputs_job_if(jobs["board"]))
+        aggregate = "\n".join(jobs["gate"])
+        taken = aggregate.split("- name: The evidence of the run whose legs", 1)[1].split(
+            "- name:", 1)[0]
+        self.assertIn("run-id: ${{ needs.board-bundles.outputs.legs-run }}", taken)
+        self.assertIn('--evidence-run "${LEGS_RUN:-$GITHUB_RUN_ID}"', aggregate)
+
+
+def gate_inputs_job_if(body):
+    return job_field(body, "if") or ""
 
 
 class Bundles(unittest.TestCase):
