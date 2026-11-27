@@ -2049,6 +2049,10 @@ package body Landin.IR is
      is (Of_Unit.Inline_Sites.Element
            (Element (Of_Unit, Item).Inlines.First + Site));
 
+   function Inline_Site_Number
+     (Of_Unit : Unit; Item : Item_Id; Site : Positive) return Positive
+     is (Element (Of_Unit, Item).Inlines.First + Site);
+
    function Inlined_At
      (Of_Unit : Unit; Item : Item_Id; Block : Block_Id) return Natural
      is (Of_Unit.Blocks.Element (Block_At (Of_Unit, Item, Block)).Inlined);

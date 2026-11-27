@@ -34,7 +34,8 @@ package body Landin.Backend.X86_64.Codeview is
    function Source_Line
      (Info : Landin.Debugging.Information;
       Item : Item_Id;
-      Site : Landin.Provenance.Origin) return String
+      Site : Landin.Provenance.Origin;
+      Copy : Natural := 0) return String
      renames CV.Source_Line;
 
    function Frame_For

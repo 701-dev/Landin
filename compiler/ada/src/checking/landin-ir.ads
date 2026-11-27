@@ -4205,6 +4205,14 @@ package Landin.IR is
      with Pre => Holds (Of_Unit, Item)
                  and then Site <= Inline_Site_Count (Of_Unit, Item);
 
+   --  Site's position among every item's sites, one-based and distinct
+   --  across the unit, which names a copy where one numbering covers
+   --  every item's.
+   function Inline_Site_Number
+     (Of_Unit : Unit; Item : Item_Id; Site : Positive) return Positive
+     with Pre => Holds (Of_Unit, Item)
+                 and then Site <= Inline_Site_Count (Of_Unit, Item);
+
    --  Zero for the item's own block, slot or alias.
    function Inlined_At
      (Of_Unit : Unit; Item : Item_Id; Block : Block_Id) return Natural

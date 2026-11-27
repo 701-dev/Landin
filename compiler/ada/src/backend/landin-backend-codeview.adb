@@ -51,26 +51,52 @@ package body Landin.Backend.Codeview is
    function Function_Id (Item : Item_Id) return String is
      (HT & ".cv_func_id " & N (Natural (Item)));
 
+   function Line_Number
+     (Info : Landin.Debugging.Information;
+      Site : Landin.Provenance.Origin) return Natural is
+     (Natural (Landin.Source.Position_Of
+        (Landin.Debugging.Source (Info, Site.Source), Site.Where.First).Line));
+
+   --  D339: a copy's identity follows every item's own, in the order of
+   --  the unit's sites, so that the assembler's table of identities is
+   --  as long as the items and the copies together.
+   function Copy_Identity
+     (Of_Unit : Unit; Item : Item_Id; Copy : Positive) return Positive is
+     (Item_Count (Of_Unit) + Inline_Site_Number (Of_Unit, Item, Copy));
+
+   --  A copy is called from its call's line, inside Item's own identity.
+   --  A call with no known site leaves the copy an identity of its own,
+   --  whose lines no routine's table holds.
+   function Inline_Site_Id
+     (Info : Landin.Debugging.Information;
+      Of_Unit : Unit;
+      Item : Item_Id;
+      Copy : Positive) return String
+   is
+      Call : constant Landin.Provenance.Origin :=
+        Nth_Inline_Site (Of_Unit, Item, Copy).Call;
+      Identity : constant String := N (Copy_Identity (Of_Unit, Item, Copy));
+   begin
+      if Landin.Provenance.Is_Known (Call) then
+         return HT & ".cv_inline_site_id " & Identity & " within "
+           & N (Natural (Item)) & " inlined_at " & N (Natural (Call.Source))
+           & " " & N (Line_Number (Info, Call)) & " 0";
+      end if;
+      return HT & ".cv_func_id " & Identity;
+   end Inline_Site_Id;
+
    --  CodeView's columns are optional and Microsoft's tools write none;
    --  a stop is a line.
    function Source_Line
      (Info : Landin.Debugging.Information;
       Item : Item_Id;
-      Site : Landin.Provenance.Origin) return String
-   is
-   begin
-      if not Landin.Provenance.Is_Known (Site) then
-         return "";
-      end if;
-      declare
-         Pos : constant Landin.Source.Position := Landin.Source.Position_Of
-           (Landin.Debugging.Source (Info, Site.Source), Site.Where.First);
-      begin
-         return HT & ".cv_loc " & N (Natural (Item)) & " "
-           & N (Natural (Site.Source)) & " " & N (Natural (Pos.Line))
-           & " 0";
-      end;
-   end Source_Line;
+      Site : Landin.Provenance.Origin;
+      Copy : Natural := 0) return String is
+     (if not Landin.Provenance.Is_Known (Site) then ""
+      else HT & ".cv_loc "
+        & N (if Copy = 0 then Natural (Item) else Copy) & " "
+        & N (Natural (Site.Source)) & " " & N (Line_Number (Info, Site))
+        & " 0");
 
    --  Record and leaf kinds, from Microsoft's cvinfo.h.
    S_END : constant := 16#0006#;
@@ -86,6 +112,8 @@ package body Landin.Backend.Codeview is
    S_LOCAL : constant := 16#113E#;
    S_LPROC32_ID : constant := 16#1146#;
    S_GPROC32_ID : constant := 16#1147#;
+   S_INLINESITE : constant := 16#114D#;
+   S_INLINESITE_END : constant := 16#114E#;
    S_PROC_ID_END : constant := 16#114F#;
    LF_POINTER : constant := 16#1002#;
    LF_PROCEDURE : constant := 16#1008#;
@@ -101,6 +129,9 @@ package body Landin.Backend.Codeview is
    T_VOID : constant := 16#0003#;
    T_64PVOID : constant := 16#0603#;
    T_UQUAD : constant := 16#0023#;
+   --  `.debug$S` subsections: symbols, and the inlined routines' lines.
+   DEBUG_S_SYMBOLS : constant := 16#F1#;
+   DEBUG_S_INLINEELINES : constant := 16#F6#;
    --  Properties: a forward reference, and a unique name after the name.
    Forward_Reference : constant := 16#0080#;
    Unique_Name : constant := 16#0200#;
@@ -227,13 +258,17 @@ package body Landin.Backend.Codeview is
          Put (HT & ".short " & N (Kind));
       end Short_Record;
 
-      --  A `.debug$S` subsection of symbols; Close_Subsection ends it.
-      function Open_Subsection return String;
-      function Open_Subsection return String is
+      --  A `.debug$S` subsection, of symbols unless Kind says otherwise;
+      --  Close_Subsection ends it.
+      function Open_Subsection (Kind : Natural := DEBUG_S_SYMBOLS)
+         return String;
+      function Open_Subsection (Kind : Natural := DEBUG_S_SYMBOLS)
+         return String
+      is
          Start : constant String := Fresh;
          Finish : constant String := Fresh;
       begin
-         Put (HT & ".long 241");
+         Put (HT & ".long " & N (Kind));
          Put (HT & ".long " & Finish & "-" & Start);
          Put (Start & ":");
          return Finish;
@@ -839,11 +874,68 @@ package body Landin.Backend.Codeview is
          return References.Element (Typ);
       end Reference_To;
 
+      package Item_Maps is new Ada.Containers.Ordered_Maps
+        (Item_Id, Natural);
+      Function_Types : Item_Maps.Map;
+
+      --  A routine's LF_FUNC_ID, which its procedure names and so does
+      --  each inlined copy of it (D339).
+      function Function_Type_Of (Item : Item_Id) return Natural;
+      function Function_Type_Of (Item : Item_Id) return Natural is
+         Arguments : US.Unbounded_String;
+      begin
+         if Function_Types.Contains (Item) then
+            return Function_Types.Element (Item);
+         end if;
+         for Index in 1 .. Parameter_Count (Of_Unit, Item) loop
+            declare
+               Slot : constant Slot_Id := Nth_Parameter (Of_Unit, Item, Index);
+            begin
+               US.Append (Arguments, Index_Of
+                 (if Declares (Of_Unit, Item, Slot) = No_Declaration
+                  then T_64PVOID else Slot_Type (Item, Slot)));
+            end;
+         end loop;
+         declare
+            Argument_List : constant Natural := Add
+              (LF_ARGLIST, U32 (Long_Long_Integer
+                 (Parameter_Count (Of_Unit, Item)))
+               & US.To_String (Arguments));
+            Procedure_Type : constant Natural := Add
+              (LF_PROCEDURE, Index_Of (T_VOID) & Byte (0) & Byte (0)
+               & U16 (Parameter_Count (Of_Unit, Item))
+               & Index_Of (Argument_List));
+            Function_Type : constant Natural := Add
+              (LF_FUNC_ID, Index_Of (0) & Index_Of (Procedure_Type)
+               & Z (Routine_Name (Item)));
+         begin
+            Function_Types.Insert (Item, Function_Type);
+            return Function_Type;
+         end;
+      end Function_Type_Of;
+
+      --  Each routine a copy was written for, once, with the file and
+      --  line its inline sites' lines begin from, which a debugger finds
+      --  a copy's declaration by.
+      type Inlinee is record
+         Callee : Item_Id;
+         File, Line : Natural;
+      end record;
+      package Inlinee_Vectors is new Ada.Containers.Vectors
+        (Positive, Inlinee);
+      Inlinees : Inlinee_Vectors.Vector;
+
+      function Is_Parameter_Of (Item : Item_Id; Slot : Slot_Id)
+         return Boolean is
+        (Slot /= No_Slot
+         and then (for some Index in 1 .. Parameter_Count (Of_Unit, Item) =>
+                     Nth_Parameter (Of_Unit, Item, Index) = Slot));
+
       package Index_Vectors is new Ada.Containers.Vectors
         (Positive, Positive);
       type Scope_Group is record
          Scope : Scope_Id;
-         Slots, Aliases, Children : Index_Vectors.Vector;
+         Slots, Aliases, Inlines, Children : Index_Vectors.Vector;
       end record;
       package Scope_Vectors is new Ada.Containers.Vectors
         (Positive, Scope_Group);
@@ -851,15 +943,17 @@ package body Landin.Backend.Codeview is
         (Scope_Id, Positive);
 
       --  The lexical scopes below Root that hold a slot or an alias of
-      --  Item's own, as the DWARF encoder groups them; group 1 is Root.
-      --  An inlined copy's slots are not described: CodeView's inline
-      --  sites are not written (D2290).
+      --  Item belonging to Site (zero: Item's own), and, for Item's own,
+      --  the scopes its inlined copies were called from, as the DWARF
+      --  encoder groups them; group 1 is Root.
       procedure Group_Scopes
-        (Item : Item_Id; Root : Scope_Id;
-         Groups : in out Scope_Vectors.Vector);
+        (Item : Item_Id; Site : Natural; Root : Scope_Id;
+         Groups : in out Scope_Vectors.Vector;
+         With_Copies : Boolean);
       procedure Group_Scopes
-        (Item : Item_Id; Root : Scope_Id;
-         Groups : in out Scope_Vectors.Vector)
+        (Item : Item_Id; Site : Natural; Root : Scope_Id;
+         Groups : in out Scope_Vectors.Vector;
+         With_Copies : Boolean)
       is
          Group_Indices : Scope_Maps.Map;
 
@@ -885,7 +979,7 @@ package body Landin.Backend.Codeview is
                  Declares (Of_Unit, Item, Slot_Id (Index));
             begin
                if Binding /= No_Declaration
-                 and then Inlined_At (Of_Unit, Item, Slot_Id (Index)) = 0
+                 and then Inlined_At (Of_Unit, Item, Slot_Id (Index)) = Site
                then
                   declare
                      Scope : constant Scope_Id :=
@@ -902,7 +996,7 @@ package body Landin.Backend.Codeview is
             end;
          end loop;
          for Index in 1 .. Source_Alias_Count (Of_Unit, Item) loop
-            if Alias_Inlined_At (Of_Unit, Item, Index) = 0 then
+            if Alias_Inlined_At (Of_Unit, Item, Index) = Site then
                declare
                   Scope : constant Scope_Id := Landin.Resolution.Scope_Of
                     (Meanings, Nth_Source_Alias
@@ -916,6 +1010,20 @@ package body Landin.Backend.Codeview is
                end;
             end if;
          end loop;
+         if With_Copies then
+            for Copy in 1 .. Inline_Site_Count (Of_Unit, Item) loop
+               declare
+                  Scope : constant Scope_Id :=
+                    Nth_Inline_Site (Of_Unit, Item, Copy).Scope;
+               begin
+                  Add_Scope_Path (Scope);
+                  Groups.Reference
+                    ((if Group_Indices.Contains (Scope)
+                      then Group_Indices.Element (Scope) else 1)).Inlines
+                    .Append (Copy);
+               end;
+            end loop;
+         end if;
          for Index in 2 .. Natural (Groups.Length) loop
             declare
                Parent : constant Scope_Id := Landin.Resolution.Enclosing
@@ -1148,8 +1256,18 @@ package body Landin.Backend.Codeview is
             end loop;
          end Pieces;
 
-         procedure Variables (Indices : Index_Vectors.Vector);
-         procedure Variables (Indices : Index_Vectors.Vector) is
+         --  The routine a copy is of; Item itself for Site zero.
+         function Origin_Item (Site : Natural) return Item_Id is
+           (if Site = 0 then Item
+            else Nth_Inline_Site (Of_Unit, Item, Site).Callee);
+
+         --  A copy's slot is a parameter where the one of the routine's
+         --  own it copies is; where it is available is the caller's, in
+         --  whose frame it lives.
+         procedure Variables
+           (Indices : Index_Vectors.Vector; Site : Natural);
+         procedure Variables
+           (Indices : Index_Vectors.Vector; Site : Natural) is
          begin
             for Index of Indices loop
                declare
@@ -1158,7 +1276,11 @@ package body Landin.Backend.Codeview is
                   Name_Text : constant String :=
                     Decl_Name (Declares (Of_Unit, Item, Slot));
                   Flags : constant Natural :=
-                    (if Parameter then Is_Parameter_Flag else 0);
+                    (if (if Site = 0 then Parameter
+                         else Is_Parameter_Of
+                           (Origin_Item (Site),
+                            Inlined_Origin (Of_Unit, Item, Slot)))
+                     then Is_Parameter_Flag else 0);
                begin
                   if First_Piece (Of_Unit, Item, Slot) /= No_Slot then
                      Pieces (Slot, Name_Text, Slot_Type (Item, Slot), Flags);
@@ -1194,8 +1316,12 @@ package body Landin.Backend.Codeview is
          --  A source alias: what it presents, and where, when CodeView
          --  can say so.  A module datum's part, or a part reached through
          --  an address held in memory, has no place a local can name.
-         procedure Alias_Variables (Indices : Index_Vectors.Vector);
-         procedure Alias_Variables (Indices : Index_Vectors.Vector) is
+         --  A copy's alias of the storage an argument was given in stands
+         --  for the routine's parameter.
+         procedure Alias_Variables
+           (Indices : Index_Vectors.Vector; Site : Natural);
+         procedure Alias_Variables
+           (Indices : Index_Vectors.Vector; Site : Natural) is
          begin
             for Index of Indices loop
                declare
@@ -1286,21 +1412,29 @@ package body Landin.Backend.Codeview is
                      Local (Decl_Name (Alias.Binding),
                             (if Where.Kind = By_Reference
                              then Reference_To (Typ) else Typ),
-                            0, not Found.Is_Empty);
+                            (if Site /= 0
+                               and then Alias_Inlined_Parameter
+                                 (Of_Unit, Item, Index) /= No_Slot
+                             then Is_Parameter_Flag else 0),
+                            not Found.Is_Empty);
                   end;
                   Def_Range (Found, Where);
                end;
             end loop;
          end Alias_Variables;
 
+         procedure Copied_Routine (Site : Positive);
+
          --  A lexical block's one range: from the first of its ranges to
-         --  the last, in the order the blocks are laid out.
+         --  the last, in the order the blocks are laid out.  Those of
+         --  Site's blocks inside its scope, and for Item's own, those of
+         --  the copies called inside it, as the DWARF encoder's are.
          procedure Lexical_Scope
            (Groups : Scope_Vectors.Vector; Group_Index : Positive;
-            Is_Root : Boolean := False);
+            Site : Natural; Is_Root : Boolean := False);
          procedure Lexical_Scope
            (Groups : Scope_Vectors.Vector; Group_Index : Positive;
-            Is_Root : Boolean := False)
+            Site : Natural; Is_Root : Boolean := False)
          is
             Group : constant Scope_Group := Groups.Element (Group_Index);
             First, Last : Value_Id := No_Value;
@@ -1313,10 +1447,18 @@ package body Landin.Backend.Codeview is
                        Length (Of_Unit, Item, Block);
                   begin
                      if Count > 0
-                       and then Inlined_At (Of_Unit, Item, Block) = 0
-                       and then Debug_Locations.Within
-                         (Meanings, Scope_Of (Of_Unit, Item, Block),
-                          Group.Scope)
+                       and then
+                         (if Inlined_At (Of_Unit, Item, Block) = Site
+                          then Debug_Locations.Within
+                            (Meanings, Scope_Of (Of_Unit, Item, Block),
+                             Group.Scope)
+                          else Site = 0
+                            and then Debug_Locations.Within
+                              (Meanings,
+                               Nth_Inline_Site
+                                 (Of_Unit, Item,
+                                  Inlined_At (Of_Unit, Item, Block)).Scope,
+                               Group.Scope))
                      then
                         if First = No_Value then
                            First := Nth_Value (Of_Unit, Item, Block, 1);
@@ -1343,43 +1485,70 @@ package body Landin.Backend.Codeview is
                   Close (Finish);
                end;
             end if;
-            Variables (Group.Slots);
-            Alias_Variables (Group.Aliases);
+            Variables (Group.Slots, Site);
+            Alias_Variables (Group.Aliases, Site);
+            for Copy of Group.Inlines loop
+               Copied_Routine (Copy);
+            end loop;
             for Child of Group.Children loop
-               Lexical_Scope (Groups, Child);
+               Lexical_Scope (Groups, Child, Site);
             end loop;
             if not Is_Root then
                Short_Record (S_END);
             end if;
          end Lexical_Scope;
 
-         Groups : Scope_Vectors.Vector;
-         Arguments : US.Unbounded_String;
-         Function_Type : Natural;
-      begin
-         for Index in 1 .. Parameter_Count (Of_Unit, Item) loop
-            declare
-               Slot : constant Slot_Id := Nth_Parameter (Of_Unit, Item, Index);
-            begin
-               US.Append (Arguments, Index_Of
-                 (if Declares (Of_Unit, Item, Slot) = No_Declaration
-                  then T_64PVOID else Slot_Type (Item, Slot)));
-            end;
-         end loop;
-         declare
-            Argument_List : constant Natural := Add
-              (LF_ARGLIST, U32 (Long_Long_Integer
-                 (Parameter_Count (Of_Unit, Item)))
-               & US.To_String (Arguments));
-            Procedure_Type : constant Natural := Add
-              (LF_PROCEDURE, Index_Of (T_VOID) & Byte (0) & Byte (0)
-               & U16 (Parameter_Count (Of_Unit, Item))
-               & Index_Of (Argument_List));
+         --  D339: one inlined copy, a frame of the routine it is of whose
+         --  lines are those the backend wrote under the copy's identity,
+         --  which the assembler turns into the site's annotations, with
+         --  the copy's own parameters, locals and blocks.  A copy none of
+         --  whose code is left, or whose call has no known site, has no
+         --  frame to describe.
+         procedure Copied_Routine (Site : Positive) is
+            Copy : constant Inline_Site :=
+              Nth_Inline_Site (Of_Unit, Item, Site);
+            Declared : constant Landin.Provenance.Origin :=
+              (if Landin.Provenance.Is_Known (Origin_Of (Of_Unit, Copy.Callee))
+               then Origin_Of (Of_Unit, Copy.Callee) else Copy.Call);
+            Groups : Scope_Vectors.Vector;
          begin
-            Function_Type := Add
-              (LF_FUNC_ID, Index_Of (0) & Index_Of (Procedure_Type)
-               & Z (Routine_Name (Item)));
-         end;
+            if not Landin.Provenance.Is_Known (Copy.Call)
+              or else not
+                (for some B in 1 .. Block_Count (Of_Unit, Item) =>
+                   Inlined_At (Of_Unit, Item, Block_Id (B)) = Site
+                   and then Length (Of_Unit, Item, Block_Id (B)) > 0)
+            then
+               return;
+            end if;
+            declare
+               File : constant Natural := Natural (Declared.Source);
+               Line : constant Natural := Line_Number (Info, Declared);
+               Finish : constant String := Open (S_INLINESITE);
+            begin
+               --  The parent and the end, which the linker writes.
+               Put (HT & ".long 0");
+               Put (HT & ".long 0");
+               Put (HT & ".long " & N (Function_Type_Of (Copy.Callee)));
+               Put (HT & ".cv_inline_linetable "
+                 & N (Copy_Identity (Of_Unit, Item, Site)) & " " & N (File)
+                 & " " & N (Line) & " " & Symbol (Item) & " "
+                 & L ("end", Item));
+               Close (Finish);
+               if not (for some Each of Inlinees =>
+                         Each.Callee = Copy.Callee)
+               then
+                  Inlinees.Append (Inlinee'(Copy.Callee, File, Line));
+               end if;
+            end;
+            Group_Scopes
+              (Item, Site, Signature_Root (Copy.Callee), Groups, False);
+            Lexical_Scope (Groups, 1, Site, Is_Root => True);
+            Short_Record (S_INLINESITE_END);
+         end Copied_Routine;
+
+         Groups : Scope_Vectors.Vector;
+         Function_Type : constant Natural := Function_Type_Of (Item);
+      begin
          declare
             Section : constant String := Open_Subsection;
             Finish : constant String := Open
@@ -1413,8 +1582,8 @@ package body Landin.Backend.Codeview is
                  + Frame_Register * 16#10000#));
                Close (Frame_Record);
             end;
-            Group_Scopes (Item, Signature_Root (Item), Groups);
-            Lexical_Scope (Groups, 1, Is_Root => True);
+            Group_Scopes (Item, 0, Signature_Root (Item), Groups, True);
+            Lexical_Scope (Groups, 1, 0, Is_Root => True);
             Short_Record (S_PROC_ID_END);
             Close_Subsection (Section);
          end;
@@ -1608,6 +1777,23 @@ package body Landin.Backend.Codeview is
          end loop;
          Close_Subsection (Section);
       end;
+      --  Where each routine a copy is of was declared, which a debugger
+      --  reads an inline site's routine from.
+      if not Inlinees.Is_Empty then
+         declare
+            Section : constant String :=
+              Open_Subsection (DEBUG_S_INLINEELINES);
+         begin
+            --  CV_INLINEE_SOURCE_LINE_SIGNATURE: no extra files.
+            Put (HT & ".long 0");
+            for Each of Inlinees loop
+               Put (HT & ".long " & N (Function_Type_Of (Each.Callee)));
+               Put (HT & ".cv_filechecksumoffset " & N (Each.File));
+               Put (HT & ".long " & N (Each.Line));
+            end loop;
+            Close_Subsection (Section);
+         end;
+      end if;
       Put (HT & ".cv_filechecksums");
       Put (HT & ".cv_stringtable");
 
