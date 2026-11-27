@@ -11043,11 +11043,13 @@ PROCESS_SECTION_BUDGETS = {
     #  item rode trains, beside main's flake-tools row of the same day;
     #  and again when the failure causes and the selection in shadow
     #  joined it, and when board legs taken by identity and the daily
-    #  schedule did.
-    "The mechanical gate": 58000,
+    #  schedule did, and when the records of checks too long for a gate
+    #  did.
+    "The mechanical gate": 59000,
     #  Raised when the install script's check joined the recipe's step 6,
-    #  and again when the static Linux archive's check did.
-    "Releasing a version": 13000,
+    #  again when the static Linux archive's check did, and again when
+    #  stale records joined step 2.
+    "Releasing a version": 13500,
 }
 
 

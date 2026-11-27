@@ -30743,6 +30743,62 @@ leaves a degraded board unseen for days now that dispatches take legs.
 **Pinned by** `scripts/tests/test_gate_inputs.py`'s `Unmoved` cases and
 `BoardVerdict`'s `test_an_unmoved_schedule_takes_its_boards_and_timing_together`.
 
+### D2874 — A check too long for any gate runs on a host and is recorded against the code it checked
+
+**The tour said** nothing. D2553's check of every `f32` input of
+`core/math`'s one-argument routines against MPFR takes about an hour of a
+32-core host per routine, and the bit-for-bit comparison of those results
+on Linux arm64 and RV64 under QEMU longer. On 2026-11-26 the maintainer
+excluded such checks from the regular gates in general, since that time is
+not sustainable there.
+
+**Chosen:** such a check runs on a host, never in a gate, and is recorded
+in a file under `compiler/tests/records/`: the commands, the host, the
+date, the commit, the results, the program it compiled with its options,
+and for each routine it checked the SHA-256 of that routine's code on each
+target the record claims. A routine's code is the assembly refine emits
+for the record's program, from the section defining the routine's label
+through every section reached from it by naming a label another section
+defines, in the order first reached; the assembler's local names are
+renumbered in that order, the numbers refine gives its sections dropped,
+and a trap message's line and column dropped with the length the trap's
+instructions pass for it. `scripts/records.py check` compiles each
+record's program for each of its targets and says whether it is fresh,
+every routine's digest the record's, or stale since the record's commit,
+naming each routine and target that changed. The gate's
+`compiler-checks` job runs it with the debug compiler. A stale record
+fails no push: the job writes a warning and a summary line. It blocks a
+release, and a phase-gate claim, that cites it: both run `check
+--fail-stale` on the record, and a stale one has its commands run again
+and `records.py stamp` written, or the claim it supports withdrawn.
+
+**The reason:** the check's verdict is a function of the instructions and
+constants it executed, so a digest of exactly those says whether the
+verdict still holds, wherever else the tree moved; a source digest would
+miss a compiler change and a whole-program one would go stale on every
+library edit. The renumbering and the dropped positions remove what
+refine's emission order and the file's layout give a routine, which
+changes no value it computes; the length is masked only in the
+instructions after a trap message's name. A code change the check
+never executed but the routine reaches, inlining included, makes the
+record stale, which errs on the side of running it again.
+
+**The alternatives:** the check in the gate, which the maintainer refused;
+once at a release, which ties the release to hours of one host; a source
+digest of the routine's files, blind to the compiler; object code, which
+needs each target's assembler on the runner and carries the same
+positions; and running the freshness check in the `scripts` job, which has
+no compiler: that job runs `scripts/tests/test_records.py`, the
+script's logic on a stand-in refine and every record's form, and
+`compiler-checks`, which has one, runs the check itself.
+
+**Pinned by** `scripts/tests/test_records.py`, and
+`scripts/tests/test_records_native.py`'s
+`test_fresh_after_a_change_elsewhere_and_stale_after_its_own`, which
+edits a copy of `core/math` on refine's own output for Linux x86-64 and
+arm64; D2553's runs are the first record,
+`compiler/tests/records/math-f32-exhaustive.json`.
+
 ### D905 — A board run reports one outcome, stops cleanly when cancelled, and shares one rig state
 
 **The tour said** nothing; a board tool's `result.json` said `passed` or
@@ -46331,7 +46387,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** a table of outputs recorded from one target and compared bit for bit elsewhere, which would show agreement and not accuracy; and MPFR in the gate, which would need it in every lane's environment and hours of time per run.
 
-**Pinned by** every `runtime/math-*` fixture, on every target its metadata names.
+**Pinned by** every `runtime/math-*` fixture, on every target its metadata names, and the exhaustive and bit-for-bit runs by the record `compiler/tests/records/math-f32-exhaustive.json` (D2874).
 
 ### D2554 — `core/math` ports only msun code under Sun's notice
 

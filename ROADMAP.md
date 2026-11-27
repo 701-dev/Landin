@@ -101,6 +101,10 @@ complete when its exit evidence exists: the complete gate passed on the
 completing commit and, for a claim about a host the gate does not run, a
 named run recorded in the item. It then gets a short `Done:` paragraph; the
 reasoning goes in the commits and in `spec.md`'s register of decisions.
+A check too long for any gate is a record under `compiler/tests/records/`
+instead (D2874): a phase's gate whose items' evidence cites one is claimed
+only on a commit where `python3 scripts/records.py check --fail-stale`
+passes on it, R22's on R22.10's.
 
 **Authority.** An item's agent may push its candidate, promote it to main
 once its gate has passed, and remove its worktrees and branches, without

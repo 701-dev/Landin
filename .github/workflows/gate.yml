@@ -375,6 +375,19 @@ jobs:
           --refine "$PWD/compiler/ada/build/linux-amd64/debug/bin/refine"
           --out "$RUNNER_TEMP/fuzz"
 
+      #  Whether each record of a check too long for any gate still
+      #  covers the code it checked (D2874): the records' programs
+      #  emitted for each target they claim, in seconds.  A stale record
+      #  fails no push; it is a warning and a summary line here, and a
+      #  release or phase-gate claim citing it is refused.  Then the same
+      #  digest on refine's own assembly, edited elsewhere and in place.
+      - name: The records of checks too long for a gate
+        run: |
+          set -eu
+          refine="$PWD/compiler/ada/build/linux-amd64/debug/bin/refine"
+          python3 scripts/records.py --refine "$refine" check --github
+          LANDIN_REFINE="$refine" python3 -m unittest scripts.tests.test_records_native
+
   #  The Linux x86-64 release executables are built twice.  This job
   #  builds them over the object tree an earlier run left in the cache,
   #  recompiling by checksum only what changed (scripts/dev-build.sh), and
