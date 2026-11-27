@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: every scalar, as a text of its own, compares with its full upper, lower and folded mappings and with the next scalar under unicode.equal_caseless, starts_with_caseless and ends_with_caseless as the Unicode Character Database's full case folding says, by their digest; firmware walks every 61st scalar
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0600, 1140
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0
