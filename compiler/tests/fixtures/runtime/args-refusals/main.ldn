@@ -1,0 +1,192 @@
+--  Each argument core/args refuses, parsed from a list of words, with the
+--  failure `parse` reports, `args.words`' phrase for it, the line
+--  `args.explain` writes and the usage line `args.usage_for` writes.  A
+--  table the parser cannot follow is refused as `invalid_table`, naming
+--  the row, and an allocator that runs out as `mem.out_of_memory`.
+import core/arena
+import core/args
+import core/io
+import core/mem
+import core/text
+import hosted/blocking
+
+arena_size: usize = 65536
+
+mut backing: [arena_size]u8 = zeroed
+
+--  Parse `words` against `program` with an arena of `size` bytes and
+--  write the refusal, or that there was none.
+refuse_with: (host: blocking.host, program: args.command, words: [][]u8,
+              size: usize) -> none ! ... =
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], size)
+    mut storage: [512]u8 = zeroed
+    mut out := text.over(storage)
+    for word, index in words do
+        if index > 0 then
+            try text.append_byte(out, u8(' '))
+        end if
+        try text.append(out, word)
+    end for
+    if lenof words == 0 then
+        try text.append(out, "(no words)")
+    end if
+    try text.append(out, "\n  ")
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse(memory, program, words, parsed) else (problem)
+        try text.append(out, args.words(problem))
+        try text.append(out, ": ")
+        try args.explain(out, parsed)
+        try text.append(out, "\n  ")
+        try args.usage_for(out, parsed)
+        try io.write(host, io.out(host), text.used(out))
+        return
+    end
+    try text.append(out, "not refused\n")
+    try io.write(host, io.out(host), text.used(out))
+end refuse_with
+
+refuse: (host: blocking.host, program: args.command, words: [][]u8)
+        -> none ! ... =
+    try refuse_with(host, program, words, arena_size)
+end refuse
+
+--  Each refusal of the user's words.
+words_refused: (host: blocking.host) -> none ! ... =
+    table: [9]args.argument = [
+        args.flag('v', "verbose", "say more"),
+        args.required(args.option('o', "output", "PATH", "where to write")),
+        args.typed(args.option('n', "lines", "N", "how many lines"),
+                   args.as_unsigned),
+        args.typed(args.option('s', "shift", "BY", "move each line"),
+                   args.as_signed),
+        args.typed(args.option('r', "ratio", "R", "scale each line"),
+                   args.as_float),
+        args.typed(args.option('l', "label", "TEXT", "name the output"),
+                   args.as_text),
+        args.typed(args.positional("COUNT", "how many files"),
+                   args.as_unsigned),
+        args.positional("FILE", "the file to read"),
+        args.optional(args.positional("SPARE", "a second file"))
+    ]
+    program := args.command_of("refusals", "", table[0..<9])
+    long_unknown: [4][]u8 = ["--frob=1", "-o", "x", "1"]
+    try refuse(host, program, long_unknown[0..<4])
+    short_unknown: [2][]u8 = ["-vx", "1"]
+    try refuse(host, program, short_unknown[0..<2])
+    long_missing: [1][]u8 = ["--output"]
+    try refuse(host, program, long_missing[0..<1])
+    short_missing: [3][]u8 = ["1", "a", "-o"]
+    try refuse(host, program, short_missing[0..<3])
+    unexpected: [1][]u8 = ["--verbose=yes"]
+    try refuse(host, program, unexpected[0..<1])
+    unsigned: [3][]u8 = ["-o", "x", "--lines=ten"]
+    try refuse(host, program, unsigned[0..<3])
+    too_large: [3][]u8 = ["-o", "x", "-n18446744073709551616"]
+    try refuse(host, program, too_large[0..<3])
+    signed: [4][]u8 = ["-o", "x", "-s", "--"]
+    try refuse(host, program, signed[0..<4])
+    float: [3][]u8 = ["-o", "x", "--ratio=1/2"]
+    try refuse(host, program, float[0..<3])
+    invalid: [2]u8 = [u8(0xff), u8(0xfe)]
+    not_text: [4][]u8 = ["-o", "x", "-l", invalid[0..<2]]
+    try refuse(host, program, not_text[0..<4])
+    positional_typed: [3][]u8 = ["-o", "x", "many"]
+    try refuse(host, program, positional_typed[0..<3])
+    option_absent: [2][]u8 = ["1", "a"]
+    try refuse(host, program, option_absent[0..<2])
+    positional_absent: [3][]u8 = ["-o", "x", "1"]
+    try refuse(host, program, positional_absent[0..<3])
+    extra: [6][]u8 = ["-o", "x", "1", "a", "b", "c"]
+    try refuse(host, program, extra[0..<6])
+    repeated: [5][]u8 = ["-o", "x", "--output=y", "1", "a"]
+    try refuse(host, program, repeated[0..<5])
+    flag_twice: [6][]u8 = ["-vo", "x", "1", "a", "--verbose", "b"]
+    try refuse(host, program, flag_twice[0..<6])
+    help: [3][]u8 = ["-o", "x", "-vh"]
+    try refuse(host, program, help[0..<3])
+    long_help: [1][]u8 = ["--help"]
+    try refuse(host, program, long_help[0..<1])
+    memory: [4][]u8 = ["-o", "x", "1", "a"]
+    try refuse_with(host, program, memory[0..<4], 16)
+end words_refused
+
+--  Each refusal of a command that has commands.
+commands_refused: (host: blocking.host) -> none ! ... =
+    none_table: []args.argument = []
+    add_table: [1]args.argument = [args.positional("NAME", "the remote")]
+    below: [2]args.command = [
+        args.command_of("add", "Add a remote.", add_table[0..<1]),
+        args.command_of("remove", "Remove a remote.", add_table[0..<1])
+    ]
+    remote: [1]args.command = [
+        args.with_commands(args.command_of("remote", "Manage remotes.",
+                                           none_table), below[0..<2])
+    ]
+    program := args.with_commands(args.command_of("vc", "", none_table),
+                                  remote[0..<1])
+    nothing: [][]u8 = []
+    try refuse(host, program, nothing)
+    unknown: [1][]u8 = ["remot"]
+    try refuse(host, program, unknown[0..<1])
+    inner: [1][]u8 = ["remote"]
+    try refuse(host, program, inner[0..<1])
+    inner_unknown: [2][]u8 = ["remote", "rename"]
+    try refuse(host, program, inner_unknown[0..<2])
+    inner_missing: [2][]u8 = ["remote", "add"]
+    try refuse(host, program, inner_missing[0..<2])
+    inner_extra: [4][]u8 = ["remote", "add", "a", "b"]
+    try refuse(host, program, inner_extra[0..<4])
+end commands_refused
+
+--  Each table the parser refuses as the program's own defect.
+tables_refused: (host: blocking.host) -> none ! ... =
+    words: [1][]u8 = ["a"]
+    unnamed: [1]args.argument = [args.flag('v', "", "say more")]
+    try refuse(host, args.command_of("unnamed", "", unnamed[0..<1]),
+               words[0..<1])
+    twice: [2]args.argument = [
+        args.flag('v', "verbose", "say more"),
+        args.flag('w', "verbose", "say more again")
+    ]
+    try refuse(host, args.command_of("twice", "", twice[0..<2]), words[0..<1])
+    letters: [2]args.argument = [
+        args.flag('v', "verbose", "say more"),
+        args.flag('v', "version", "say which")
+    ]
+    try refuse(host, args.command_of("letters", "", letters[0..<2]),
+               words[0..<1])
+    order: [2]args.argument = [
+        args.optional(args.positional("FIRST", "a file")),
+        args.positional("SECOND", "another")
+    ]
+    try refuse(host, args.command_of("order", "", order[0..<2]), words[0..<1])
+    after: [2]args.argument = [
+        args.repeated(args.positional("FILES", "files")),
+        args.optional(args.positional("LAST", "another"))
+    ]
+    try refuse(host, args.command_of("after", "", after[0..<2]), words[0..<1])
+    default: [2]args.argument = [
+        args.with_default(args.typed(args.option('n', "lines", "N", "lines"),
+                                     args.as_unsigned), "ten"),
+        args.positional("FILE", "a file")
+    ]
+    try refuse(host, args.command_of("default", "", default[0..<2]),
+               words[0..<1])
+    none_table: []args.argument = []
+    below: [1]args.command = [args.command_of("a", "", none_table)]
+    mixed: [1]args.argument = [args.positional("FILE", "a file")]
+    try refuse(host, args.with_commands(args.command_of("mixed", "",
+                                                        mixed[0..<1]),
+                                        below[0..<1]), words[0..<1])
+end tables_refused
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    words_refused(host) else none
+    commands_refused(host) else none
+    tables_refused(host) else none
+    code = 0
+end main

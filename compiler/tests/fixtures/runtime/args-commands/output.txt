@@ -1,0 +1,5 @@
+command: remote add, nothing below it
+quiet: 1
+force: 1
+name: origin
+url: https://example.org/vc

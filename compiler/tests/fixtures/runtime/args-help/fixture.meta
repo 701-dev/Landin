@@ -1,0 +1,10 @@
+class: runtime
+profiles: standard
+summary: core/args writes usage and help text pinned byte for byte: every kind of argument with defaults and the built-in -h, --help, a table that takes -h for itself, and commands two deep, each command's help through help_for
+program: main.ldn
+root: ../../../../..
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0570, 0960, 1000, 1150
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

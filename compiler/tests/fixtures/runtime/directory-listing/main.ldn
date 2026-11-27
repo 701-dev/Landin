@@ -4,6 +4,7 @@
 --  validates each one, and a name that is not prints with its other bytes
 --  escaped.  The code after the comment `Everything below` only builds a
 --  directory to list and checks the result.
+import core/args
 import core/cmp
 import core/failure
 import core/io
@@ -11,6 +12,7 @@ import core/mem
 import core/sort
 import core/text
 import hosted/blocking
+import hosted/heap
 
 --- Read every entry of the directory at `path` into `into`, with each
 --- file's size; `count` is how many there are.
@@ -131,10 +133,11 @@ escaped: (name: []u8, inout into: text.builder) -> none ! mem.out_of_memory =
     end for
 end escaped
 
---- List the directory the first argument names, up to 256 entries.
-list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
-            -> none ! ... =
-    path: []u8 = text.os_string_bytes(try io.argument(host, 0))
+--- List the directory the argument `DIRECTORY` names, up to 256 entries.
+list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host),
+             parsed: args.found) -> none ! ... =
+    directory := try args.get(parsed, "DIRECTORY")
+    path: []u8 = text.os_string_bytes(directory.bytes)
     blank: kept = (name: [255 of 0], length: 0, kind: io.special, size: 0)
     mut entries: [256]kept = [256 of blank]
     count: usize = try list(host, path, entries)
@@ -275,12 +278,23 @@ end demonstrate
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.optional(args.positional("DIRECTORY", "the directory to list"))
+    ]
+    program := args.command_of("listing", "List a directory.", table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
     mut storage: [512]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.arguments_length(host) > 0 then
-        list_named(host, out) else (problem)
+    if args.count(parsed, "DIRECTORY") > 0 then
+        list_named(host, out, parsed) else (problem)
             complain(host, problem)
             return
         end

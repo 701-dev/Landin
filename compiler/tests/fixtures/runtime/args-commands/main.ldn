@@ -1,0 +1,80 @@
+--  A program with commands reads its own process arguments through
+--  `args.parse_process`, finds the command chosen at each depth with
+--  `args.chosen`, and reads the options and arguments of every command it
+--  followed: `vc -q remote add -f origin https://example.org/vc`.
+import core/arena
+import core/args
+import core/io
+import core/text
+import hosted/blocking
+
+arena_size: usize = 16384
+
+mut backing: [arena_size]u8 = zeroed
+
+--  Write what was chosen and given.
+report: (host: blocking.host, parsed: args.found) -> none ! ... =
+    mut storage: [512]u8 = zeroed
+    mut out := text.over(storage)
+    first := try args.chosen(parsed, 0)
+    second := try args.chosen(parsed, 1)
+    try text.append(out, "command: ")
+    try text.append_text(out, first)
+    try text.append_byte(out, u8(' '))
+    try text.append_text(out, second)
+    third: utf8 = args.chosen(parsed, 2) else ""
+    if lenof text.bytes(third) == 0 then
+        try text.append(out, ", nothing below it")
+    end if
+    try text.append(out, "\nquiet: ")
+    try text.append_usize(out, args.count(parsed, "quiet"))
+    try text.append(out, "\nforce: ")
+    try text.append_usize(out, args.count(parsed, "force"))
+    name := try args.get(parsed, "NAME")
+    url := try args.get(parsed, "URL")
+    try text.append(out, "\nname: ")
+    try text.append_os_string(out, name.bytes)
+    try text.append(out, "\nurl: ")
+    try text.append_os_string(out, url.bytes)
+    try text.append_byte(out, u8('\n'))
+    try io.write(host, io.out(host), text.used(out))
+end report
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 2
+    top: [1]args.argument = [args.flag('q', "quiet", "say less")]
+    add_table: [3]args.argument = [
+        args.flag('f', "force", "replace a remote of that name"),
+        args.positional("NAME", "what to call it"),
+        args.positional("URL", "where it is")
+    ]
+    below: [1]args.command = [
+        args.command_of("add", "Add a remote.", add_table[0..<3])
+    ]
+    none_table: []args.argument = []
+    middle: [1]args.command = [
+        args.with_commands(args.command_of("remote", "Manage remotes.",
+                                           none_table), below[0..<1])
+    ]
+    program := args.with_commands(args.command_of("vc", "Keep versions.",
+                                                  top[0..<1]), middle[0..<1])
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else (problem)
+        _ = problem
+        mut storage: [512]u8 = zeroed
+        mut out := text.over(storage)
+        text.append(out, "vc: ") else none
+        args.explain(out, parsed) else none
+        text.append_byte(out, u8('\n')) else none
+        args.usage_for(out, parsed) else none
+        io.write(host, io.err(host), text.used(out)) else none
+        return
+    end
+    code = 1
+    report(host, parsed) else none
+    code = 0
+end main

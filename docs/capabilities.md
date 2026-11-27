@@ -1018,6 +1018,21 @@ injector as arguments, as providers.
   so firmware runs it on the Cortex-M7 corpus lane. It passes the 897
   cases of the `regex` crate's test suite that it can state; scripts and
   the other properties `core/unicode` lacks are not covered.
+- **Command-line arguments.** `core/args` reads a command line against
+  a table the program declares as values: short and long options with
+  `--name=value` and `--name value`, clustered and counted flags, `--`
+  ending the options, values read as unsigned, signed or float numbers or
+  checked text, or kept as the host string a path wants, required
+  arguments and defaults, positional arguments with one trailing list,
+  and commands that nest. It writes the usage line and the help, and
+  refuses an argument naming it and what was expected (D3094-D3096). It
+  parses any list of byte slices and allocates only from the caller's
+  allocator, so a test or a firmware console uses it too; on Cortex-M0 a
+  small table parses in a 21.9 KB image at `size/auto`, but the refusal's
+  words and the usage line do not fit beside it, nor does the parser at
+  `none/off` (D3097). The examples read their arguments through it.
+  Values from the environment or a configuration file, and shell
+  completions, are not covered.
 - **Complex numbers.** `core/complex` has `complex.number(f32)` and
   `complex.number(f64)`, a struct of a `real` and an `imaginary` part, and
   named routines generic over both: the arithmetic, the conjugate and the

@@ -1,0 +1,125 @@
+--  The help and usage text core/args writes, pinned byte for byte: a
+--  program's own through `args.help` and `args.usage`, and a command's
+--  through `args.help_for` when `parse` fails with `help_asked`, for a
+--  table with every kind of argument and a default, one that takes `-h`
+--  for itself, and commands two deep.
+import core/arena
+import core/args
+import core/io
+import core/text
+import hosted/blocking
+
+arena_size: usize = 65536
+
+mut backing: [arena_size]u8 = zeroed
+
+--  Write the help `words` ask for, after a line naming them.
+asked: (host: blocking.host, program: args.command, words: [][]u8)
+       -> none ! ... =
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    mut storage: [2048]u8 = zeroed
+    mut out := text.over(storage)
+    try text.append(out, "--- help for")
+    for word in words do
+        try text.append_byte(out, u8(' '))
+        try text.append(out, word)
+    end for
+    try text.append_byte(out, u8('\n'))
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse(memory, program, words, parsed) else (problem)
+        if problem == args.help_asked then
+            try args.help_for(out, parsed)
+        else
+            try args.explain(out, parsed)
+            try text.append_byte(out, u8('\n'))
+        end if
+        try io.write(host, io.out(host), text.used(out))
+        return
+    end
+    try text.append(out, "no help asked\n")
+    try io.write(host, io.out(host), text.used(out))
+end asked
+
+--  A program with every kind of argument.
+every_kind: (host: blocking.host) -> none ! ... =
+    table: [9]args.argument = [
+        args.counted('v', "verbose", "say more each time it is given"),
+        args.flag(0, "dry-run", "change nothing"),
+        args.required(args.option('o', "output", "PATH", "where to write")),
+        args.with_default(args.typed(args.option('n', "lines", "N",
+                                                 "how many lines"),
+                                     args.as_unsigned), "10"),
+        args.repeated(args.option('I', "include", "DIR", "look in DIR too")),
+        args.with_default(args.option(0, "colour", "WHEN",
+                                      "colour the output"), "auto"),
+        args.positional("FILE", "the file to read"),
+        args.optional(args.positional("SECOND", "a file to compare it with")),
+        args.optional(args.repeated(args.positional("MORE", "more files")))
+    ]
+    program := args.command_of("kinds", "Read files and write their lines.",
+                               table[0..<9])
+    mut storage: [2048]u8 = zeroed
+    mut out := text.over(storage)
+    try text.append(out, "--- usage\n")
+    try args.usage(out, program)
+    try text.append(out, "--- help\n")
+    try args.help(out, program)
+    try io.write(host, io.out(host), text.used(out))
+    words: [4][]u8 = ["-o", "x", "a", "--help"]
+    try asked(host, program, words[0..<4])
+end every_kind
+
+--  A table that takes `-h` for itself keeps `--help`.
+own_letter: (host: blocking.host) -> none ! ... =
+    table: [2]args.argument = [
+        args.flag('h', "human", "print sizes for people"),
+        args.optional(args.repeated(args.positional("PATH", "what to measure")))
+    ]
+    program := args.command_of("sizes", "", table[0..<2])
+    long: [1][]u8 = ["--help"]
+    try asked(host, program, long[0..<1])
+    short: [1][]u8 = ["-h"]
+    try asked(host, program, short[0..<1])
+end own_letter
+
+--  Commands two deep.
+commands: (host: blocking.host) -> none ! ... =
+    top: [1]args.argument = [args.flag('q', "quiet", "say less")]
+    add_table: [3]args.argument = [
+        args.flag('f', "force", "replace a remote of that name"),
+        args.positional("NAME", "what to call it"),
+        args.positional("URL", "where it is")
+    ]
+    remove_table: [1]args.argument = [args.positional("NAME", "which")]
+    below: [2]args.command = [
+        args.command_of("add", "Add a remote.", add_table[0..<3]),
+        args.command_of("remove", "Remove a remote.", remove_table[0..<1])
+    ]
+    none_table: []args.argument = []
+    middle: [2]args.command = [
+        args.with_commands(args.command_of("remote", "Manage remotes.",
+                                           none_table), below[0..<2]),
+        args.command_of("status", "Say what changed.", none_table)
+    ]
+    program := args.with_commands(args.command_of("vc", "Keep versions.",
+                                                  top[0..<1]), middle[0..<2])
+    root: [1][]u8 = ["-h"]
+    try asked(host, program, root[0..<1])
+    remote: [2][]u8 = ["remote", "--help"]
+    try asked(host, program, remote[0..<2])
+    add: [4][]u8 = ["-q", "remote", "add", "-h"]
+    try asked(host, program, add[0..<4])
+    status: [2][]u8 = ["status", "--help"]
+    try asked(host, program, status[0..<2])
+end commands
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    every_kind(host) else none
+    own_letter(host) else none
+    commands(host) else none
+    code = 0
+end main

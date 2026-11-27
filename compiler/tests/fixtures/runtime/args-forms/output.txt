@@ -1,0 +1,32 @@
+a
+  verbose=0 quiet=0 output=[] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+-o out.txt a
+  verbose=0 quiet=0 output=[out.txt] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+-oout.txt a
+  verbose=0 quiet=0 output=[out.txt] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+--output out.txt a
+  verbose=0 quiet=0 output=[out.txt] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+--output=out.txt a
+  verbose=0 quiet=0 output=[out.txt] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+--output= a
+  verbose=0 quiet=0 output=[] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+-vqv a
+  verbose=2 quiet=1 output=[] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+-v --verbose a -vv
+  verbose=4 quiet=0 output=[] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+-vn5 a
+  verbose=1 quiet=0 output=[] lines=5 shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+-qn 7 a
+  verbose=0 quiet=1 output=[] lines=7 shift=none ratio=none label=none include=[] FILE=[a] MORE=[]
+-s -3 a
+  verbose=0 quiet=0 output=[] lines=10(default) shift=-3 ratio=none label=none include=[] FILE=[a] MORE=[]
+--shift=4 --ratio 0.25 -l naïve --lines=0 a
+  verbose=0 quiet=0 output=[] lines=0 shift=4 ratio=0.25 label=naïve include=[] FILE=[a] MORE=[]
+-I x --include=y -Iz a
+  verbose=0 quiet=0 output=[] lines=10(default) shift=none ratio=none label=none include=[x,y,z] FILE=[a] MORE=[]
+a b -v c
+  verbose=1 quiet=0 output=[] lines=10(default) shift=none ratio=none label=none include=[] FILE=[a] MORE=[b,c]
+-v -- -a --b --
+  verbose=1 quiet=0 output=[] lines=10(default) shift=none ratio=none label=none include=[] FILE=[-a] MORE=[--b,--]
+- -
+  verbose=0 quiet=0 output=[] lines=10(default) shift=none ratio=none label=none include=[] FILE=[-] MORE=[-]

@@ -1,0 +1,96 @@
+--frob=1 -o x 1
+  unknown option: unknown option --frob
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-vx 1
+  unknown option: unknown option -x
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+--output
+  option needs a value: option --output expects a value PATH
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+1 a -o
+  option needs a value: option -o expects a value PATH
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+--verbose=yes
+  option takes no value: option --verbose takes no value, given "yes"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x --lines=ten
+  invalid value: option --lines expects an unsigned number, given "ten"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x -n18446744073709551616
+  invalid value: option -n expects an unsigned number, given "18446744073709551616"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x -s --
+  invalid value: option -s expects a signed number, given "--"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x --ratio=1/2
+  invalid value: option --ratio expects a number, given "1/2"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x -l ÿþ
+  invalid value: option -l expects UTF-8 text, given "ÿþ"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x many
+  invalid value: argument COUNT expects an unsigned number, given "many"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+1 a
+  missing argument: missing option --output PATH
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x 1
+  missing argument: missing argument FILE
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x 1 a b c
+  unexpected argument: unexpected argument "c"
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x --output=y 1 a
+  option given more than once: option --output given more than once
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-vo x 1 a --verbose b
+  option given more than once: option --verbose given more than once
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x -vh
+  help asked: help asked
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+--help
+  help asked: help asked
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+-o x 1 a
+  out of memory: out of memory
+  usage: refusals [options] --output PATH COUNT FILE [SPARE]
+(no words)
+  missing command: missing command, expected one of: remote
+  usage: vc [options] COMMAND
+remot
+  unknown command: unknown command "remot", expected one of: remote
+  usage: vc [options] COMMAND
+remote
+  missing command: missing command, expected one of: add, remove
+  usage: vc remote [options] COMMAND
+remote rename
+  unknown command: unknown command "rename", expected one of: add, remove
+  usage: vc remote [options] COMMAND
+remote add
+  missing argument: missing argument NAME
+  usage: vc remote add [options] NAME
+remote add a b
+  unexpected argument: unexpected argument "b"
+  usage: vc remote add [options] NAME
+a
+  invalid argument table: invalid argument table: an option has no long name
+  usage: unnamed [options]
+a
+  invalid argument table: invalid argument table: two arguments are named verbose
+  usage: twice [options]
+a
+  invalid argument table: invalid argument table: two options take -v
+  usage: letters [options]
+a
+  invalid argument table: invalid argument table: SECOND is required after an optional argument
+  usage: order [options] [FIRST] SECOND
+a
+  invalid argument table: invalid argument table: LAST follows the repeated argument
+  usage: after [options] FILES... [LAST]
+a
+  invalid argument table: invalid argument table: the default of --lines, "ten", is not an unsigned number
+  usage: default [options] FILE
+a
+  invalid argument table: invalid argument table: mixed has both positional arguments and commands
+  usage: mixed [options] FILE COMMAND
