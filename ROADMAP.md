@@ -3696,6 +3696,8 @@ restated rather than met. Met on the way and fixed: `compiler/tests/README.md`
 counted twenty-three examples where the gate runs thirty, and `measure.py
 time` refused a hosted workload the base's tree has no fixture for, so the
 commit adding one failed every dispatch's timing; it is now named new.
+Landed on R22.33's train: gate 45932328693, boards 45927672738 and
+45933311148.
 
 ### R22.24 — Tools that say what they need
 
@@ -3960,7 +3962,10 @@ its cycles. The schedule runs daily and leaves out a commit a passed
 schedule run already ran (D2775). Two board-bundles artifacts of different
 commits, runs 45840509189 and 45855853447, give one identity. Boards run
 45893119145 ran every leg and passed; dispatch 45906315984 on the same
-head took its legs and passed in 13 minutes. `item.py boards` met no
+head took its legs and passed in 13 minutes. On the train with R22.23,
+boards 45927672738 refused that run's legs, its harness alone differing,
+and ran them, and 45933311148 on the next commit took 45927672738's legs,
+timing images included; the train's gate is 45932328693. `item.py boards` met no
 `SR-1988` of its own: the item fixes that landed first record a queued
 dispatch as boards.
 
