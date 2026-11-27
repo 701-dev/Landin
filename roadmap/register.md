@@ -86,7 +86,6 @@ Open:
 | [Q-346 — Do the register sweep's new items stand where it placed them?](questions/Q-346.md) | the items stand as written, the R22 ones beside the serial lane and the R16 ones in the continuous lane, and their rows stay scheduled on them; the roadmap manager may start them. | nothing; option 3 would bring the register back toward its cap. |
 | [Q-347 — Which macOS does the release archive support?](questions/Q-347.md) | the minimum stated as macOS 26 in the README, `docs/capabilities.md` and the formula, with the release workflow checking the archive's `minos`; the older build waits for the answer. | R22.29's macOS part beyond stating the current minimum. |
 | [Q-364 — How long does the selection run in shadow mode before R22.37 applies it?](questions/Q-364.md) | about 200 complete gates from the shadow selection's first run. | R22.37's start; nothing in R22.36, which records from its first run whatever the length. |
-| [Q-410 — Which item tailors case for Turkish, Azerbaijani and Lithuanian?](questions/Q-410.md) | R22.45's calls use the default full folding and say that they are wrong for Turkish, Azerbaijani and Lithuanian, as `core/unicode`'s case mappings already say; R22.50 is planned without case tailoring until the answer adds it. | R22.50's scope, and one sentence of R22.45's documentation. |
 
 Answered:
 
@@ -153,3 +152,4 @@ Answered:
 - [Q-308 — Do `f32` and `f64` get `cmp.ordered` evidence?](questions/Q-308.md)
 - [Q-321 — Does a program that links `core/unicode`'s tables carry Unicode's notice?](questions/Q-321.md)
 - [Q-363 — How often does the complete gate run once an item's landing on main no longer needs it?](questions/Q-363.md)
+- [Q-410 — Which item tailors case for Turkish, Azerbaijani and Lithuanian?](questions/Q-410.md)
