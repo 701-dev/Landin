@@ -35392,8 +35392,8 @@ the argument root, which its C peer establishes through
 **Chosen:** the fixture names no Windows target. Windows has no C-callable
 initializer: `_landin_start` keeps the root itself (D2269), so a C program
 on Windows has no root to establish and the fixture's observation no form
-there. Its foreign `.L` name is also one COFF's assembler takes as
-private, the case `abi/r440-native-link-namespace` holds.
+there. Its foreign `.L` name, which COFF's assembler takes as private, a
+Windows image now binds as D2954 says; the initializer is what is left.
 
 **The alternatives:** a Windows twin that drops the root and the `.L`
 name, which would hold only that a renamed callback is callable, as
