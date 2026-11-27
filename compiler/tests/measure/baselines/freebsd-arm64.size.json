@@ -189,6 +189,38 @@
     ".bss": 136
    }
   },
+  "armv8-a/none-all/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 39418,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 274028,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 3272,
+    ".data": 1440,
+    ".got.plt": 72,
+    ".bss": 40
+   }
+  },
   "armv8-a/none-all/pidigits": {
    "sections": {
     ".interp": 21,
@@ -280,6 +312,38 @@
     ".relro_padding": 3592,
     ".data": 720,
     ".got.plt": 112,
+    ".bss": 136
+   }
+  },
+  "armv8-a/none-all/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 46029,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 320796,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2712,
+    ".data": 1512,
+    ".got.plt": 104,
     ".bss": 136
    }
   },
@@ -501,6 +565,38 @@
     ".bss": 136
    }
   },
+  "armv8-a/none-auto/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 39418,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 274028,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 3272,
+    ".data": 1440,
+    ".got.plt": 72,
+    ".bss": 40
+   }
+  },
   "armv8-a/none-auto/pidigits": {
    "sections": {
     ".interp": 21,
@@ -592,6 +688,38 @@
     ".relro_padding": 3592,
     ".data": 720,
     ".got.plt": 112,
+    ".bss": 136
+   }
+  },
+  "armv8-a/none-auto/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 46029,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 320796,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2712,
+    ".data": 1512,
+    ".got.plt": 104,
     ".bss": 136
    }
   },
@@ -813,6 +941,38 @@
     ".bss": 136
    }
   },
+  "armv8-a/none-off/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 39418,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 274092,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 3208,
+    ".data": 1440,
+    ".got.plt": 72,
+    ".bss": 40
+   }
+  },
   "armv8-a/none-off/pidigits": {
    "sections": {
     ".interp": 21,
@@ -904,6 +1064,38 @@
     ".relro_padding": 3448,
     ".data": 720,
     ".got.plt": 112,
+    ".bss": 136
+   }
+  },
+  "armv8-a/none-off/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 46029,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 320980,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2520,
+    ".data": 1512,
+    ".got.plt": 104,
     ".bss": 136
    }
   },
@@ -1125,6 +1317,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/size-all/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 28233,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 72516,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2968,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8-a/size-all/pidigits": {
    "sections": {
     ".interp": 21,
@@ -1216,6 +1440,38 @@
     ".relro_padding": 520,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8-a/size-all/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 34952,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 92792,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 136,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -1437,6 +1693,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/size-auto/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 28233,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 72516,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2968,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8-a/size-auto/pidigits": {
    "sections": {
     ".interp": 21,
@@ -1528,6 +1816,38 @@
     ".relro_padding": 520,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8-a/size-auto/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 34952,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 92792,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 136,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -1749,6 +2069,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/size-off/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 28233,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 72556,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2936,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8-a/size-off/pidigits": {
    "sections": {
     ".interp": 21,
@@ -1840,6 +2192,38 @@
     ".relro_padding": 456,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8-a/size-off/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 34952,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 92900,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 24,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -2061,6 +2445,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/speed-all/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 26856,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 70084,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2680,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8-a/speed-all/pidigits": {
    "sections": {
     ".interp": 21,
@@ -2152,6 +2568,38 @@
     ".relro_padding": 2472,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8-a/speed-all/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 33375,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 89776,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 632,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -2373,6 +2821,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/speed-auto/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 26856,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 70084,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2680,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8-a/speed-auto/pidigits": {
    "sections": {
     ".interp": 21,
@@ -2464,6 +2944,38 @@
     ".relro_padding": 2472,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8-a/speed-auto/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 33375,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 89776,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 632,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -2685,6 +3197,38 @@
     ".bss": 124
    }
   },
+  "armv8-a/speed-off/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 26856,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 70136,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2632,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8-a/speed-off/pidigits": {
    "sections": {
     ".interp": 21,
@@ -2776,6 +3320,38 @@
     ".relro_padding": 2136,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8-a/speed-off/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 33375,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 90184,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 216,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -2997,6 +3573,38 @@
     ".bss": 136
    }
   },
+  "armv8.1-a/none-all/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 39418,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 274028,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 3272,
+    ".data": 1440,
+    ".got.plt": 72,
+    ".bss": 40
+   }
+  },
   "armv8.1-a/none-all/pidigits": {
    "sections": {
     ".interp": 21,
@@ -3088,6 +3696,38 @@
     ".relro_padding": 3624,
     ".data": 720,
     ".got.plt": 112,
+    ".bss": 136
+   }
+  },
+  "armv8.1-a/none-all/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 46029,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 320764,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2744,
+    ".data": 1512,
+    ".got.plt": 104,
     ".bss": 136
    }
   },
@@ -3309,6 +3949,38 @@
     ".bss": 136
    }
   },
+  "armv8.1-a/none-auto/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 39418,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 274028,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 3272,
+    ".data": 1440,
+    ".got.plt": 72,
+    ".bss": 40
+   }
+  },
   "armv8.1-a/none-auto/pidigits": {
    "sections": {
     ".interp": 21,
@@ -3400,6 +4072,38 @@
     ".relro_padding": 3624,
     ".data": 720,
     ".got.plt": 112,
+    ".bss": 136
+   }
+  },
+  "armv8.1-a/none-auto/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 46029,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 320764,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2744,
+    ".data": 1512,
+    ".got.plt": 104,
     ".bss": 136
    }
   },
@@ -3621,6 +4325,38 @@
     ".bss": 136
    }
   },
+  "armv8.1-a/none-off/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 39418,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 274092,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 3208,
+    ".data": 1440,
+    ".got.plt": 72,
+    ".bss": 40
+   }
+  },
   "armv8.1-a/none-off/pidigits": {
    "sections": {
     ".interp": 21,
@@ -3712,6 +4448,38 @@
     ".relro_padding": 3480,
     ".data": 720,
     ".got.plt": 112,
+    ".bss": 136
+   }
+  },
+  "armv8.1-a/none-off/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 46029,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 320948,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2552,
+    ".data": 1512,
+    ".got.plt": 104,
     ".bss": 136
    }
   },
@@ -3933,6 +4701,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/size-all/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 28233,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 72516,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2968,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8.1-a/size-all/pidigits": {
    "sections": {
     ".interp": 21,
@@ -4024,6 +4824,38 @@
     ".relro_padding": 552,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/size-all/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 34952,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 92760,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 168,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -4245,6 +5077,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/size-auto/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 28233,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 72516,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2968,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8.1-a/size-auto/pidigits": {
    "sections": {
     ".interp": 21,
@@ -4336,6 +5200,38 @@
     ".relro_padding": 552,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/size-auto/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 34952,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 92760,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 168,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -4557,6 +5453,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/size-off/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 28233,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 72556,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2936,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8.1-a/size-off/pidigits": {
    "sections": {
     ".interp": 21,
@@ -4648,6 +5576,38 @@
     ".relro_padding": 488,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/size-off/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 34952,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 92868,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 56,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -4869,6 +5829,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/speed-all/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 26856,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 70084,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2680,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8.1-a/speed-all/pidigits": {
    "sections": {
     ".interp": 21,
@@ -4960,6 +5952,38 @@
     ".relro_padding": 2504,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/speed-all/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 33375,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 89744,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 664,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -5181,6 +6205,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/speed-auto/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 26856,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 70084,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2680,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8.1-a/speed-auto/pidigits": {
    "sections": {
     ".interp": 21,
@@ -5272,6 +6328,38 @@
     ".relro_padding": 2504,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/speed-auto/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 33375,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 89744,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 664,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },
@@ -5493,6 +6581,38 @@
     ".bss": 124
    }
   },
+  "armv8.1-a/speed-off/n-body": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 216,
+    ".gnu.version": 18,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 80,
+    ".dynstr": 111,
+    ".rela.dyn": 24,
+    ".rela.plt": 144,
+    ".rodata": 26856,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 70136,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 128,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 528,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 2632,
+    ".data": 1360,
+    ".got.plt": 72,
+    ".bss": 32
+   }
+  },
   "armv8.1-a/speed-off/pidigits": {
    "sections": {
     ".interp": 21,
@@ -5584,6 +6704,38 @@
     ".relro_padding": 2168,
     ".data": 536,
     ".got.plt": 112,
+    ".bss": 124
+   }
+  },
+  "armv8.1-a/speed-off/spectral-norm": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 312,
+    ".gnu.version": 26,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 112,
+    ".dynstr": 144,
+    ".rela.dyn": 24,
+    ".rela.plt": 240,
+    ".rodata": 33375,
+    ".eh_frame_hdr": 28,
+    ".eh_frame": 88,
+    ".text": 90152,
+    ".init": 16,
+    ".fini": 16,
+    ".plt": 192,
+    ".tbss": 4,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 624,
+    ".dynamic": 368,
+    ".got": 8,
+    ".relro_padding": 248,
+    ".data": 1344,
+    ".got.plt": 104,
     ".bss": 124
    }
   },

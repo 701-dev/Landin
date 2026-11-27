@@ -4186,7 +4186,7 @@ systems the others run on.
 
 ## Benchmark Game programs
 
-The last eight programs are direct ports of
+The last ten programs are direct ports of
 [the Benchmark Game](https://benchmarksgame-team.pages.debian.net/benchmarksgame/)'s
 workloads, there to compare Landin with other languages.
 [docs/benchmarks.md](docs/benchmarks.md) has the measurements. The ports
@@ -5616,4 +5616,333 @@ GG 3.341
 4	GGTATT
 0	GGTATTTTAATT
 0	GGTATTTTAATTTATAGT
+```
+
+## Benchmark Game n-body
+
+[n-body](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/nbody.html)
+follows the Sun and the four Jovian planets under Newton's gravity, a
+hundredth of a day at a time, and prints the system's energy before and
+after to nine places. Each step works out the pull between every pair of
+bodies with `core/math`'s `sqrt`, changes both bodies' velocities, then
+moves every body. The five bodies are an array of structs the program
+holds on its stack. The correctness input is 1,000 steps and the
+performance input 50,000,000.
+
+Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-n-body/main.ldn`.
+
+```landin
+--  A direct single-threaded implementation of the Benchmark Game workload,
+--  the Jovian planets orbiting the Sun under Newton's gravity, integrated
+--  by the symplectic Euler method in steps of a hundredth of a day.  The
+--  count of steps is the program's argument: a thousand for the
+--  correctness output and fifty million for the performance run.  It
+--  prints the system's energy before and after, to nine places.
+import core/io
+import core/math
+import core/mem
+import core/text
+import hosted/blocking
+
+days_per_year: f64 = 365.24
+solar_mass: f64 = 4.0 * math.pi * math.pi
+body_count: usize = 5
+
+--- A body's position in astronomical units, its velocity in astronomical
+--- units a year and its mass in solar masses times four pi squared.
+body: type = struct
+    x: f64
+    y: f64
+    z: f64
+    vx: f64
+    vy: f64
+    vz: f64
+    mass: f64
+end body
+
+planet: (x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, mass: f64)
+        -> (result: body) =
+    result = (x: x, y: y, z: z, vx: vx * days_per_year,
+              vy: vy * days_per_year, vz: vz * days_per_year,
+              mass: mass * solar_mass)
+end planet
+
+--- The Sun, Jupiter, Saturn, Uranus and Neptune, at the game's epoch.
+solar_system: () -> (bodies: [5]body) =
+    bodies = [(x: 0.0, y: 0.0, z: 0.0, vx: 0.0, vy: 0.0, vz: 0.0,
+               mass: solar_mass),
+              planet(4.84143144246472090e+00, -1.16032004402742839e+00,
+                     -1.03622044471123109e-01, 1.66007664274403694e-03,
+                     7.69901118419740425e-03, -6.90460016972063023e-05,
+                     9.54791938424326609e-04),
+              planet(8.34336671824457987e+00, 4.12479856412430479e+00,
+                     -4.03523417114321381e-01, -2.76742510726862411e-03,
+                     4.99852801234917238e-03, 2.30417297573763929e-05,
+                     2.85885980666130812e-04),
+              planet(1.28943695621391310e+01, -1.51111514016986312e+01,
+                     -2.23307578892655734e-01, 2.96460137564761618e-03,
+                     2.37847173959480950e-03, -2.96589568540237556e-05,
+                     4.36624404335156298e-05),
+              planet(1.53796971148509165e+01, -2.59193146099879641e+01,
+                     1.79258772950371181e-01, 2.68067772490389322e-03,
+                     1.62824170038242295e-03, -9.51592254519715870e-05,
+                     5.15138902046611451e-05)]
+end solar_system
+
+--- Give the Sun the momentum that leaves the system's total at zero.
+offset_momentum: (inout bodies: [5]body) -> none =
+    mut px: f64 = 0.0
+    mut py: f64 = 0.0
+    mut pz: f64 = 0.0
+    for each in bodies do
+        px += each.vx * each.mass
+        py += each.vy * each.mass
+        pz += each.vz * each.mass
+    end for
+    bodies[0].vx = -px / solar_mass
+    bodies[0].vy = -py / solar_mass
+    bodies[0].vz = -pz / solar_mass
+end offset_momentum
+
+--- The kinetic energy of every body less the potential of every pair.
+energy: (bodies: [5]body) -> (total: f64) =
+    total = 0.0
+    first: usize = 0
+    for i in first..<body_count do
+        b := bodies[i]
+        total += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz)
+        for j in i + 1..<body_count do
+            c := bodies[j]
+            dx := b.x - c.x
+            dy := b.y - c.y
+            dz := b.z - c.z
+            total -= b.mass * c.mass / math.sqrt(dx * dx + dy * dy + dz * dz)
+        end for
+    end for
+end energy
+
+--- Move the system on by `dt`: every pair's pull changes both bodies'
+--- velocities, then every body moves at its new velocity.
+advance: (inout bodies: [5]body, dt: f64) -> none =
+    first: usize = 0
+    for i in first..<body_count do
+        for j in i + 1..<body_count do
+            dx := bodies[i].x - bodies[j].x
+            dy := bodies[i].y - bodies[j].y
+            dz := bodies[i].z - bodies[j].z
+            distance_squared := dx * dx + dy * dy + dz * dz
+            magnitude := dt / (distance_squared * math.sqrt(distance_squared))
+            pull_on_i := bodies[j].mass * magnitude
+            bodies[i].vx -= dx * pull_on_i
+            bodies[i].vy -= dy * pull_on_i
+            bodies[i].vz -= dz * pull_on_i
+            pull_on_j := bodies[i].mass * magnitude
+            bodies[j].vx += dx * pull_on_j
+            bodies[j].vy += dy * pull_on_j
+            bodies[j].vz += dz * pull_on_j
+        end for
+    end for
+    for i in first..<body_count do
+        bodies[i].x += dt * bodies[i].vx
+        bodies[i].y += dt * bodies[i].vy
+        bodies[i].z += dt * bodies[i].vz
+    end for
+end advance
+
+--- The count of steps named by the first argument.
+step_count: (host: blocking.host)
+            -> (n: usize) ! mem.not_found | text.invalid_number
+                          | text.number_overflow =
+    first: usize = 0
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
+end step_count
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    n := step_count(host) else begin
+        io.write(host, io.err(host), "usage: n-body N\n") else none
+        return
+    end
+
+    mut storage: [64]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    mut bodies := solar_system()
+    offset_momentum(bodies)
+    before := energy(bodies)
+    io.format(out, "{:.9}\n", [any(addr before)]) else begin
+        return
+    end
+    first: usize = 0
+    for step in first..<n do
+        _ = step
+        advance(bodies, 0.01)
+    end for
+    after := energy(bodies)
+    io.format(out, "{:.9}\n", [any(addr after)]) else begin
+        return
+    end
+    io.flush(out) else begin
+        return
+    end
+    code = 0
+end main
+```
+
+`./n-body 1000` prints
+
+```text
+-0.169075164
+-0.169087605
+```
+
+## Benchmark Game spectral-norm
+
+[spectral-norm](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/spectralnorm.html)
+estimates the largest singular value of an infinite matrix whose entries
+are a formula of their row and column, from its first N rows and
+columns. It multiplies a vector by the matrix and by its transpose ten
+times over, the power method, and prints the norm to nine places. The
+vectors are `core/vec` lists of `f64`, taken from the heap once and
+lent to each product as slices. The correctness input is 100 and the
+performance input 5,500.
+
+Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-spectral-norm/main.ldn`.
+
+```landin
+--  A direct single-threaded implementation of the Benchmark Game workload,
+--  the spectral norm of the infinite matrix A whose entry at row i and
+--  column j is 1/((i + j)(i + j + 1)/2 + i + 1), counted from zero, by ten
+--  rounds of the power method on its first n rows and columns.  The order
+--  n is the program's argument: a hundred for the correctness output and
+--  5,500 for the performance run.  It prints the norm to nine places.
+import core/io
+import core/math
+import core/mem
+import core/text
+import core/vec
+import hosted/blocking
+import hosted/heap
+
+memory_of: type = heap.heap
+
+--- The matrix's entry at row `i` and column `j`.
+entry: (i: usize, j: usize) -> (value: f64) =
+    value = 1.0 / f64((i + j) * (i + j + 1) / 2 + i + 1)
+end entry
+
+--- Make `into` the product of A and `v`.
+times_a: (v: []f64, into: []mut f64) -> none =
+    first: usize = 0
+    for i in first..<lenof into do
+        mut sum: f64 = 0.0
+        for j in first..<lenof v do
+            sum += entry(i, j) * v[j]
+        end for
+        into[i] = sum
+    end for
+end times_a
+
+--- Make `into` the product of A's transpose and `v`.
+times_transpose: (v: []f64, into: []mut f64) -> none =
+    first: usize = 0
+    for i in first..<lenof into do
+        mut sum: f64 = 0.0
+        for j in first..<lenof v do
+            sum += entry(j, i) * v[j]
+        end for
+        into[i] = sum
+    end for
+end times_transpose
+
+--- Make `into` the product of A's transpose, A and `v`, through `scratch`.
+times_both: (v: []f64, scratch: []mut f64, into: []mut f64) -> none =
+    times_a(v, scratch)
+    times_transpose(scratch, into)
+end times_both
+
+--- A list of `n` items, each `value`.
+filled: (memory: memory_of, n: usize, value: f64)
+        -> (values: vec.list(f64)) ! mem.out_of_memory =
+    values = vec.new(item: f64)
+    vec.reserve(values, memory, n) else (problem)
+        vec.release(values, memory)
+        fail problem
+    end
+    first: usize = 0
+    for i in first..<n do
+        _ = i
+        try vec.push(values, memory, value)
+    end for
+end filled
+
+--- The spectral norm of A's first `n` rows and columns.
+spectral_norm: (memory: memory_of, n: usize)
+               -> (norm: f64) ! mem.out_of_memory =
+    mut u := try filled(memory, n, 1.0)
+    defer vec.release(u, memory)
+    mut v := try filled(memory, n, 0.0)
+    defer vec.release(v, memory)
+    mut scratch := try filled(memory, n, 0.0)
+    defer vec.release(scratch, memory)
+
+    for round in usize(0)..<10 do
+        _ = round
+        times_both(vec.used(u), vec.used(scratch), vec.used(v))
+        times_both(vec.used(v), vec.used(scratch), vec.used(u))
+    end for
+
+    us := vec.used(u)
+    vs := vec.used(v)
+    mut v_b_v: f64 = 0.0
+    mut v_v: f64 = 0.0
+    first: usize = 0
+    for i in first..<n do
+        v_b_v += us[i] * vs[i]
+        v_v += vs[i] * vs[i]
+    end for
+    norm = math.sqrt(v_b_v / v_v)
+end spectral_norm
+
+--- The order named by the first argument.
+order: (host: blocking.host)
+       -> (n: usize) ! mem.not_found | text.invalid_number
+                     | text.number_overflow =
+    first: usize = 0
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
+end order
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    memory := heap.new()
+    code = 1
+    n := order(host) else begin
+        io.write(host, io.err(host), "usage: spectral-norm N\n") else none
+        return
+    end
+
+    norm := spectral_norm(memory, n) else begin
+        io.write(host, io.err(host), "spectral-norm: out of memory\n") else none
+        return
+    end
+    mut storage: [32]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    io.format(out, "{:.9}\n", [any(addr norm)]) else begin
+        return
+    end
+    io.flush(out) else begin
+        return
+    end
+    code = 0
+end main
+```
+
+`./spectral-norm 100` prints
+
+```text
+1.274219991
 ```
