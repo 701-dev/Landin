@@ -278,8 +278,10 @@ for the host's reasons on every run. `cross-lanes.json` lists each one:
 the fixture, the runners it fails under, every failure line it may fail
 with, and why. Today those are a program that starts itself again by its
 own name, which QEMU runs only through a `binfmt_misc` handler (such a row
-does not apply where one is registered), and QEMU answering
-`getsockopt(SO_RCVTIMEO)` with a zero-length record. A listed fixture
+does not apply where one is registered), QEMU answering
+`getsockopt(SO_RCVTIMEO)` with a zero-length record, and QEMU refusing
+`getsockopt(IP_MULTICAST_IF)` and `getsockopt(IPV6_MULTICAST_IF)` with
+ENOPROTOOPT. A listed fixture
 that fails only with its lines is reported on standard error as an
 expected host failure and not counted; one that fails any other way fails
 the run as a regression, and one that passes fails too, naming the row to
