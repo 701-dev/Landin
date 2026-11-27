@@ -54,7 +54,8 @@ import lane_refine  # noqa: E402
 
 RECORDS = ROOT / 'compiler/tests/records'
 SCHEMA = 1
-#  The fields every record holds; README.md says what each is.
+#  The fields every record holds; compiler/tests/records/README.md says what
+#  each is.
 REQUIRED = ('schema', 'title', 'check', 'commands', 'host', 'date', 'commit',
             'program', 'options', 'targets', 'routines')
 
