@@ -677,7 +677,12 @@ that is a slice's length, `at = lenof s` and then `while at > 0 do dec
 at` reading `s[at]`, the element is within the slice (D2491); x86-64
 then makes no load of a length only proved checks name (D2492). A `u8` widened to `usize` is always inside a `[256]`
 array, and an index that passed a fixed array's check in a block passes any
-at least as long later in that block. Such a check cannot fail, so its
+at least as long later in that block and is at most that length less one,
+so `line[width]` then `inc width` cannot carry (D2816). Of two slots
+counted up from one block, one is at most the other before its own step
+when it starts no higher, steps no further, and cannot step again before
+the other has: `inc index` under an `if` inside `for at in 0..<n` never
+passes `at`, so it cannot carry either (D2817). Such a check cannot fail, so its
 instruction keeps its operation and is marked unchecked, which every
 backend reads as no check edge. The flag set by an `unchecked` region is
 never read as a fact. The dominator tree is Lengauer and Tarjan's, in

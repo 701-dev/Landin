@@ -2569,9 +2569,11 @@ package body Landin.Tests.X86_Optimization_Suite is
 
    --  D338: counting the elements a comparison holds for adds the
    --  comparison's own flag, set straight from the comparison and
-   --  extended into the register the addition reads, and keeps the
-   --  addition's overflow check.  D2574: the float element only the
-   --  comparison reads is compared where it lies, with no `movsd`.
+   --  extended into the register the addition reads.  A `usize` count
+   --  never passes its `usize` loop's counter, so its overflow check is
+   --  proved and gone (D2817); a `u32` count keeps its own.  D2574: the
+   --  float element only the comparison reads is compared where it
+   --  lies, with no `movsd`.
    procedure Counted_Flag_Adds (Item : in out Landin.Testing.Context) is
       HT : constant Character := Character'Val (9);
       Source : constant String :=
@@ -2601,7 +2603,7 @@ package body Landin.Tests.X86_Optimization_Suite is
                                 & "movzbl %al, %")
                      and then not Contains (Floats, "movzbl %al, %eax")
                      and then not Contains (Floats, "cmpb $0,")
-                     and then Contains (Floats, "jc "),
+                     and then not Contains (Floats, "jc "),
                "a float count adds setae's flag, comparing the element"
                & " where it lies" & Where);
             Check_Assembly
@@ -2610,8 +2612,10 @@ package body Landin.Tests.X86_Optimization_Suite is
                        (Signed, LF & HT & "setl %al" & LF & HT
                                 & "movzbl %al, %")
                      and then not Contains (Signed, "movzbl %al, %eax")
-                     and then not Contains (Signed, "cmpb $0,"),
-               "a signed count adds setl's flag" & Where);
+                     and then not Contains (Signed, "cmpb $0,")
+                     and then Contains (Signed, "jc "),
+               "a signed count adds setl's flag and keeps its check"
+               & Where);
          end;
       end loop;
       declare

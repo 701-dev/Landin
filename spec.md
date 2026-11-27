@@ -28616,6 +28616,71 @@ change the order a debugger shows.
 **Pinned by** the IR optimization suite's `proved checks`, with five
 controls, at size and speed, and x86-64's `counted-down slices`.
 
+### D2816 — An index that passed its bounds check is below the length
+
+**The tour said** nothing. A fixed array's bounds check that passed in a
+block already let a later check of the same index against a length at
+least as long go, but the fact said nothing about the index's value, so
+the arithmetic after it kept its own check. reverse-complement's
+`write_reversed` stores `line[width]`, `line` being `[61]u8`, then `inc
+width`, and tested the carry of that addition every byte: 4.0% of its
+x86-64 instructions at speed by a hand patch.
+
+**Chosen:** past a fixed array's bounds check in a block, the unsigned
+index it checked, and every value of its class, the same slot loaded
+again with no store between, is at most the length less one for the rest
+of that block. That is the bound any proof there reads, so `inc width`
+after `line[width]` cannot carry. A check in an `unchecked` region
+proves nothing, as before, and the fact ends with the block, as the
+fact that lets later checks go already does.
+
+**The alternatives:** carrying the fact into the blocks the check's
+block dominates, which needs the stores between to be followed as
+comparison facts are, and which neither program asks for.
+
+**Pinned by** the IR optimization suite's `proved checks`: the index
+incremented after its check, and three controls, incremented before it,
+checked in another block, and another index checked.
+
+### D2817 — A count stepped once a loop step never passes the loop's counter
+
+**The tour said** nothing. fasta's `select_symbol` counts the
+cumulative probabilities a random number has passed, `inc index` under
+an `if` inside `for at in first..<lenof cumulative - 1`, and tested the
+carry of every addition: 5.0% of fasta's x86-64 instructions at speed
+and 5.4% of its arm64 ones, by the loop's step count. Nothing bounds
+`index` but its relation to `at`, and the simplifier kept no relation
+between two slots.
+
+**Chosen:** of two slots D2207 counts upward, B is at most A wherever a
+load of B comes before B's step in that step's block, when both are first
+stored in one block F, B's first value is a constant that is its
+type's least or no greater than A's constant first value, both have one
+type, A steps by at least B's step,
+the two steps are in different blocks, and every way from B's step back
+to it passes F or A's step. F stores both again and A's step only raises
+A, so on the way to B's step B has stepped at most as often as A since
+F. A load of B there is then at most what the facts in that block say of
+A, and `at < lenof cumulative - 1` leaves `at`, and so `index`, below
+`usize`'s greatest: `inc index` cannot carry. As with D2207, the walk
+learns that A's step cannot wrap only when it reaches the step, so the
+proof is applied after the walk, and only if it cannot. The search for a
+way back stays inside F's subtree of the dominator tree, which every
+such way lies in, and all the routine's searches share a budget of four
+visits per block and slot, so the pairing stays linear; a search that
+runs out proves nothing.
+
+**The alternatives:** a general relational analysis, differences
+between slots kept through every block, which is the range analysis
+D2207 declined; and rewriting such a count in lowering, which would
+leave the same loop written another way unproved.
+
+**Pinned by** the IR optimization suite's `proved checks`: a count of
+a condition in a counted loop, and six controls, started above the
+counter, stepped further than it, stored twice, its counter first stored
+in another block, stepped again in an inner loop, and a counter whose
+step may wrap.
+
 ### D2447 — An identity may make the instruction it needs
 
 **The tour said** nothing. SHA-256's majority `(a & b) ^ (a & c) ^ (b &
