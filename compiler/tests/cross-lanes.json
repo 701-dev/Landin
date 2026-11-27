@@ -59,6 +59,12 @@
       "runners": ["qemu-aarch64", "qemu-riscv64"],
       "failures": ["the program returned a status"],
       "reason": "QEMU 11.1's user emulation aborts in its plugin core, with `qemu_plugin_vcpu_exit_hook: assertion failed`, when the host refuses the thread a guest's clone asks for, as the fixture's RLIMIT_NPROC of zero makes it, so the guest never sees the EAGAIN Linux gives"
+    },
+    {
+      "fixture": "runtime/network-multicast",
+      "runners": ["qemu-aarch64", "qemu-riscv64"],
+      "failures": ["the program's own exit status (expected 42, actual 5)", "the program's own exit status (expected 42, actual 2)"],
+      "reason": "QEMU's user emulation answers getsockopt(IP_MULTICAST_IF) and getsockopt(IPV6_MULTICAST_IF) with ENOPROTOOPT, which the lane's own Linux reads: the IPv6 socket's interface cannot be read back, the fixture's fifth check, status 5, and the exchange cannot take the loopback interface, whose read-back fails, so it goes through the system's own, which a host's firewall may drop, status 2, as on a workstation; on the gate's runner the exchange passes"
     }
   ]
 }

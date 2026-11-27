@@ -10,7 +10,11 @@
 --  that is no group.  An IPv6 socket's interface reads back as the
 --  system's choice until set.  The program's status says which check
 --  failed: 2 the exchange, 3 the second leave, 4 the address that is no
---  group, 5 the IPv6 interface.
+--  group, 5 the IPv6 interface.  QEMU's user emulation refuses to read a
+--  socket's interface, IP_MULTICAST_IF and IPV6_MULTICAST_IF, with
+--  ENOPROTOOPT, so on a cross lane under it the exchange goes through the
+--  system's interface and the program returns 5, or 2 where the host's
+--  firewall drops that; a native lane holds it.
 import core/cmp
 import core/io
 import core/net
