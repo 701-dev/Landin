@@ -209,6 +209,47 @@ class Start(Clone):
         self.assertEqual(status, 0, out)
         self.assertEqual(item.load(FIRST)["branch"], "mine")
 
+    def test_work_that_is_no_item_starts_pushes_and_gates(self):
+        status, out = self.item("start", "R%d.%d" % (0, 60), "--work", "x")
+        self.assertEqual(status, 2)
+        self.assertIn("never an item's identity", out)
+        status, out = self.item("start", "tools-fix", "--work",
+                                "the tools' fix")
+        self.assertEqual(status, 0, out)
+        state = item.load("tools-fix")
+        self.assertTrue(state["work"])
+        self.assertEqual(state["branch"], "tools-fix")
+        worktree = Path(state["worktree"])
+        #  No roadmap entry is marked; the reservations are its own.
+        self.assertEqual(git(worktree, "rev-list", "--count",
+                             "origin/main..HEAD"), "0")
+        self.assertIn("D", state["reserved"])
+        brief = (item.item_directory("tools-fix") / "brief.md").read_text()
+        self.assertIn("work of Landin that is no roadmap item", brief)
+        (worktree / "fix.txt").write_text("fixed\n")
+        git(worktree, "add", "-A")
+        git(worktree, "commit", "-q", "-m", "Fix")
+        saved = item.gate
+        item.gate = lambda arguments: 0
+        try:
+            status, out = self.item("push", "tools-fix", "--no-check")
+        finally:
+            item.gate = saved
+        self.assertEqual(status, 0, out)
+        self.assertEqual(git(worktree, "rev-parse", "HEAD"),
+                         git(worktree, "rev-parse", "origin/tools-fix"))
+
+    def test_a_retired_item_is_not_started(self):
+        retired = "R%d.%d" % (0, 50)
+        roadmap = self.clone / "ROADMAP.md"
+        roadmap.write_text(roadmap.read_text() + "\n### %s — Gone (retired)"
+                           "\n\nNever started.\n" % retired)
+        git(self.clone, "commit", "-q", "-am", "Retire it")
+        git(self.clone, "push", "-q", "origin", "main")
+        status, out = self.item("start", retired)
+        self.assertEqual(status, 2, out)
+        self.assertIn("%s is retired" % retired, out)
+
     def test_adopt_starts_an_item_the_branch_adds(self):
         added = "R%d.%d" % (0, 40)
         worktree = self.top / "continuous"

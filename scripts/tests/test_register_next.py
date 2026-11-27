@@ -155,7 +155,7 @@ class Decisions(unittest.TestCase):
 
 
 class DecisionsOnBranches(unittest.TestCase):
-    """SR-1906 and the collisions of 2026-11-26: a number another branch
+    """The collisions of 2026-11-25 and 26: a number another branch
     holds, or one handed out and not yet committed, is not given again."""
 
     def setUp(self):

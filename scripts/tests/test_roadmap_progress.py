@@ -131,6 +131,15 @@ class RoadmapProgress(unittest.TestCase):
         self.assertEqual(RENDER.roadmap_progress(blocked)["following"]["key"],
                          SECOND)
 
+    def test_a_retired_item_is_no_work_to_order(self):
+        retired = BETWEEN_ITEMS + (
+            "\n### %s — Not to be done (retired)\n\nIts content moved.\n"
+            % THIRD)
+        self.assertNotIn(THIRD, RENDER.roadmap_items(retired))
+        marker = ("**Next roadmap item: " + SECOND + " — Start source debugging "
+                  "(planned).**")
+        self.assertEqual(self.project_status(retired, marker), [])
+
     def test_parallel_ready_items_follow_roadmap_order(self):
         two_ready = BETWEEN_ITEMS + """\
 

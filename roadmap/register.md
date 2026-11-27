@@ -81,8 +81,6 @@ Open:
 | --- | --- | --- |
 | [Q-336 — Is the M7 lane `core/regex`'s Cortex-M evidence, or should an ARMv6-M lane with room for it be added?](questions/Q-336.md) | the M7 lane's execution is the Cortex-M evidence, and the 32 KiB ARMv6-M profile records `core/regex`'s size as a limit. | nothing in R22.60, which closes on the default; option 2 or 3 would be an item of its own. |
 | [Q-337 — May a library module keep its failures' words, as `core/regex` now does?](questions/Q-337.md) | `core/regex` keeps its own words, `regex.words`, and `check.py` excuses an atom a module's own `words` names. | nothing in R22.60, which closes on the default. |
-| [Q-346 — Do the register sweep's new items stand where it placed them?](questions/Q-346.md) | the items stand as written, the R22 ones beside the serial lane and the R16 ones in the continuous lane, and their rows stay scheduled on them; the roadmap manager may start them. | nothing; option 3 would bring the register back toward its cap. |
-| [Q-347 — Which macOS does the release archive support?](questions/Q-347.md) | the minimum stated as macOS 26 in the README, `docs/capabilities.md` and the formula, with the release workflow checking the archive's `minos`; the older build waits for the answer. | R22.29's macOS part beyond stating the current minimum. |
 | [Q-364 — How long does the selection run in shadow mode before R22.37 applies it?](questions/Q-364.md) | about 200 complete gates from the shadow selection's first run. | R22.37's start; nothing in R22.36, which records from its first run whatever the length. |
 
 Answered:
@@ -149,4 +147,6 @@ Answered:
 - [Q-307 — Does R22.10's exhaustive check of the `f32` functions need to run on the firmware targets?](questions/Q-307.md)
 - [Q-308 — Do `f32` and `f64` get `cmp.ordered` evidence?](questions/Q-308.md)
 - [Q-321 — Does a program that links `core/unicode`'s tables carry Unicode's notice?](questions/Q-321.md)
+- [Q-346 — Do the register sweep's new items stand where it placed them?](questions/Q-346.md)
+- [Q-347 — Which macOS does the release archive support?](questions/Q-347.md)
 - [Q-363 — How often does the complete gate run once an item's landing on main no longer needs it?](questions/Q-363.md)

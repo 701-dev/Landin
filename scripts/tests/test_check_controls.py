@@ -959,6 +959,49 @@ class Citations(unittest.TestCase):
     def test_citing_nothing_passes(self):
         self.assertEqual(self.cited("# Tour\n\nprose only\n"), [])
 
+    def test_a_core_model_in_the_roadmap_is_no_finding(self):
+        from check_controls import tree
+        missing = "X%d" % 9925
+        text = ("# Roadmap\n\nOn a Cortex-%s core, timed.\n\n%s is cited.\n"
+                % (missing, missing))
+        written = {"ROADMAP.md": text, "tour.md": "# Tour\n",
+                   "spec.md": "# Spec\n"}
+        written.update({name: "# Prototype\n"
+                        for name in checker.PROTOTYPE_FILES})
+        with tree(written=written) as root:
+            said = [why for _, _, why in checker.check_citations(
+                [str(root / "ROADMAP.md")])]
+        self.assertEqual(said, ["%s is cited and not defined" % missing])
+
+
+class UntrackedNotes(unittest.TestCase):
+    """A refused file Git does not track is said to be untracked, with
+    the place a note kept in a checkout goes."""
+
+    def test_untracked_files_are_those_git_neither_tracks_nor_ignores(self):
+        from temporary_git import environment
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            def git(*arguments):
+                subprocess.run(["git", *arguments], cwd=root, check=True,
+                               env=environment())
+            git("init", "-q")
+            (root / ".gitignore").write_text(".scratch/\n")
+            (root / "README.md").write_text("# x\n")
+            git("add", "-A")
+            git("commit", "-q", "-m", "x")
+            (root / "NOTES.md").write_text("# notes\n")
+            (root / ".scratch").mkdir()
+            (root / ".scratch" / "kept.md").write_text("# notes\n")
+            saved = checker.ROOT
+            checker.ROOT = str(root)
+            try:
+                found = checker.untracked_files()
+            finally:
+                checker.ROOT = saved
+        self.assertEqual(found, {"NOTES.md"})
+        self.assertIn(".scratch/", checker.UNTRACKED_NOTE)
+
 
 class GuideCitations(unittest.TestCase):
     def test_prose_only_and_line_numbers(self):
@@ -2615,6 +2658,50 @@ class RoadmapStructure(unittest.TestCase):
                                    % checker.FIRST_ROADMAP_PHASES))
         self.assertTrue(any("gate is missing" in why for why in said))
 
+    def test_a_retired_item_keeps_its_heading_and_why_alone(self):
+        heading = re.search(r"^### (R\d+\.\d+) — .*\(retired\)$",
+                            real_roadmap(), re.M)
+        retired = heading.group(1)
+        said = roadmap_faults(once(heading.group(0), heading.group(0)
+                                   + "\n\nStatus: planned\n"))
+        self.assertTrue(any("%s is retired and keeps 'Status: planned'"
+                            % retired in why for why in said), said)
+        said = roadmap_faults(restate_depends(PLANNED, retired))
+        self.assertTrue(any("%s depends on retired %s" % (PLANNED, retired)
+                            in why for why in said), said)
+
+    def test_an_item_heading_gone_from_main_is_reported(self):
+        from temporary_git import environment
+        item = "R%d.%d" % (15, 10)
+        roadmap = "# Roadmap\n\n## R15 — A phase\n\n### %s — A thing\n" % item
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            def git(*arguments):
+                subprocess.run(["git", *arguments], cwd=root, check=True,
+                               env=environment(), stdout=subprocess.DEVNULL)
+            git("init", "-q", "-b", "main")
+            (root / "ROADMAP.md").write_text(roadmap)
+            git("add", "-A")
+            git("commit", "-q", "-m", "x")
+            git("update-ref", "refs/remotes/origin/main", "HEAD")
+            saved = checker.ROOT
+            checker.ROOT = str(root)
+            try:
+                (root / "ROADMAP.md").write_text("# Roadmap\n\n## R15 — A phase\n")
+                gone = checker.removed_item_problems(True)
+                (root / "ROADMAP.md").write_text(
+                    roadmap.replace("A thing", "A thing (retired)"))
+                kept = checker.removed_item_problems(True)
+                (root / "ROADMAP.md").write_text(
+                    "# Roadmap\n\n## R15 — A phase (retired)\n")
+                phase = checker.removed_item_problems(True)
+            finally:
+                checker.ROOT = saved
+        self.assertEqual(len(gone), 1)
+        self.assertIn("%s is on origin/main and its heading is gone" % item,
+                      gone[0][2])
+        self.assertEqual((kept, phase), ([], []))
+
     def test_a_phase_dependency_must_name_a_phase(self):
         said = roadmap_faults(restate_depends(PLANNED, "R%d" % 99))
         self.assertTrue(any("depends on unknown R%d" % 99 in why
@@ -2980,7 +3067,7 @@ class RoadmapStructure(unittest.TestCase):
         self.assertEqual(ages, {filed: 2, kept: 2})
 
     def test_an_uncommitted_merge_ages_rows_as_its_commit_will(self):
-        #  SR-1917: a row kept on the line being merged in, the merge
+        #  A row kept on the line being merged in, the merge
         #  resolved and not yet committed, has the age the commit gives.
         from temporary_git import environment
         def roadmap(statuses):

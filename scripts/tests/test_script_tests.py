@@ -235,7 +235,7 @@ class ScriptTests(unittest.TestCase):
 
 class ModulesRunWhole(unittest.TestCase):
     """A module's `unittest.main()` ends the run, so a class written after
-    it never ran: test_item.py's last 44 cases went so until R22.27."""
+    it never ran: test_item.py's last 44 cases went so until 2026-11-27."""
 
     def test_every_module_runs_its_tests_last(self):
         import ast

@@ -45,7 +45,12 @@ summary.
 **Identities.** Phases run from R15, where the second roadmap's numbering
 left off, in identity order without a gap, and each ends in one gate. A
 phase retired before it started, as R15 was, keeps only its heading,
-marked `(retired)`, and a paragraph saying why: no item and no gate.
+marked `(retired)`, and a paragraph saying why: no item and no gate. An
+item that will not be done is retired the same way, as R22.25 was: its
+heading kept, its title marked `(retired)`, and a paragraph saying why,
+with no status, dependency or promotion line; it is in no lane, nothing
+depends on it, and `check.py` refuses an item heading `origin/main` holds
+that is gone without that form.
 Items are `R19.10`, `R19.20` and so on, spaced in tens; work found between
 two items takes a unit identity, the earlier item's number plus one, so 21
 after 20. Identities are never reused or renumbered, the earlier
@@ -3745,6 +3750,11 @@ every declaration it refuses at once (`SR-1738`), and `item.py queue`
 puts work that is no item in line (`SR-1849`). Met on the way and fixed:
 `register_next.py --delete` quoted a citation twice after a code span
 that wraps a line.
+
+### R22.25 — What Windows still lacks (retired)
+
+Never started. Q-285's answer moved its content into R21 as R21.70, so
+that R21's gate waits for it; the identity is not used again.
 
 ### R22.26 — What refine-build wanted from the library
 
