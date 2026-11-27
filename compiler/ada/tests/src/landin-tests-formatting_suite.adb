@@ -809,7 +809,7 @@ package body Landin.Tests.Formatting_Suite is
       --  RUNNING_EXAMPLES names, and one for each firmware example, its
       --  FIRMWARE_EXAMPLES: publishing one raises both counts.
       Landin.Testing.Check
-        (Item, Listings = 31, "every published example was read, and"
+        (Item, Listings = 33, "every published example was read, and"
          & Listings'Image & " were: publishing an example raises the count"
          & " in Core_And_Examples_Are_Formatted beside check.py's"
          & " RUNNING_EXAMPLES or FIRMWARE_EXAMPLES");

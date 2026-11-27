@@ -237,6 +237,10 @@ RUNNING_EXAMPLES = [
      "compiler/tests/fixtures/runtime/benchmark-game-binary-trees/main.ldn"),
     ("Benchmark Game pidigits",
      "compiler/tests/fixtures/runtime/benchmark-game-pidigits/main.ldn"),
+    ("Benchmark Game n-body",
+     "compiler/tests/fixtures/runtime/benchmark-game-n-body/main.ldn"),
+    ("Benchmark Game spectral-norm",
+     "compiler/tests/fixtures/runtime/benchmark-game-spectral-norm/main.ldn"),
 ]
 
 #  A firmware example is a program a reader copies too, and no host runs
@@ -261,7 +265,9 @@ READING_EXAMPLES = {"Word count", "Line numbers",
 ARGUMENT_EXAMPLES = {"Adding up the arguments",
                      "Benchmark Game fannkuch-redux",
                      "Benchmark Game Mandelbrot", "Benchmark Game FASTA",
-                     "Benchmark Game binary-trees", "Benchmark Game pidigits"}
+                     "Benchmark Game binary-trees", "Benchmark Game pidigits",
+                     "Benchmark Game n-body",
+                     "Benchmark Game spectral-norm"}
 
 #  A routine a published example shares with the fixtures that run it where
 #  the example cannot: the same declarations, byte for byte, in each.
@@ -308,6 +314,10 @@ BENCHMARK_GAME_ORACLES = {
         "b7f92c56b5d8aeb0a4d698842d1d87a57b4909865c3c84e5e10313e16663c3cb",
     "compiler/tests/fixtures/runtime/benchmark-game-pidigits/output.txt":
         "dbf95cc20ad23ff1a385d30436f0c63b5ae7f41bb1003cf204f5e4888b74a39c",
+    "compiler/tests/fixtures/runtime/benchmark-game-n-body/output.txt":
+        "76de83d6d51a74f82828547423f516e7815cfe8cfea6290a2831aa173f806de7",
+    "compiler/tests/fixtures/runtime/benchmark-game-spectral-norm/output.txt":
+        "a95e11fa07f7b196ef488e73f67afbbbc16cf6a2c6de5f8d54ea49821fe604e6",
 }
 
 #  Every word the language reserves. Kept here rather than imported from

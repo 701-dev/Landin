@@ -54,6 +54,24 @@
    }
   },
   {
+   "name": "n-body",
+   "fixture": "runtime/benchmark-game-n-body",
+   "timing": {
+    "args": [
+     "1000000"
+    ]
+   }
+  },
+  {
+   "name": "spectral-norm",
+   "fixture": "runtime/benchmark-game-spectral-norm",
+   "timing": {
+    "args": [
+     "1000"
+    ]
+   }
+  },
+  {
    "name": "fibre",
    "fixture": "runtime/measure-fibre-switches",
    "timing": {

@@ -1686,6 +1686,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/benchmark-game-n-body": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/benchmark-game-pidigits": {
       "codes": [
         "L0015"
@@ -1693,6 +1699,12 @@
       "mode": "refuse"
     },
     "runtime/benchmark-game-reverse-complement": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/benchmark-game-spectral-norm": {
       "codes": [
         "L0015"
       ],

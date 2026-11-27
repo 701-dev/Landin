@@ -1,0 +1,127 @@
+--  A direct single-threaded implementation of the Benchmark Game workload,
+--  the spectral norm of the infinite matrix A whose entry at row i and
+--  column j is 1/((i + j)(i + j + 1)/2 + i + 1), counted from zero, by ten
+--  rounds of the power method on its first n rows and columns.  The order
+--  n is the program's argument: a hundred for the correctness output and
+--  5,500 for the performance run.  It prints the norm to nine places.
+import core/io
+import core/math
+import core/mem
+import core/text
+import core/vec
+import hosted/blocking
+import hosted/heap
+
+memory_of: type = heap.heap
+
+--- The matrix's entry at row `i` and column `j`.
+entry: (i: usize, j: usize) -> (value: f64) =
+    value = 1.0 / f64((i + j) * (i + j + 1) / 2 + i + 1)
+end entry
+
+--- Make `into` the product of A and `v`.
+times_a: (v: []f64, into: []mut f64) -> none =
+    first: usize = 0
+    for i in first..<lenof into do
+        mut sum: f64 = 0.0
+        for j in first..<lenof v do
+            sum += entry(i, j) * v[j]
+        end for
+        into[i] = sum
+    end for
+end times_a
+
+--- Make `into` the product of A's transpose and `v`.
+times_transpose: (v: []f64, into: []mut f64) -> none =
+    first: usize = 0
+    for i in first..<lenof into do
+        mut sum: f64 = 0.0
+        for j in first..<lenof v do
+            sum += entry(j, i) * v[j]
+        end for
+        into[i] = sum
+    end for
+end times_transpose
+
+--- Make `into` the product of A's transpose, A and `v`, through `scratch`.
+times_both: (v: []f64, scratch: []mut f64, into: []mut f64) -> none =
+    times_a(v, scratch)
+    times_transpose(scratch, into)
+end times_both
+
+--- A list of `n` items, each `value`.
+filled: (memory: memory_of, n: usize, value: f64)
+        -> (values: vec.list(f64)) ! mem.out_of_memory =
+    values = vec.new(item: f64)
+    vec.reserve(values, memory, n) else (problem)
+        vec.release(values, memory)
+        fail problem
+    end
+    first: usize = 0
+    for i in first..<n do
+        _ = i
+        try vec.push(values, memory, value)
+    end for
+end filled
+
+--- The spectral norm of A's first `n` rows and columns.
+spectral_norm: (memory: memory_of, n: usize)
+               -> (norm: f64) ! mem.out_of_memory =
+    mut u := try filled(memory, n, 1.0)
+    defer vec.release(u, memory)
+    mut v := try filled(memory, n, 0.0)
+    defer vec.release(v, memory)
+    mut scratch := try filled(memory, n, 0.0)
+    defer vec.release(scratch, memory)
+
+    for round in usize(0)..<10 do
+        _ = round
+        times_both(vec.used(u), vec.used(scratch), vec.used(v))
+        times_both(vec.used(v), vec.used(scratch), vec.used(u))
+    end for
+
+    us := vec.used(u)
+    vs := vec.used(v)
+    mut v_b_v: f64 = 0.0
+    mut v_v: f64 = 0.0
+    first: usize = 0
+    for i in first..<n do
+        v_b_v += us[i] * vs[i]
+        v_v += vs[i] * vs[i]
+    end for
+    norm = math.sqrt(v_b_v / v_v)
+end spectral_norm
+
+--- The order named by the first argument.
+order: (host: blocking.host)
+       -> (n: usize) ! mem.not_found | text.invalid_number
+                     | text.number_overflow =
+    first: usize = 0
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
+end order
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    memory := heap.new()
+    code = 1
+    n := order(host) else begin
+        io.write(host, io.err(host), "usage: spectral-norm N\n") else none
+        return
+    end
+
+    norm := spectral_norm(memory, n) else begin
+        io.write(host, io.err(host), "spectral-norm: out of memory\n") else none
+        return
+    end
+    mut storage: [32]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    io.format(out, "{:.9}\n", [any(addr norm)]) else begin
+        return
+    end
+    io.flush(out) else begin
+        return
+    end
+    code = 0
+end main
