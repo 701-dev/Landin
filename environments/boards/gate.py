@@ -30,7 +30,9 @@ it writes
 RIG_STATE/runs/PORT.json, and removes it once every step has run to its own
 result and the sequence has ended on its passed boot check: an entry found
 there says an earlier gate run of the port did not leave the board on its
-verified fixed image, which the outcome keeps as previous_interrupted. The
+verified fixed image, which the outcome keeps as previous_interrupted.
+The Pico 2's Arm tool writes one there too, since its runs leave the board
+off its resting image, and its Hazard3 boot check removes it. The
 board's state is then unknown, so the port begins with the boot check of
 its resting image, the sequence's last, which flashes over SWD whatever the
 board runs and restores and verifies that image.

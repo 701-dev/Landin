@@ -335,6 +335,7 @@ negative/compiler-concept-reserved | linux-x86-64, linux-arm64, darwin-arm64, sy
 negative/compiler-conformance-reserved | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/compiler-unreachable-argument | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/compiler-unreachable-not-a-caller | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
+negative/compiler-unreachable-undeclared-site | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/compiler-unreachable-value | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/composed-conformance-missing-parent | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/compound-assignment-as-expression | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -2225,6 +2226,11 @@ runtime/defer-call-shapes | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86
 runtime/defer-cleanups-follow-control-edges | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/defer-does-not-unwind-traps | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/deferred-call-drops-its-result | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/dense-blas-level-1 | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/dense-blas-level-2 | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/dense-blas-level-3-f32 | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/dense-blas-level-3-f64 | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/dense-views-and-norms | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/derived-address-empty-slice-traps | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/derived-array-slice-origin | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/derived-containers | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -2440,6 +2446,7 @@ runtime/library-shared-big | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64
 runtime/library-shared-cache | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-cmp | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-complex | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/library-shared-dense | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-diag | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-failure | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-fault | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
@@ -3005,6 +3012,7 @@ runtime/volume-memory | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64,
 runtime/whole-array-elements | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/whole-arrays-copy-between-storage | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/widened-operands-keep-their-homes | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+runtime/widening-operand-outlives-product | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/windows-events-child-wait | windows-x86-64, windows-arm64
 runtime/windows-events-console-control | windows-x86-64, windows-arm64
 runtime/windows-events-control-in-worker | windows-x86-64, windows-arm64

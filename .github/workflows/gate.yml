@@ -84,9 +84,15 @@ jobs:
     runs-on: ubuntu-24.04-arm
     permissions:
       actions: read
+      checks: read
       contents: read
     outputs:
       reuse: ${{ steps.reuse.outputs.reuse }}
+      #  The selected gate in shadow: what it would run, which no
+      #  job's condition reads, and the passed run it compared with.
+      shadow: ${{ steps.shadow.outputs.shadow }}
+      shadow-base: ${{ steps.shadow.outputs.shadow-base }}
+      shadow-sha: ${{ steps.shadow.outputs.shadow-sha }}
       software: ${{ steps.scope.outputs.software }}
       #  Whether the board and timing jobs run: the event's scope, less what
       #  a passed run stands in for (D1647, D1649), which the aggregate
@@ -149,6 +155,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/gate_inputs.py physical gate.yml >> "$GITHUB_OUTPUT"
+      #  What the selected gate would skip, by .github/gate-lanes.json, into
+      #  the summary; it skips nothing, and any failure selects every lane.
+      #  The history makes the change since the base passed run readable.
+      - name: The selected gate in shadow, skipping nothing
+        id: shadow
+        if: steps.reuse.outputs.reuse != 'true' && steps.scope.outputs.software == 'true'
+        continue-on-error: true
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --quiet --no-tags --filter=blob:none --unshallow origin
+          python3 scripts/gate_history.py select
 
   #  Documents, grammar and the transcription tables.  Nothing to install
   #  and nothing to build, so this is the fastest verdict available.
@@ -3589,6 +3608,9 @@ jobs:
             windows-arm64-debugger, freebsd-toolchain, freebsd-host,
             determinism, board-bundles, board]
     runs-on: ubuntu-24.04
+    #  Reading the jobs' logs and the base run's manifests for the
+    #  selection in shadow, and the leg evidence of a run whose legs
+    #  board-bundles took.
     permissions:
       actions: read
       contents: read
@@ -3652,3 +3674,37 @@ jobs:
           path: ${{ runner.temp }}/measure-cycles/figures.json
           if-no-files-found: warn
           retention-days: 90
+      #  The selection in shadow, finished: the lanes the
+      #  emission decides, settled from the x86-64 determinism manifests
+      #  of this run and of the base run, then the selection and each
+      #  failed job's outside signature recorded on the run, which
+      #  scripts/gate_history.py reads back.  It never fails the gate.
+      - name: This run's emission manifests
+        if: always() && contains(needs.inputs.outputs.shadow, '=emission:')
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: manifest-x86_64-linux-*
+          path: ${{ runner.temp }}/shadow/ours
+      - name: The base run's emission manifests
+        if: always() && contains(needs.inputs.outputs.shadow, '=emission:')
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: manifest-x86_64-linux-*
+          path: ${{ runner.temp }}/shadow/theirs
+          run-id: ${{ needs.inputs.outputs.shadow-base }}
+          github-token: ${{ github.token }}
+      - name: The selected gate in shadow, and the failed jobs' outside signatures
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHADOW: ${{ needs.inputs.outputs.shadow }}
+          SHADOW_BASE: ${{ needs.inputs.outputs.shadow-base }}
+          SHADOW_SHA: ${{ needs.inputs.outputs.shadow-sha }}
+          REUSED: ${{ needs.inputs.outputs.reuse }}
+        run: >-
+          python3 scripts/gate_history.py finish
+          "$RUNNER_TEMP/shadow/ours" "$RUNNER_TEMP/shadow/theirs"

@@ -134,7 +134,7 @@ puts the steps in order:
 | push | `item.py push ITEM [--watch] [--boards] [--no-check]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; refuses a tree the register's age check refuses, or the whole `check.py` when the push changes the roadmap; runs the pre-push checks the paths changed since the last push select, in one `dev-test.sh` invocation where it can (an `.ldn` file: the formatting case; `compiler/` or the library: the `lowering` suite; a new library module: the debugger workloads' closures; the library: `script_tests.py test_library_docs`; a merge: the whole `check.py`), refusing with the failed command and its log, `--no-check` to push regardless; notes when the measured sizes may move; pushes the head to GitHub, then to [the mirror](#integration-publication-and-ci), whose refusal it reports with the command to retry and does not count as the push failing; records the head's gate runs as `gate` does; `--boards` dispatches its boards beside the gate |
 | gate | `item.py gate ITEM [--main] [--watch]` | records the pushed head's runs, or main's after promotion, naming each run's branch; follows a branch's run in two detached runs, `gate_watch.py`, which returns at the first failed job so the fix starts at once, and `gate_watch.py --all`, which names every failure at the end for the push that fixes them; follows main's with `--verdict`, to its aggregate `gate` job, where the token is released; a failed boards run is named a timing failure when only timing jobs failed |
 | boards | `item.py boards ITEM [--watch] [--unmerged] [--rerun-failed] [--again]` | dispatches `scope=boards` on the pushed head, records the run and with `--watch` follows it in a detached run; a queued, running or passed one is followed or named instead (`--again` dispatches anyway); refuses while `main` is not an ancestor of the head, since promotion would refuse that tree (`--unmerged` dispatches anyway, for early board feedback); `--rerun-failed` re-runs only the failed jobs of a boards run that [failed in timing alone](#a-timing-failure-is-not-a-boards-failure) |
-| merging main | `item.py merge-main ITEM [--branch BRANCH] [--no-queue] [--with OTHER ...] [--drop OTHER ...]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, or `--branch`'s, without the token; naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new; exits 1 on a row the merge aged too far. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work. `--with` and `--drop` make and change [a train](#a-train) |
+| merging main | `item.py merge-main ITEM [--branch BRANCH] [--no-queue] [--with OTHER ...] [--drop OTHER ...]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, or `--branch`'s, without the token; naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new; exits 1 on a row the merge aged too far. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work. `--with`, `--with-branch` and `--drop` make [a train](#a-train) |
 | promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer`; a window's item lands on its integration branch instead, without boards |
 | finish | `item.py finish ITEM` | once main's gate on the promoted commit passed, its verdict or the whole run, a window's item once it landed, or an item whose head reached its landing branch or main by hand: removes the worktree and the local and remote branch, gives up the promotion token, keeps the state under `landin-items/done/`; run from the item's own worktree it works from the clone's main checkout |
 | watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait NAME [--why TEXT] \| --release NAME \| --take NAME --why TEXT] [--target BRANCH]` | every running item, its gate runs as GitHub gives them now, and the tokens' holders and lines; those nothing has moved for an hour, exit 1; each token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), giving up a token or place, or taking a token for work that is no item, such as a register sweep, until it is released, in line when held |
@@ -1230,13 +1230,51 @@ the full run being reused. Target and build jobs, including `determinism`,
 appear as skipped; `inputs`, `documents`, `scripts` and the final `gate`
 still succeed. The linked full run contains the target-test results.
 
+### Failure causes and the selection in shadow
+
+Every failed gate job gets a cause, and every complete gate computes the
+selected gate that would be applied, skipping nothing (D2794-D2798).
+`scripts/gate_history.py` does both, and `.github/gate-lanes.json`, the
+lane table, is what it reads. The table groups every job the aggregate
+needs into lanes. Each lane declares the paths whose change reaches it,
+the lanes it needs and whether it checks the evidence. Its first day,
+job-minutes and last day as the only lane with a defect are kept from
+the history. A job added to the gate goes into a lane in the same
+change, or `test_gate_history`'s `Lanes` fails.
+
+- The `inputs` job's last step finds the base, the newest passed complete
+  gate on the commit's history. It writes the selection into the run's
+  summary. The aggregate finishes it, records it on the run as a
+  `gate-shadow` annotation, and records each failed job's outside
+  signature, matched in its log, as `gate-causes`. Neither step can fail
+  or skip a job.
+- `.github/workflows/gate-rerun.yml` re-runs a branch push's failed jobs
+  once when every one of them matched a signature a second attempt can
+  pass, and its run's summary names them. `main`'s gate is never re-run
+  by it.
+- `python3 scripts/gate_history.py fetch` caches the gate's runs by
+  GraphQL, never REST, in `~/.cache/landin/gate-history`. `causes`
+  prints each failed job's cause. `table --write`, run weekly by the
+  roadmap manager and committed, updates the table's figures and writes
+  `.github/gate-causes.jsonl`.
+- **The miss rate** is read with `python3 scripts/gate_history.py
+  shadow`, and in the table's `shadow` entry as of its last update. It
+  gives the complete gates since shadow mode began against the about
+  200 the maintainer is asked to confirm, and the defects only lanes the selection would have
+  skipped showed, a week, against the study's 1.7. The maintainer reads
+  it before the selected gate is applied.
+- A new outside cause is a signature in the table: a pattern, its
+  example, which `Lanes` matches against it, and whether a re-run can
+  pass it.
+
 ### The controls that hold the job inventory
 
 A change to a gate job's name, matrix, condition or needs is held by
 controls in several files. Read this list before the change, and run them
 together afterwards: `python3 scripts/script_tests.py test_gate_inputs
 test_rv64_lanes test_build_inventory test_compare_builds
-test_host_determinism test_rig_runner_hook test_release`, and `python3
+test_host_determinism test_rig_runner_hook test_release
+test_gate_history`, and `python3
 environments/cortex-m/test.py`, which `check.py` runs.
 
 | file | what it holds of `gate.yml` |
@@ -1250,6 +1288,7 @@ environments/cortex-m/test.py`, which `check.py` runs.
 | `scripts/tests/test_rig_runner_hook.py` | nothing of the jobs: it passes the workflow's path to the rig runner's hook. |
 | `scripts/tests/test_release.py` | nothing of the jobs: it names the workflow in the API path the release check asks for main's run. |
 | `scripts/tests/test_nix_route.py` | `Gate`: the `flake-compiler` leg runs `scripts/nix_route.py` (D1707); it holds the matrix's `compiler` part by that step's condition. |
+| `scripts/tests/test_gate_history.py` | `Lanes`: every job the aggregate needs is in exactly one lane of `.github/gate-lanes.json`. `Wiring`: the selection's steps `continue-on-error`, no job's condition reads them, and `gate-rerun.yml` re-runs only a branch push's first attempt. |
 | `scripts/tests/test_check_controls.py` | nothing of the jobs: `PinnedToolchain` copies the workflow, so that `check.py` can hold the scripts job's actionlint step to `scripts/actionlint.py --install` and to no literal pin. |
 
 ### Physical boards and promotion
@@ -1366,6 +1405,7 @@ it up when that gate has its verdict (`item.py gate ITEM --main`, or
 `finish`) or with `item.py queue --release ITEM`. An item that finds the token held is put
 in line and waits with `item.py queue --wait ITEM`, which returns once the
 token is its own; it keeps working meanwhile, but takes no final merge.
+An item takes it only once its head's push gate passed.
 Work that is no item waits for it with `queue --wait NAME --why TEXT`.
 A holder this clone no longer runs, or whose `main` gate has ended, holds
 nothing. A merge whose main side is all `Gate: explanatory` and leaves the
@@ -1381,7 +1421,8 @@ The holder may bring other items' gated candidates into its final merge,
 own as one integrated tree: one gate, one boards dispatch and one `main`
 gate instead of one each. The holder's agent, or the session that runs
 the roadmap, is the train's integrator; `ROADMAP.md`'s Mechanics give it
-the authority. A member rides when its pushed head is its worktree's head,
+the authority. A branch no item owns rides by `--with-branch` on its head's passed
+gate; its owner leaves it be meanwhile. A member rides when its pushed head is its worktree's head,
 a push gate on that head passed with its whole listing, it is complete in
 its own `ROADMAP.md`, it lands on `main` and it does not say
 `Promotion: maintainer`. Each is merged after `origin/main`, in order. A

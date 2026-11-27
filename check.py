@@ -11035,8 +11035,12 @@ PROCESS_SECTION_BUDGETS = {
     #  Windows runtime jobs took the ABI fixtures' C peers, beside a row
     #  main added in the same weeks, and again when trains, boards beside
     #  the gate and main's verdict joined the promotion rule, and again
-    #  when board legs taken by identity and the daily schedule did.
-    "The mechanical gate": 55000,
+    #  when the token waited for a passed gate and branches that are no
+    #  item rode trains, beside main's flake-tools row of the same day;
+    #  and again when the failure causes and the selection in shadow
+    #  joined it, and when board legs taken by identity and the daily
+    #  schedule did.
+    "The mechanical gate": 58000,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,
@@ -12141,7 +12145,8 @@ def check_library_module_names(full_run):
 #  one is an input in D1954's order.  Every other library concept is a
 #  capability, so a new evidence concept is named here.
 LIBRARY_EVIDENCE_CONCEPTS = ("scalar", "exchangeable", "equatable",
-                             "hashable", "ordered", "formattable", "task")
+                             "hashable", "ordered", "formattable", "task",
+                             "floating")
 
 #  The parameter names core/README.md fixes for a capability (D269).
 LIBRARY_CAPABILITY_NAMES = ("memory", "host")
