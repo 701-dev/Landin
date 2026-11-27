@@ -1838,6 +1838,30 @@
     "runtime/binary-search": {
       "mode": "execute"
     },
+    "runtime/bits-byte-order": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u16": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u16-pairs": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u16-pairs-high": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u8": {
+      "mode": "execute"
+    },
+    "runtime/bits-oracle": {
+      "mode": "execute"
+    },
+    "runtime/bits-sets": {
+      "mode": "execute"
+    },
+    "runtime/bits-varints": {
+      "mode": "execute"
+    },
     "runtime/bitwise-identities": {
       "mode": "execute"
     },
@@ -3198,6 +3222,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/example-wasm-sections": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/failure-words": {
       "mode": "execute"
     },
@@ -3829,6 +3859,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-big": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-bits": {
       "mode": "execute"
     },
     "runtime/library-shared-cache": {

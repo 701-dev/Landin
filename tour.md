@@ -5363,6 +5363,9 @@ bit its member's encoding names.
 - Building one is an ordinary struct literal with `of` ([0720]).
 
 There is no set literal or set operator, because a struct needs none.
+To combine two whole sets at once, `core/bits` has union, intersection,
+difference and an emptiness test, for a set type that declares
+`is bits.flags ()`.
 Inside a larger image the same fields sit at the image's bits, offset by
 where the set begins.
 

@@ -4,6 +4,7 @@
 --  digits below 2^32, and each step is one pass over the limbs, so the
 --  work grows with the square of the length.
 
+import core/bits
 import core/panic
 import core/text
 
@@ -93,7 +94,7 @@ public write_hex: (into: []mut u8, value: []u32) -> (count: usize) =
         return
     end if
     top: u32 = value[length - 1]
-    mut digits: u32 = 8 - leading_zeros(top) / 4
+    mut digits: u32 = 8 - bits.leading_zeros(top) / 4
     mut at: usize = length
     while at > 0 do
         dec at

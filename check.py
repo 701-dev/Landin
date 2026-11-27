@@ -218,6 +218,8 @@ RUNNING_EXAMPLES = [
      "main.ldn"),
     ("Run-length encoding",
      "compiler/tests/fixtures/runtime/example-run-length-encoding/main.ldn"),
+    ("Sections of a WebAssembly module",
+     "compiler/tests/fixtures/runtime/example-wasm-sections/main.ldn"),
     ("Merge sort",
      "compiler/tests/fixtures/runtime/example-merge-sort/main.ldn"),
     ("Dice and a shuffled deck",

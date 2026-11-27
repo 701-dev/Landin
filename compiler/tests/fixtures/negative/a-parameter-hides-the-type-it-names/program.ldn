@@ -1,0 +1,18 @@
+--- A parameter spelled as the module type it is declared with reaches
+--- itself in the rest of the signature, so the type position names the
+--- parameter, and the refusal says which declaration it hides.
+little: atom
+big: atom
+order: type = little | big
+
+first: (order: order, bytes: []u8) -> (value: u8) =
+    value = if order == little then bytes[0] else bytes[1] end if
+end first
+
+--- A local hides it from its declaration to the end of its block.
+second: (bytes: []u8) -> (value: u8) =
+    order: usize = 1
+    taken: order = little
+    value = bytes[order]
+    _ = taken
+end second

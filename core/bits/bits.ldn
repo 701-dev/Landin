@@ -1,0 +1,363 @@
+--  Counting and moving the bits of an unsigned integer, the operations of
+--  Go's math/bits and Rust's integer methods, at u8, u16, u32 and u64.
+--  Each is written once, from shifts, masks and additions, so it gives
+--  the same answer on every target and needs no instruction a target may
+--  lack; the u64 routines work on two u32 halves, which a 32-bit target
+--  does in its own registers.  A count is a `u32`, as Rust's are.
+--
+--  The rest of the module reads and writes integers in a stated byte
+--  order over a caller's bytes, in bytes.ldn, and combines the flags of
+--  a set, in sets.ldn.
+
+--- The unsigned integer types, u8, u16, u32 and u64.  The entries are
+--- each width's own routines; they back the generic routines below,
+--- which are what to call.
+public unsigned: type = concept (item: type)
+    ones: (x: item) -> (count: u32)
+    leading_zeros: (x: item) -> (count: u32)
+    trailing_zeros: (x: item) -> (count: u32)
+    rotate_left: (x: item, count: u32) -> (result: item)
+    reverse_bytes: (x: item) -> (result: item)
+    reverse_bits: (x: item) -> (result: item)
+    multiply_wide: (x: item, y: item) -> (high: item, low: item)
+    width: (x: item) -> (count: u32)
+end unsigned
+
+u8 is unsigned (ones: ones_u8, leading_zeros: leading_zeros_u8,
+                trailing_zeros: trailing_zeros_u8,
+                rotate_left: rotate_left_u8,
+                reverse_bytes: reverse_bytes_u8,
+                reverse_bits: reverse_bits_u8,
+                multiply_wide: multiply_wide_u8, width: width_u8)
+
+u16 is unsigned (ones: ones_u16, leading_zeros: leading_zeros_u16,
+                 trailing_zeros: trailing_zeros_u16,
+                 rotate_left: rotate_left_u16,
+                 reverse_bytes: reverse_bytes_u16,
+                 reverse_bits: reverse_bits_u16,
+                 multiply_wide: multiply_wide_u16, width: width_u16)
+
+u32 is unsigned (ones: ones_u32, leading_zeros: leading_zeros_u32,
+                 trailing_zeros: trailing_zeros_u32,
+                 rotate_left: rotate_left_u32,
+                 reverse_bytes: reverse_bytes_u32,
+                 reverse_bits: reverse_bits_u32,
+                 multiply_wide: multiply_wide_u32, width: width_u32)
+
+u64 is unsigned (ones: ones_u64, leading_zeros: leading_zeros_u64,
+                 trailing_zeros: trailing_zeros_u64,
+                 rotate_left: rotate_left_u64,
+                 reverse_bytes: reverse_bytes_u64,
+                 reverse_bits: reverse_bits_u64,
+                 multiply_wide: multiply_wide_u64, width: width_u64)
+
+--- How many bits of `x` are set.  Go's `OnesCount`, Rust's
+--- `count_ones`.
+public ones: (item: type is unsigned, x: item) -> (count: u32) =
+    count = item.ones(x)
+end ones
+
+--- How many zero bits stand above the highest set bit of `x`: its width
+--- when `x` is zero.  Go's `LeadingZeros`.
+public leading_zeros: (item: type is unsigned, x: item) -> (count: u32) =
+    count = item.leading_zeros(x)
+end leading_zeros
+
+--- How many zero bits stand below the lowest set bit of `x`: its width
+--- when `x` is zero.  Go's `TrailingZeros`.
+public trailing_zeros: (item: type is unsigned, x: item) -> (count: u32) =
+    count = item.trailing_zeros(x)
+end trailing_zeros
+
+--- How many bits `x` needs: one more than the index of its highest set
+--- bit, and 0 for zero.  Go's `Len`, Python's `bit_length`.
+public bit_length: (item: type is unsigned, x: item) -> (count: u32) =
+    count = item.width(x) - item.leading_zeros(x)
+end bit_length
+
+--- `x` rotated toward its high end by `count` bits, the bits that leave
+--- the top coming in at the bottom.  The count is taken modulo the
+--- width, so any count is allowed.
+public rotate_left: (item: type is unsigned, x: item, count: u32)
+                    -> (result: item) =
+    result = item.rotate_left(x, count % item.width(x))
+end rotate_left
+
+--- `x` rotated toward its low end by `count` bits, modulo the width.
+public rotate_right: (item: type is unsigned, x: item, count: u32)
+                     -> (result: item) =
+    w: u32 = item.width(x)
+    result = item.rotate_left(x, (w - count % w) % w)
+end rotate_right
+
+--- `x` with its bytes in the opposite order, which turns a value read in
+--- one byte order into the other.  A u8 is unchanged.
+public reverse_bytes: (item: type is unsigned, x: item) -> (result: item) =
+    result = item.reverse_bytes(x)
+end reverse_bytes
+
+--- `x` with its bits in the opposite order: bit 0 becomes the highest.
+public reverse_bits: (item: type is unsigned, x: item) -> (result: item) =
+    result = item.reverse_bits(x)
+end reverse_bits
+
+--- The full product of `x` and `y`, twice the width of either, as its
+--- `high` and `low` halves.  Go's `Mul`.
+public multiply_wide: (item: type is unsigned, x: item, y: item)
+                      -> (high: item, low: item) =
+    (high: product_high, low: product_low) := item.multiply_wide(x, y)
+    high = product_high
+    low = product_low
+end multiply_wide
+
+--- `x + y + carry`, the low bits as `sum` and whether it overflowed as
+--- `carry_out`, which is the next word's `carry` in a sum of many words.
+--- Go's `Add`.
+public add_carry: (item: type is unsigned, x: item, y: item, carry: bool)
+                  -> (sum: item, carry_out: bool) =
+    partial: item = x +% y
+    sum = if carry then partial +% 1 else partial end if
+    carry_out = partial < x or (carry and sum == 0)
+end add_carry
+
+--- `x - y - borrow`, the low bits as `difference` and whether it went
+--- below zero as `borrow_out`, the next word's `borrow`.  Go's `Sub`.
+public subtract_borrow: (item: type is unsigned, x: item, y: item,
+                         borrow: bool)
+                        -> (difference: item, borrow_out: bool) =
+    partial: item = x -% y
+    difference = if borrow then partial -% 1 else partial end if
+    borrow_out = x < y or (borrow and partial == 0)
+end subtract_borrow
+
+--  The u32 routines do the work; the narrower widths widen to them and
+--  u64 splits into two of them.
+
+ones_u32: (x: u32) -> (count: u32) =
+    mut v: u32 = x - ((x >> 1) & 0x55555555)
+    v = (v & 0x33333333) + ((v >> 2) & 0x33333333)
+    v = (v + (v >> 4)) & 0x0f0f0f0f
+    v = v + (v >> 8)
+    v = v + (v >> 16)
+    count = v & 0x3f
+end ones_u32
+
+leading_zeros_u32: (x: u32) -> (count: u32) =
+    count = 0
+    if x == 0 then
+        count = 32
+        return
+    end if
+    mut rest: u32 = x
+    if rest & 0xffff0000 == 0 then
+        count = count + 16
+        rest = rest << 16
+    end if
+    if rest & 0xff000000 == 0 then
+        count = count + 8
+        rest = rest << 8
+    end if
+    if rest & 0xf0000000 == 0 then
+        count = count + 4
+        rest = rest << 4
+    end if
+    if rest & 0xc0000000 == 0 then
+        count = count + 2
+        rest = rest << 2
+    end if
+    if rest & 0x80000000 == 0 then
+        count = count + 1
+    end if
+end leading_zeros_u32
+
+trailing_zeros_u32: (x: u32) -> (count: u32) =
+    count = 0
+    if x == 0 then
+        count = 32
+        return
+    end if
+    mut rest: u32 = x
+    if rest & 0xffff == 0 then
+        count = count + 16
+        rest = rest >> 16
+    end if
+    if rest & 0xff == 0 then
+        count = count + 8
+        rest = rest >> 8
+    end if
+    if rest & 0xf == 0 then
+        count = count + 4
+        rest = rest >> 4
+    end if
+    if rest & 0x3 == 0 then
+        count = count + 2
+        rest = rest >> 2
+    end if
+    if rest & 0x1 == 0 then
+        count = count + 1
+    end if
+end trailing_zeros_u32
+
+--  0 <= count < 32; a shift by 32 gives zero, so count 0 gives x.
+rotate_left_u32: (x: u32, count: u32) -> (result: u32) =
+    result = (x << count) | (x >> (32 - count))
+end rotate_left_u32
+
+reverse_bytes_u32: (x: u32) -> (result: u32) =
+    result = (x >> 24) | ((x >> 8) & 0xff00) | ((x << 8) & 0xff0000)
+             | (x << 24)
+end reverse_bytes_u32
+
+reverse_bits_u32: (x: u32) -> (result: u32) =
+    mut v: u32 = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1)
+    v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2)
+    v = ((v >> 4) & 0x0f0f0f0f) | ((v & 0x0f0f0f0f) << 4)
+    result = reverse_bytes_u32(v)
+end reverse_bits_u32
+
+multiply_wide_u32: (x: u32, y: u32) -> (high: u32, low: u32) =
+    product: u64 = u64(x) * u64(y)
+    high = u32(product >> 32)
+    low = u32(product & 0xffffffff)
+end multiply_wide_u32
+
+width_u32: (x: u32) -> (count: u32) =
+    _ = x
+    count = 32
+end width_u32
+
+ones_u8: (x: u8) -> (count: u32) =
+    count = ones_u32(u32(x))
+end ones_u8
+
+leading_zeros_u8: (x: u8) -> (count: u32) =
+    count = leading_zeros_u32(u32(x)) - 24
+end leading_zeros_u8
+
+trailing_zeros_u8: (x: u8) -> (count: u32) =
+    count = trailing_zeros_u32(u32(x) | 0x100)
+end trailing_zeros_u8
+
+rotate_left_u8: (x: u8, count: u32) -> (result: u8) =
+    wide: u32 = u32(x)
+    result = u8(((wide << count) | (wide >> (8 - count))) & 0xff)
+end rotate_left_u8
+
+reverse_bytes_u8: (x: u8) -> (result: u8) =
+    result = x
+end reverse_bytes_u8
+
+reverse_bits_u8: (x: u8) -> (result: u8) =
+    result = u8(reverse_bits_u32(u32(x)) >> 24)
+end reverse_bits_u8
+
+multiply_wide_u8: (x: u8, y: u8) -> (high: u8, low: u8) =
+    product: u32 = u32(x) * u32(y)
+    high = u8(product >> 8)
+    low = u8(product & 0xff)
+end multiply_wide_u8
+
+width_u8: (x: u8) -> (count: u32) =
+    _ = x
+    count = 8
+end width_u8
+
+ones_u16: (x: u16) -> (count: u32) =
+    count = ones_u32(u32(x))
+end ones_u16
+
+leading_zeros_u16: (x: u16) -> (count: u32) =
+    count = leading_zeros_u32(u32(x)) - 16
+end leading_zeros_u16
+
+trailing_zeros_u16: (x: u16) -> (count: u32) =
+    count = trailing_zeros_u32(u32(x) | 0x10000)
+end trailing_zeros_u16
+
+rotate_left_u16: (x: u16, count: u32) -> (result: u16) =
+    wide: u32 = u32(x)
+    result = u16(((wide << count) | (wide >> (16 - count))) & 0xffff)
+end rotate_left_u16
+
+reverse_bytes_u16: (x: u16) -> (result: u16) =
+    wide: u32 = u32(x)
+    result = u16(((wide >> 8) | (wide << 8)) & 0xffff)
+end reverse_bytes_u16
+
+reverse_bits_u16: (x: u16) -> (result: u16) =
+    result = u16(reverse_bits_u32(u32(x)) >> 16)
+end reverse_bits_u16
+
+multiply_wide_u16: (x: u16, y: u16) -> (high: u16, low: u16) =
+    product: u32 = u32(x) * u32(y)
+    high = u16(product >> 16)
+    low = u16(product & 0xffff)
+end multiply_wide_u16
+
+width_u16: (x: u16) -> (count: u32) =
+    _ = x
+    count = 16
+end width_u16
+
+--  A u64's high and low u32 halves, and a u64 made from them.
+high_half: (x: u64) -> (half: u32) =
+    half = u32(x >> 32)
+end high_half
+
+low_half: (x: u64) -> (half: u32) =
+    half = u32(x & 0xffffffff)
+end low_half
+
+joined: (high: u32, low: u32) -> (x: u64) =
+    x = (u64(high) << 32) | u64(low)
+end joined
+
+ones_u64: (x: u64) -> (count: u32) =
+    count = ones_u32(high_half(x)) + ones_u32(low_half(x))
+end ones_u64
+
+leading_zeros_u64: (x: u64) -> (count: u32) =
+    high: u32 = high_half(x)
+    count = if high == 0 then 32 + leading_zeros_u32(low_half(x))
+            else leading_zeros_u32(high) end if
+end leading_zeros_u64
+
+trailing_zeros_u64: (x: u64) -> (count: u32) =
+    low: u32 = low_half(x)
+    count = if low == 0 then 32 + trailing_zeros_u32(high_half(x))
+            else trailing_zeros_u32(low) end if
+end trailing_zeros_u64
+
+rotate_left_u64: (x: u64, count: u32) -> (result: u64) =
+    amount: u64 = u64(count)
+    result = (x << amount) | (x >> (64 - amount))
+end rotate_left_u64
+
+reverse_bytes_u64: (x: u64) -> (result: u64) =
+    result = joined(reverse_bytes_u32(low_half(x)),
+                    reverse_bytes_u32(high_half(x)))
+end reverse_bytes_u64
+
+reverse_bits_u64: (x: u64) -> (result: u64) =
+    result = joined(reverse_bits_u32(low_half(x)),
+                    reverse_bits_u32(high_half(x)))
+end reverse_bits_u64
+
+--  Four products of halves, as Go's Mul64: each fits a u64, and the
+--  middle sum's carries are gathered without overflow.
+multiply_wide_u64: (x: u64, y: u64) -> (high: u64, low: u64) =
+    x0: u64 = x & 0xffffffff
+    x1: u64 = x >> 32
+    y0: u64 = y & 0xffffffff
+    y1: u64 = y >> 32
+    w0: u64 = x0 * y0
+    t: u64 = x1 * y0 + (w0 >> 32)
+    w1: u64 = (t & 0xffffffff) + x0 * y1
+    high = x1 * y1 + (t >> 32) + (w1 >> 32)
+    low = x *% y
+end multiply_wide_u64
+
+width_u64: (x: u64) -> (count: u32) =
+    _ = x
+    count = 64
+end width_u64

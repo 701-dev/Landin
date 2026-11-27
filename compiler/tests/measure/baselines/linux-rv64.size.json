@@ -78,11 +78,11 @@
   "rv64gc/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289588,
-    ".rodata": 55926,
+    ".text": 289748,
+    ".rodata": 55896,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 720,
+    ".data.rel.ro": 320,
+    ".got": 736,
     ".got.plt": 16,
     ".data": 928,
     ".bss": 264
@@ -200,11 +200,11 @@
   "rv64gc/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289588,
-    ".rodata": 55926,
+    ".text": 289748,
+    ".rodata": 55896,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 720,
+    ".data.rel.ro": 320,
+    ".got": 736,
     ".got.plt": 16,
     ".data": 928,
     ".bss": 264
@@ -322,11 +322,11 @@
   "rv64gc/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289624,
-    ".rodata": 55926,
+    ".text": 289788,
+    ".rodata": 55896,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 648,
+    ".data.rel.ro": 320,
+    ".got": 656,
     ".got.plt": 16,
     ".data": 928,
     ".bss": 264
@@ -444,11 +444,11 @@
   "rv64gc/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134700,
-    ".rodata": 41924,
+    ".text": 134888,
+    ".rodata": 41971,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -566,11 +566,11 @@
   "rv64gc/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134700,
-    ".rodata": 41924,
+    ".text": 134888,
+    ".rodata": 41971,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -688,11 +688,11 @@
   "rv64gc/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134780,
-    ".rodata": 41924,
+    ".text": 134996,
+    ".rodata": 41971,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 320,
+    ".data.rel.ro": 320,
+    ".got": 328,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -810,11 +810,11 @@
   "rv64gc/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152740,
-    ".rodata": 41635,
+    ".text": 152844,
+    ".rodata": 41731,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -932,11 +932,11 @@
   "rv64gc/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152740,
-    ".rodata": 41635,
+    ".text": 152844,
+    ".rodata": 41731,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -1054,11 +1054,11 @@
   "rv64gc/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 153072,
-    ".rodata": 41635,
+    ".text": 153212,
+    ".rodata": 41731,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 320,
+    ".data.rel.ro": 320,
+    ".got": 328,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -1176,11 +1176,11 @@
   "rv64gc_xtheadba/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289572,
-    ".rodata": 55926,
+    ".text": 289732,
+    ".rodata": 55896,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 720,
+    ".data.rel.ro": 320,
+    ".got": 736,
     ".got.plt": 16,
     ".data": 928,
     ".bss": 264
@@ -1298,11 +1298,11 @@
   "rv64gc_xtheadba/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289572,
-    ".rodata": 55926,
+    ".text": 289732,
+    ".rodata": 55896,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 720,
+    ".data.rel.ro": 320,
+    ".got": 736,
     ".got.plt": 16,
     ".data": 928,
     ".bss": 264
@@ -1420,11 +1420,11 @@
   "rv64gc_xtheadba/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289608,
-    ".rodata": 55926,
+    ".text": 289772,
+    ".rodata": 55896,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 648,
+    ".data.rel.ro": 320,
+    ".got": 656,
     ".got.plt": 16,
     ".data": 928,
     ".bss": 264
@@ -1542,11 +1542,11 @@
   "rv64gc_xtheadba/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134684,
-    ".rodata": 41924,
+    ".text": 134872,
+    ".rodata": 41971,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -1664,11 +1664,11 @@
   "rv64gc_xtheadba/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134684,
-    ".rodata": 41924,
+    ".text": 134872,
+    ".rodata": 41971,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -1786,11 +1786,11 @@
   "rv64gc_xtheadba/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134764,
-    ".rodata": 41924,
+    ".text": 134980,
+    ".rodata": 41971,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 320,
+    ".data.rel.ro": 320,
+    ".got": 328,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -1908,11 +1908,11 @@
   "rv64gc_xtheadba/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152724,
-    ".rodata": 41635,
+    ".text": 152828,
+    ".rodata": 41731,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -2030,11 +2030,11 @@
   "rv64gc_xtheadba/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152724,
-    ".rodata": 41635,
+    ".text": 152828,
+    ".rodata": 41731,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 392,
+    ".data.rel.ro": 320,
+    ".got": 408,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -2152,11 +2152,11 @@
   "rv64gc_xtheadba/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 153056,
-    ".rodata": 41635,
+    ".text": 153196,
+    ".rodata": 41731,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 320,
+    ".data.rel.ro": 320,
+    ".got": 328,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -2274,11 +2274,11 @@
   "rv64gc_zba/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291776,
-    ".rodata": 56425,
+    ".text": 291936,
+    ".rodata": 56395,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 776,
+    ".data.rel.ro": 320,
+    ".got": 792,
     ".got.plt": 16,
     ".data": 944,
     ".bss": 264
@@ -2396,11 +2396,11 @@
   "rv64gc_zba/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291776,
-    ".rodata": 56425,
+    ".text": 291936,
+    ".rodata": 56395,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 776,
+    ".data.rel.ro": 320,
+    ".got": 792,
     ".got.plt": 16,
     ".data": 944,
     ".bss": 264
@@ -2518,11 +2518,11 @@
   "rv64gc_zba/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291812,
-    ".rodata": 56425,
+    ".text": 291976,
+    ".rodata": 56395,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 704,
+    ".data.rel.ro": 320,
+    ".got": 712,
     ".got.plt": 16,
     ".data": 944,
     ".bss": 264
@@ -2640,11 +2640,11 @@
   "rv64gc_zba/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136196,
-    ".rodata": 42423,
+    ".text": 136384,
+    ".rodata": 42470,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -2762,11 +2762,11 @@
   "rv64gc_zba/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136196,
-    ".rodata": 42423,
+    ".text": 136384,
+    ".rodata": 42470,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -2884,11 +2884,11 @@
   "rv64gc_zba/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136276,
-    ".rodata": 42423,
+    ".text": 136492,
+    ".rodata": 42470,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 360,
+    ".data.rel.ro": 320,
+    ".got": 368,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -3006,11 +3006,11 @@
   "rv64gc_zba/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154028,
-    ".rodata": 42078,
+    ".text": 154132,
+    ".rodata": 42174,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -3128,11 +3128,11 @@
   "rv64gc_zba/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154028,
-    ".rodata": 42078,
+    ".text": 154132,
+    ".rodata": 42174,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -3250,11 +3250,11 @@
   "rv64gc_zba/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154360,
-    ".rodata": 42078,
+    ".text": 154500,
+    ".rodata": 42174,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 360,
+    ".data.rel.ro": 320,
+    ".got": 368,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -3372,11 +3372,11 @@
   "rv64gc_zba_xtheadba/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291776,
-    ".rodata": 56434,
+    ".text": 291936,
+    ".rodata": 56404,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 776,
+    ".data.rel.ro": 320,
+    ".got": 792,
     ".got.plt": 16,
     ".data": 944,
     ".bss": 264
@@ -3494,11 +3494,11 @@
   "rv64gc_zba_xtheadba/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291776,
-    ".rodata": 56434,
+    ".text": 291936,
+    ".rodata": 56404,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 776,
+    ".data.rel.ro": 320,
+    ".got": 792,
     ".got.plt": 16,
     ".data": 944,
     ".bss": 264
@@ -3616,11 +3616,11 @@
   "rv64gc_zba_xtheadba/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291812,
-    ".rodata": 56434,
+    ".text": 291976,
+    ".rodata": 56404,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 704,
+    ".data.rel.ro": 320,
+    ".got": 712,
     ".got.plt": 16,
     ".data": 944,
     ".bss": 264
@@ -3738,11 +3738,11 @@
   "rv64gc_zba_xtheadba/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136196,
-    ".rodata": 42432,
+    ".text": 136384,
+    ".rodata": 42479,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -3860,11 +3860,11 @@
   "rv64gc_zba_xtheadba/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136196,
-    ".rodata": 42432,
+    ".text": 136384,
+    ".rodata": 42479,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -3982,11 +3982,11 @@
   "rv64gc_zba_xtheadba/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136276,
-    ".rodata": 42432,
+    ".text": 136492,
+    ".rodata": 42479,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 360,
+    ".data.rel.ro": 320,
+    ".got": 368,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -4104,11 +4104,11 @@
   "rv64gc_zba_xtheadba/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154028,
-    ".rodata": 42087,
+    ".text": 154132,
+    ".rodata": 42183,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -4226,11 +4226,11 @@
   "rv64gc_zba_xtheadba/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154028,
-    ".rodata": 42087,
+    ".text": 154132,
+    ".rodata": 42183,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 432,
+    ".data.rel.ro": 320,
+    ".got": 448,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240
@@ -4348,11 +4348,11 @@
   "rv64gc_zba_xtheadba/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154360,
-    ".rodata": 42087,
+    ".text": 154500,
+    ".rodata": 42183,
     ".tbss": 4,
-    ".data.rel.ro": 240,
-    ".got": 360,
+    ".data.rel.ro": 320,
+    ".got": 368,
     ".got.plt": 16,
     ".data": 664,
     ".bss": 240

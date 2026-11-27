@@ -6,6 +6,7 @@
 --  that did not and 2 for the refusals.  It uses no allocator: its numbers
 --  live in the module's storage, as a firmware program's would.
 import core/big/limbs
+import core/bits
 import core/cmp
 import core/text
 
@@ -429,9 +430,9 @@ agrees: (op: u32, a: []u32, b: []u32, p: u32, want: []u32, word: u32)
     elsif op == 0xd then
         got = u32(limbs.significant(a))
     elsif op == 0xe then
-        got = limbs.leading_zeros(p)
+        got = bits.leading_zeros(p)
     elsif op == 0xf then
-        got = limbs.trailing_zeros(p)
+        got = bits.trailing_zeros(p)
     elsif op == 0x12 then
         written: usize = limbs.write_decimal(digits[0..<121], a, room[0..<64])
         back: usize = (limbs.read_decimal(out, digits[0..<written]) else 9999)

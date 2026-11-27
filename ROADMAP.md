@@ -4334,7 +4334,7 @@ admits.
 
 ### R22.41 — Bits and byte order
 
-Status: planned
+Status: complete
 Depends on: R20
 
 Counting and moving bits, and integers read and written in a stated byte
@@ -4364,6 +4364,31 @@ round-tripped in both orders, short input and malformed or overlong
 varints refused; `core/big` and `core/random` on the library's operations
 with their fixtures unchanged; an example program in `examples.md` that
 reads a binary format; image size on Cortex-M0 measured.
+
+Done: `core/bits` counts and moves bits generically over `bits.unsigned`,
+`u8` to `u64`, written once from shifts with `u64` on two halves (D3034);
+reads and writes every width in either order and LEB128 over the caller's
+bytes and an offset passed `inout`, so a taken view outlives later reads,
+failing `mem.out_of_bounds` and `mem.out_of_memory` without moving
+(D3035), padding accepted to ten bytes and anything longer
+`bits.invalid_varint` (D3036); and combines sets as library routines over
+the entry-less concept `bits.flags`, the item's first question answered
+without a language rule (D3037). `core/big`, `core/text` and
+`core/random` use it, `limbs.leading_zeros` and `limbs.trailing_zeros`
+leaving the unreleased limb layer, their fixtures' results unchanged
+(D3038). `runtime/bits-every-u8` checks every input and pair, and
+`runtime/bits-every-u16` and its two `-pairs` halves every input against
+byte tables, with three rotation counts and three second operands each,
+which fits the firmware emulators' twenty seconds where every count and
+pair did not; `runtime/bits-oracle` checks 2048 drawn cases a width at
+`u32` and `u64` against Python (`scripts/bits_oracle.py`). On Cortex-M0
+at `size/auto` the probe is 7,700 bytes of flash, the oracle 9,160, the
+byte-order fixture 11,072 and the varints, split from it to fit RV32's
+32 KiB unoptimized, 8,432. `examples.md` lists a WebAssembly module's
+sections. Found and fixed: a reader holding its slice locked itself for
+as long as a view `take` lent was used (L0315), which shaped D3035; and
+a parameter spelled as the module type it hides, `order: order`, was
+refused as naming no type, now as hiding it (D3039).
 
 ### R22.42 — Random draws programs use
 

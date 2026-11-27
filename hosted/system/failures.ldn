@@ -4,6 +4,7 @@
 --  the system layer, which imports nothing above it (D1951).
 
 import core/big
+import core/bits
 import core/cache
 import core/failure
 import core/io
@@ -64,6 +65,7 @@ fixed if compiler.os <> windows then
             line.unsupported_format: failure.words(line.unsupported_format)
             big.not_invertible: failure.words(big.not_invertible)
             big.not_finite: failure.words(big.not_finite)
+            bits.invalid_varint: failure.words(bits.invalid_varint)
             _ (rest): posix.words(rest)
         end match
     end words

@@ -21,7 +21,7 @@
    "instructions": 170088359
   },
   "rv64gc/none-all/pidigits": {
-   "instructions": 5873809
+   "instructions": 5878759
   },
   "rv64gc/none-all/regex-redux": {
    "instructions": 530039487
@@ -51,7 +51,7 @@
    "instructions": 170088359
   },
   "rv64gc/none-auto/pidigits": {
-   "instructions": 5873809
+   "instructions": 5878759
   },
   "rv64gc/none-auto/regex-redux": {
    "instructions": 530042299
@@ -81,7 +81,7 @@
    "instructions": 170088364
   },
   "rv64gc/none-off/pidigits": {
-   "instructions": 5872204
+   "instructions": 5878980
   },
   "rv64gc/none-off/regex-redux": {
    "instructions": 530042838
@@ -111,7 +111,7 @@
    "instructions": 55115384
   },
   "rv64gc/size-all/pidigits": {
-   "instructions": 3350448
+   "instructions": 3353661
   },
   "rv64gc/size-all/regex-redux": {
    "instructions": 363126112
@@ -141,7 +141,7 @@
    "instructions": 55115384
   },
   "rv64gc/size-auto/pidigits": {
-   "instructions": 3350448
+   "instructions": 3353661
   },
   "rv64gc/size-auto/regex-redux": {
    "instructions": 363141144
@@ -171,7 +171,7 @@
    "instructions": 55115850
   },
   "rv64gc/size-off/pidigits": {
-   "instructions": 3353059
+   "instructions": 3358427
   },
   "rv64gc/size-off/regex-redux": {
    "instructions": 363142823
@@ -201,7 +201,7 @@
    "instructions": 46975226
   },
   "rv64gc/speed-all/pidigits": {
-   "instructions": 3284717
+   "instructions": 3285877
   },
   "rv64gc/speed-all/regex-redux": {
    "instructions": 585583033
@@ -231,7 +231,7 @@
    "instructions": 46975226
   },
   "rv64gc/speed-auto/pidigits": {
-   "instructions": 3284717
+   "instructions": 3285877
   },
   "rv64gc/speed-auto/regex-redux": {
    "instructions": 585583033
@@ -261,7 +261,7 @@
    "instructions": 46975957
   },
   "rv64gc/speed-off/pidigits": {
-   "instructions": 3297339
+   "instructions": 3299966
   },
   "rv64gc/speed-off/regex-redux": {
    "instructions": 585508656
@@ -291,7 +291,7 @@
    "instructions": 170088353
   },
   "rv64gc_xtheadba/none-all/pidigits": {
-   "instructions": 5873625
+   "instructions": 5878575
   },
   "rv64gc_xtheadba/none-all/regex-redux": {
    "instructions": 529820426
@@ -321,7 +321,7 @@
    "instructions": 170088353
   },
   "rv64gc_xtheadba/none-auto/pidigits": {
-   "instructions": 5873625
+   "instructions": 5878575
   },
   "rv64gc_xtheadba/none-auto/regex-redux": {
    "instructions": 529823238
@@ -351,7 +351,7 @@
    "instructions": 170088358
   },
   "rv64gc_xtheadba/none-off/pidigits": {
-   "instructions": 5872020
+   "instructions": 5878796
   },
   "rv64gc_xtheadba/none-off/regex-redux": {
    "instructions": 529823777
@@ -381,7 +381,7 @@
    "instructions": 55115378
   },
   "rv64gc_xtheadba/size-all/pidigits": {
-   "instructions": 3350264
+   "instructions": 3353477
   },
   "rv64gc_xtheadba/size-all/regex-redux": {
    "instructions": 362976987
@@ -411,7 +411,7 @@
    "instructions": 55115378
   },
   "rv64gc_xtheadba/size-auto/pidigits": {
-   "instructions": 3350264
+   "instructions": 3353477
   },
   "rv64gc_xtheadba/size-auto/regex-redux": {
    "instructions": 362992019
@@ -441,7 +441,7 @@
    "instructions": 55115844
   },
   "rv64gc_xtheadba/size-off/pidigits": {
-   "instructions": 3352875
+   "instructions": 3358243
   },
   "rv64gc_xtheadba/size-off/regex-redux": {
    "instructions": 362993698
@@ -471,7 +471,7 @@
    "instructions": 46975220
   },
   "rv64gc_xtheadba/speed-all/pidigits": {
-   "instructions": 3284533
+   "instructions": 3285693
   },
   "rv64gc_xtheadba/speed-all/regex-redux": {
    "instructions": 585569772
@@ -501,7 +501,7 @@
    "instructions": 46975220
   },
   "rv64gc_xtheadba/speed-auto/pidigits": {
-   "instructions": 3284533
+   "instructions": 3285693
   },
   "rv64gc_xtheadba/speed-auto/regex-redux": {
    "instructions": 585569772
@@ -531,7 +531,7 @@
    "instructions": 46975951
   },
   "rv64gc_xtheadba/speed-off/pidigits": {
-   "instructions": 3297155
+   "instructions": 3299782
   },
   "rv64gc_xtheadba/speed-off/regex-redux": {
    "instructions": 585495395
@@ -561,7 +561,7 @@
    "instructions": 170088293
   },
   "rv64gc_zba/none-all/pidigits": {
-   "instructions": 5872421
+   "instructions": 5877371
   },
   "rv64gc_zba/none-all/regex-redux": {
    "instructions": 530026738
@@ -591,7 +591,7 @@
    "instructions": 170088293
   },
   "rv64gc_zba/none-auto/pidigits": {
-   "instructions": 5872421
+   "instructions": 5877371
   },
   "rv64gc_zba/none-auto/regex-redux": {
    "instructions": 530029550
@@ -621,7 +621,7 @@
    "instructions": 170088298
   },
   "rv64gc_zba/none-off/pidigits": {
-   "instructions": 5874248
+   "instructions": 5877592
   },
   "rv64gc_zba/none-off/regex-redux": {
    "instructions": 530030089
@@ -651,7 +651,7 @@
    "instructions": 55115802
   },
   "rv64gc_zba/size-all/pidigits": {
-   "instructions": 3350688
+   "instructions": 3353901
   },
   "rv64gc_zba/size-all/regex-redux": {
    "instructions": 362977411
@@ -681,7 +681,7 @@
    "instructions": 55115802
   },
   "rv64gc_zba/size-auto/pidigits": {
-   "instructions": 3350688
+   "instructions": 3353901
   },
   "rv64gc_zba/size-auto/regex-redux": {
    "instructions": 362992443
@@ -711,7 +711,7 @@
    "instructions": 55116268
   },
   "rv64gc_zba/size-off/pidigits": {
-   "instructions": 3353299
+   "instructions": 3358667
   },
   "rv64gc_zba/size-off/regex-redux": {
    "instructions": 362994122
@@ -741,7 +741,7 @@
    "instructions": 46975492
   },
   "rv64gc_zba/speed-all/pidigits": {
-   "instructions": 3284805
+   "instructions": 3285965
   },
   "rv64gc_zba/speed-all/regex-redux": {
    "instructions": 585570044
@@ -771,7 +771,7 @@
    "instructions": 46975492
   },
   "rv64gc_zba/speed-auto/pidigits": {
-   "instructions": 3284805
+   "instructions": 3285965
   },
   "rv64gc_zba/speed-auto/regex-redux": {
    "instructions": 585570044
@@ -801,7 +801,7 @@
    "instructions": 46976223
   },
   "rv64gc_zba/speed-off/pidigits": {
-   "instructions": 3297427
+   "instructions": 3300054
   },
   "rv64gc_zba/speed-off/regex-redux": {
    "instructions": 585495667
@@ -831,7 +831,7 @@
    "instructions": 170088293
   },
   "rv64gc_zba_xtheadba/none-all/pidigits": {
-   "instructions": 5872421
+   "instructions": 5877371
   },
   "rv64gc_zba_xtheadba/none-all/regex-redux": {
    "instructions": 530026738
@@ -861,7 +861,7 @@
    "instructions": 170088293
   },
   "rv64gc_zba_xtheadba/none-auto/pidigits": {
-   "instructions": 5872421
+   "instructions": 5877371
   },
   "rv64gc_zba_xtheadba/none-auto/regex-redux": {
    "instructions": 530029550
@@ -891,7 +891,7 @@
    "instructions": 170088298
   },
   "rv64gc_zba_xtheadba/none-off/pidigits": {
-   "instructions": 5874248
+   "instructions": 5877592
   },
   "rv64gc_zba_xtheadba/none-off/regex-redux": {
    "instructions": 530030089
@@ -921,7 +921,7 @@
    "instructions": 55115802
   },
   "rv64gc_zba_xtheadba/size-all/pidigits": {
-   "instructions": 3350688
+   "instructions": 3353901
   },
   "rv64gc_zba_xtheadba/size-all/regex-redux": {
    "instructions": 362977411
@@ -951,7 +951,7 @@
    "instructions": 55115802
   },
   "rv64gc_zba_xtheadba/size-auto/pidigits": {
-   "instructions": 3350688
+   "instructions": 3353901
   },
   "rv64gc_zba_xtheadba/size-auto/regex-redux": {
    "instructions": 362992443
@@ -981,7 +981,7 @@
    "instructions": 55116268
   },
   "rv64gc_zba_xtheadba/size-off/pidigits": {
-   "instructions": 3353299
+   "instructions": 3358667
   },
   "rv64gc_zba_xtheadba/size-off/regex-redux": {
    "instructions": 362994122
@@ -1011,7 +1011,7 @@
    "instructions": 46975492
   },
   "rv64gc_zba_xtheadba/speed-all/pidigits": {
-   "instructions": 3284805
+   "instructions": 3285965
   },
   "rv64gc_zba_xtheadba/speed-all/regex-redux": {
    "instructions": 585570044
@@ -1041,7 +1041,7 @@
    "instructions": 46975492
   },
   "rv64gc_zba_xtheadba/speed-auto/pidigits": {
-   "instructions": 3284805
+   "instructions": 3285965
   },
   "rv64gc_zba_xtheadba/speed-auto/regex-redux": {
    "instructions": 585570044
@@ -1071,7 +1071,7 @@
    "instructions": 46976223
   },
   "rv64gc_zba_xtheadba/speed-off/pidigits": {
-   "instructions": 3297427
+   "instructions": 3300054
   },
   "rv64gc_zba_xtheadba/speed-off/regex-redux": {
    "instructions": 585495667

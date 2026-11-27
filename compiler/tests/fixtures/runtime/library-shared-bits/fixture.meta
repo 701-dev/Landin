@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: Small shared core/bits consumer counts, rotates and multiplies at three widths, writes a big-endian u32 and a varint and reads them back, refuses a short read with mem.out_of_bounds, and combines two packed sets
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0150, 0730, 1030

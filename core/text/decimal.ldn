@@ -8,6 +8,7 @@
 --  the dropped ones count only as "a little more".
 
 import core/big/limbs
+import core/bits
 
 --  What the scan of a decimal found: its sign, whether it named an
 --  infinity or a NaN, and its digits: `count` significant ones, the
@@ -249,22 +250,22 @@ nearest: (top: u64, sticky: bool, power: i64, format: target_value)
            | (mantissa - hidden)
 end nearest
 
---  The bits of the float of `format` nearest the integer `digits` times
---  2^`power`, a little more when `sticky`.
+--  The bit pattern of the float of `format` nearest the integer
+--  `digits` times 2^`power`, a little more when `sticky`.
 nearest_of: (digits: []u32, sticky: bool, power: i64, format: target_value)
-            -> (bits: u64) =
+            -> (pattern: u64) =
     count: usize = limbs.significant(digits)
-    bits = 0
+    pattern = 0
     return when count == 0
-    length: usize = 32 * count - usize(limbs.leading_zeros(digits[count - 1]))
+    length: usize = 32 * count - usize(bits.leading_zeros(digits[count - 1]))
     if length <= 64 then
         top: u64 = bits_from(digits, 0) << u64(64 - length)
-        bits = nearest(top, sticky, power - i64(64 - length), format)
+        pattern = nearest(top, sticky, power - i64(64 - length), format)
     else
         offset: usize = length - 64
         below: bool = sticky or set_below(digits, offset)
-        bits = nearest(bits_from(digits, offset), below, power + i64(offset),
-                       format)
+        pattern = nearest(bits_from(digits, offset), below, power + i64(offset),
+                          format)
     end if
 end nearest_of
 
@@ -318,7 +319,7 @@ end moved_up
 --  more.
 exactly: (source: []u8, found: scan_value, format: target_value,
           number: []mut u32, divisor: []mut u32, quotient: []mut u32,
-          remainder: []mut u32, scratch: []mut u32) -> (bits: u64) =
+          remainder: []mut u32, scratch: []mut u32) -> (pattern: u64) =
     taken: usize = if found.count > format.kept then format.kept
                    else found.count end if
     --  The digits dropped end in one that is not zero.
@@ -347,7 +348,7 @@ exactly: (source: []u8, found: scan_value, format: target_value,
     scale: i64 = found.place - i64(taken)
     if scale >= 0 then
         length = times_five(number, length, scale)
-        bits = nearest_of(number[0..<length], sticky, scale, format)
+        pattern = nearest_of(number[0..<length], sticky, scale, format)
         return
     end if
     limbs.clear(divisor)
@@ -355,10 +356,10 @@ exactly: (source: []u8, found: scan_value, format: target_value,
     size: usize = times_five(divisor, 1, 0 - scale)
     numerator: usize = limbs.significant(number[0..<length])
     number_bits: i64 = i64(32 * numerator
-                           - usize(limbs.leading_zeros(number[numerator - 1])))
+                           - usize(bits.leading_zeros(number[numerator - 1])))
     divisor_bits: i64 = i64(32 * size
-                            - usize(limbs.leading_zeros(divisor[size - 1])))
-    --  The quotient is to have 65 or 66 bits: a numerator too short is
+                            - usize(bits.leading_zeros(divisor[size - 1])))
+    --  The quotient is to have 65 or 66 pattern: a numerator too short is
     --  moved up, and a divisor too short for a long one is, which keeps the
     --  quotient four limbs long whatever the digits.
     shift: i64 = divisor_bits - number_bits + 66
@@ -368,7 +369,7 @@ exactly: (source: []u8, found: scan_value, format: target_value,
                  scratch)
     count: usize = wide - across + 1
     if limbs.significant(remainder[0..<across]) <> 0 then sticky = true end if
-    bits = nearest_of(quotient[0..<count], sticky, scale - shift, format)
+    pattern = nearest_of(quotient[0..<count], sticky, scale - shift, format)
 end exactly
 
 --  The bits of the `f64` nearest the decimal `source`, its sign included,

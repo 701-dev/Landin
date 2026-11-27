@@ -1098,6 +1098,14 @@ injector as arguments, as providers.
   rounds once, to nearest with ties to even (D2598), and a rational is
   always in lowest terms (D2600). The `big-*` fixtures check every
   routine against Python's integers and fractions on every target.
+- **Bits and byte order.** `core/bits` has the bit operations of `u8`,
+  `u16`, `u32` and `u64`, written from shifts and masks so every target
+  gives the same answer; integers in either byte order and LEB128 read
+  from and written to the caller's bytes; and union, intersection,
+  difference and emptiness of a set of flags [0730]. The `u8` and `u16`
+  operations are checked on every input, and the `u32` and `u64` ones
+  against Python's integers on every target. `core/big` and `core/random`
+  use its operations instead of private copies.
 - **Atomic cells.** `core/atomic` holds a `u8`, `u16`, `u32` or `u64` in a
   cell whose operations carry their orderings in their names, with a
   relaxed family and the single writer's `sole_add`, a load and a store,
