@@ -74,7 +74,7 @@ agree: (inout reference: regex.regex, inout other: regex.regex,
             return
         end
         return when text.offset(expected.begins) <> text.offset(actual.begins)
-                 or text.offset(expected.ends) <> text.offset(actual.ends)
+          or text.offset(expected.ends) <> text.offset(actual.ends)
         offset += 8
     end while
     yes = true
