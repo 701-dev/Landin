@@ -23,8 +23,8 @@ class TestEnvironment(unittest.TestCase):
             scripts = root / "scripts"
             scripts.mkdir()
             (root / "compiler/ada").mkdir(parents=True)
-            for name in ("env.sh", "build_lock.py", "test.sh",
-                         "parallel-equivalence.sh"):
+            for name in ("env.sh", "build_lock.py", "host_slots.py",
+                         "test.sh", "parallel-equivalence.sh"):
                 shutil.copy2(SCRIPTS / name, scripts / name)
             tools = root / "tools"
             tools.mkdir()
@@ -55,6 +55,7 @@ class TestEnvironment(unittest.TestCase):
                 f"shutil.copy2({str(harness)!r}, binary)\n")
             build.chmod(0o755)
             env = {**os.environ, "LANDIN_BUILD_TAG": "test",
+                   "LANDIN_HEAVY_JOBS": "0",
                    "LANDIN_BUILD_MODE": "debug", "TEST_OS": host,
                    "PATH": str(tools) + os.pathsep + os.environ["PATH"]}
             env.pop("GLIBC_TUNABLES", None)

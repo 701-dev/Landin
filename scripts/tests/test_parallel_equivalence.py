@@ -28,7 +28,8 @@ class ParallelEquivalence(unittest.TestCase):
             root = Path(tmp)
             scripts = root / "scripts"
             scripts.mkdir()
-            for name in ("parallel-equivalence.sh", "env.sh", "build_lock.py"):
+            for name in ("parallel-equivalence.sh", "env.sh", "build_lock.py",
+                         "host_slots.py"):
                 shutil.copy2(SCRIPTS / name, scripts / name)
             (root / "compiler/ada").mkdir(parents=True)
             harness = root / "fake-tests"
@@ -74,6 +75,7 @@ class ParallelEquivalence(unittest.TestCase):
                  "--suite=fixture execution", "--output=" + str(evidence)],
                 capture_output=True, text=True, timeout=HANG,
                 env={**os.environ, "LANDIN_BUILD_TAG": "test",
+                     "LANDIN_HEAVY_JOBS": "0",
                      "LANDIN_TEST_TIMINGS": "yes"},
             )
             result.evidence = {p.name: p.read_text()

@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import gate_history  # noqa: E402
 import local_selection  # noqa: E402
+sys.path.insert(0, str(ROOT / "scripts/tests"))
+from temporary_git import environment  # noqa: E402
 
 TABLE = json.loads((ROOT / ".github/gate-lanes.json").read_text(encoding="utf-8"))
 HANG = 300
@@ -30,8 +32,8 @@ def rule_with(lane, glob):
 
 
 def git(cwd, *arguments):
-    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *arguments],
-                   cwd=cwd, check=True, stdout=subprocess.DEVNULL,
+    subprocess.run(["git", *arguments], cwd=cwd, env=environment(), check=True,
+                   stdout=subprocess.DEVNULL,
                    stderr=subprocess.DEVNULL, timeout=HANG)
 
 
