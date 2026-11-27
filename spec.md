@@ -34637,9 +34637,11 @@ where they are on PATH, and the publication native control
 
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
-**Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
+**Amended by D2387, D2388 and D2969.** The policy covers windows-arm64 too, under
 `aarch64-pc-windows-msvc`, and refine names `link.exe` with
-`-fuse-ld=link` rather than leaving the linker to Clang's default.
+`-fuse-ld=link` rather than leaving the linker to Clang's default; the
+gate's Microsoft link is llvm-mingw's pinned Clang with the MSVC toolset
+and Windows SDK `environments/pins.sh` names.
 
 **From** [1550], D2189.
 
@@ -34764,6 +34766,70 @@ whose link commands end in `-fuse-ld=link`, and the gate's
 `windows-microsoft` and `windows-arm64-microsoft` jobs, which require
 `link.exe`; probe run 45399587160 on the `windows-11-arm` runner showed
 the default reaching `lld-link`.
+
+### D2969 — The gate's Microsoft link names its Clang, MSVC toolset and Windows SDK
+
+**From** D2327, D2387 and D2388.
+
+**The discrepancy:** D2327 had the gate's `windows-microsoft` job run each
+link with the runner's Clang, which found the Visual Studio and Windows
+SDK the image carries, so nothing said which tools a verdict was about:
+GitHub's image update could change the Clang, the toolset whose `link.exe`
+ran and the SDK between two runs of one tree. The `windows-2025` image of
+2026-11-16 carried Clang 20.1.8 and the `windows-11-arm` image of
+2026-11-15 Clang 22.1.8, each with Visual Studio 18.12 and its toolsets
+14.29.30133, 14.44.35207 and 14.52.37025 side by side, the last the
+default, and the Windows SDK 10.0.26100.0, the arm64 image also
+10.0.22621.0.
+
+**Chosen:** the job's Clang is the one in llvm-mingw's release
+`environments/pins.sh` already pins by checksum for the debugger and the C
+peers, LLVM 23, for both architectures. The MSVC toolset and the Windows
+SDK cannot be fetched by checksum, since Microsoft's licence keeps them on
+the image, so `pins.sh` names them by version, `14.44.35207` and
+`10.0.26100.0`, and the lane selects them among what the image installs:
+the toolset among the Visual Studio installations `vswhere` lists, holding
+a `link.exe` for the target's machine, and the SDK by its `um` import
+libraries for that machine. It passes them to Clang as
+`-Xmicrosoft-visualc-tools-root` and `-Xmicrosoft-windows-sdk-root` and
+`-version`, which llvm-mingw's Clang needs, as it has no way to ask Visual
+Studio's setup interface where Visual Studio is. Every link must then run that
+toolset's `link.exe` and read that SDK's import libraries, since Clang
+takes another SDK silently when the named one is missing.
+`summary.json` records the Clang's version, the Visual Studio
+installation, the toolset, the SDK and the linker's own version.
+
+The toolset is 14.44.35207, Visual Studio 2022's last, which Visual Studio
+2026 installs as a separate component and does not update, where its own
+default toolset, 14.52, moves with Visual Studio's updates. When an image
+no longer carries a pinned version the job refuses before it links,
+naming the toolsets or SDKs the image does carry and the two files that
+name the pin; moving it is a change of `pins.sh` and
+`compiler/ada/TOOLCHAIN.md`, which `check.py` holds to agree, gated like
+any other tool's. A frozen toolset makes such a refusal rare, and when it
+comes it stops the Microsoft jobs of every item's gate until the pin moves:
+the price of a verdict that names its tools.
+
+**The alternatives:** the image's tools as they are, which was the gap;
+the image's default toolset pinned by version, which an update to
+Visual Studio 2026 replaces in place, stopping every gate each time; a
+fallback to whatever the image carries when the pin is gone, which is the
+unpinned verdict again on exactly the runs where the tools changed; LLVM's
+own Windows release pinned by checksum beside llvm-mingw's, a second Clang
+download where one already serves both targets; and Visual Studio's newest
+toolset left as the evidence, the one a user installing Visual Studio
+today gets, which would surface a change in `link.exe` sooner, but at a
+moment no change to Landin caused and in a gate run that names no tool
+the change was in. A newer toolset reaches the gate as a deliberate pin
+change.
+
+**Pinned by** `scripts/tests/test_windows_lane.py`'s `MicrosoftTools`,
+`check.py`'s pinned-toolchain check, and the gate's `windows-microsoft` and
+`windows-arm64-microsoft` jobs; probe run 45964811589 linked and ran the whole
+corpus with these tools on both runners, 4,144 and 4,136 outcomes, and
+refused a toolset the images do not carry. Between it and probe run
+45963302773 the images had moved Visual Studio from 18.12.12405.243 to
+18.12.12412.261, toolsets unchanged.
 
 ### D2427 — A FreeBSD x86-64 compiler builds for its own host and links with the base system's `cc`
 
@@ -35492,6 +35558,52 @@ to kernel32's own handler, and traps there; and `stack report/a switch
 costs its frame`. Before the change the fixture ended with 1 on both
 architectures' Windows hosts, on x86-64 with its two checks of the bounds
 on the prepared stack failing.
+
+### D2970 — The Windows arm64 switch session runs again when LLDB loses a step
+
+**From** D469, D2348 and D2481.
+
+**The discrepancy:** the `windows-arm64-debugger` job's switch sessions
+failed now and then, in four gate runs of trees whose arm64 code did not
+differ from passing ones, with "the session did not step from
+landin.stack_switch's first instruction through its return". Each
+transcript shows one `thread step-inst` from an ordinary load or store of
+the routine, at +60, +120, +132 or +160, after which the thread ran on to
+the next switch's breakpoint. Run on fresh `windows-11-arm` runners, the
+four sessions failed 14 of 800 times the same way, the lost step at
+offsets from +56 to +160, in either switch, sometimes running on to the
+program's exit; with LLDB's `windows` log on, which slows it, 0 of 400
+failed. The loss is in LLDB's timing on that runner, as the arm64 KVM
+guest's LLDB loses steps far more often, and not in the routine or its
+unwind data: every stop LLDB did make held the record.
+
+**Chosen:** a lost step is recognised exactly and the session runs again.
+Every step a switch session makes stays in the routine or returns from it,
+where no breakpoint is, so a `thread step-inst` that ends at a breakpoint
+or at the program's exit is one LLDB did not make. On a target
+`switch_frames.LOST_STEP_ATTEMPTS` names, windows-arm64 with three
+attempts, the Windows lane runs such a session again, keeps each lost
+attempt's transcript and names its lost step in `switch-frames.json`, and
+holds the last attempt's stops to the record as before; any other
+mismatch fails at once. At the measured rate of one session in fifty, a
+session fails only when all three attempts lose a step, about once in
+125,000. The entry goes when a runner's sessions lose no step.
+
+**The alternatives:** a breakpoint on each of the routine's instructions,
+so that a lost step stops at the next one anyway, which on Windows LLDB
+reports a step onto a breakpoint as a second stop at the same instruction,
+doubling every stop (probe run 45984035570 failed all 400 such sessions);
+holding the stops a session made and skipping those after a lost step,
+which leaves a switch's instructions unheld in exactly the run where they
+were not seen; and a change to LLDB's Windows process plugin, in whose
+handling of the step no cause was found and which this repository does
+not build.
+
+**Pinned by** `compiler/tests/debugging/test_check.py`'s
+`test_a_lost_step_is_told_from_a_step`, which also told all 18 lost
+sessions met in the gate and the probes from their transcripts, and the
+`windows-arm64-debugger` job; probe runs 45963663891 and 45984035570
+measured the loss and AFTER ran the lane's sessions with the retry.
 
 ### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
 

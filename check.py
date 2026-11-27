@@ -3418,6 +3418,10 @@ def check_pinned_toolchain(full_run):
         "GPRBUILD_VERSION": pinned("LANDIN_GPRBUILD_VERSION"),
         "GNAT_SHA256": pinned("LANDIN_GNAT_SHA256_X86_64_LINUX"),
         "GPRBUILD_SHA256": pinned("LANDIN_GPRBUILD_SHA256_X86_64_LINUX"),
+        #  D2969: the Microsoft tools the gate's Microsoft jobs select on
+        #  the runner image, which the workflows read from pins.sh.
+        "MSVC_TOOLSET_VERSION": pinned("LANDIN_MSVC_TOOLSET_VERSION"),
+        "WINDOWS_SDK_VERSION": pinned("LANDIN_WINDOWS_SDK_VERSION"),
     }
     for name, value in wanted.items():
         if value is None:
