@@ -503,8 +503,8 @@
   },
   "armv8-a/size-all/regex-redux": {
    "sections": {
-    ".text": 368384,
-    ".rdata": 87100,
+    ".text": 368120,
+    ".rdata": 86572,
     ".buildid": 81,
     ".data": 33137,
     ".pdata": 4976,
@@ -639,8 +639,8 @@
   },
   "armv8-a/size-auto/regex-redux": {
    "sections": {
-    ".text": 368864,
-    ".rdata": 87100,
+    ".text": 368600,
+    ".rdata": 86572,
     ".buildid": 81,
     ".data": 33137,
     ".pdata": 4976,
@@ -775,8 +775,8 @@
   },
   "armv8-a/size-off/regex-redux": {
    "sections": {
-    ".text": 368936,
-    ".rdata": 87100,
+    ".text": 368672,
+    ".rdata": 86572,
     ".buildid": 81,
     ".data": 33137,
     ".pdata": 4976,
@@ -911,8 +911,8 @@
   },
   "armv8-a/speed-all/regex-redux": {
    "sections": {
-    ".text": 438160,
-    ".rdata": 86164,
+    ".text": 437896,
+    ".rdata": 85644,
     ".buildid": 81,
     ".data": 33137,
     ".pdata": 4976,
@@ -1047,8 +1047,8 @@
   },
   "armv8-a/speed-auto/regex-redux": {
    "sections": {
-    ".text": 438160,
-    ".rdata": 86164,
+    ".text": 437896,
+    ".rdata": 85644,
     ".buildid": 81,
     ".data": 33137,
     ".pdata": 4976,
@@ -1183,8 +1183,8 @@
   },
   "armv8-a/speed-off/regex-redux": {
    "sections": {
-    ".text": 438428,
-    ".rdata": 86164,
+    ".text": 438164,
+    ".rdata": 85644,
     ".buildid": 81,
     ".data": 33137,
     ".pdata": 4976,
@@ -1727,8 +1727,8 @@
   },
   "armv8.1-a/size-all/regex-redux": {
    "sections": {
-    ".text": 369836,
-    ".rdata": 87640,
+    ".text": 369572,
+    ".rdata": 87120,
     ".buildid": 81,
     ".data": 33161,
     ".pdata": 5024,
@@ -1863,8 +1863,8 @@
   },
   "armv8.1-a/size-auto/regex-redux": {
    "sections": {
-    ".text": 370316,
-    ".rdata": 87640,
+    ".text": 370052,
+    ".rdata": 87120,
     ".buildid": 81,
     ".data": 33161,
     ".pdata": 5024,
@@ -1999,8 +1999,8 @@
   },
   "armv8.1-a/size-off/regex-redux": {
    "sections": {
-    ".text": 370388,
-    ".rdata": 87640,
+    ".text": 370124,
+    ".rdata": 87120,
     ".buildid": 81,
     ".data": 33161,
     ".pdata": 5024,
@@ -2135,8 +2135,8 @@
   },
   "armv8.1-a/speed-all/regex-redux": {
    "sections": {
-    ".text": 439684,
-    ".rdata": 86712,
+    ".text": 439420,
+    ".rdata": 86192,
     ".buildid": 81,
     ".data": 33161,
     ".pdata": 5024,
@@ -2271,8 +2271,8 @@
   },
   "armv8.1-a/speed-auto/regex-redux": {
    "sections": {
-    ".text": 439684,
-    ".rdata": 86712,
+    ".text": 439420,
+    ".rdata": 86192,
     ".buildid": 81,
     ".data": 33161,
     ".pdata": 5024,
@@ -2407,8 +2407,8 @@
   },
   "armv8.1-a/speed-off/regex-redux": {
    "sections": {
-    ".text": 439952,
-    ".rdata": 86712,
+    ".text": 439688,
+    ".rdata": 86192,
     ".buildid": 81,
     ".data": 33161,
     ".pdata": 5024,
