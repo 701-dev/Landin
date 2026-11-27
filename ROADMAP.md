@@ -1443,9 +1443,11 @@ images at speed are 24 to 2,332 bytes smaller over seven workloads a
 configuration; none grew. `SR-1958`, which measured the copies by
 hand, is completed and deleted. The register sweep had planned this
 work as R16.44 and the increment checks as R16.43; the increment item
-is R16.44 now. The candidate passed its
-[gate](https://github.com/701-dev/Landin/actions/runs/45893946410)
-and [boards](https://github.com/701-dev/Landin/actions/runs/45893959661).
+is R16.44 now. The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45907130369),
+after `windows-arm64-debugger` was run again over `SR-1940`'s step
+through the stack switch, and its
+[boards](https://github.com/701-dev/Landin/actions/runs/45907141173).
 
 ### R16.44 — An increment proved by the check before it
 
