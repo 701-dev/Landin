@@ -2070,6 +2070,7 @@ runtime/benchmark-game-fannkuch-redux | linux-x86-64, linux-arm64, darwin-arm64,
 runtime/benchmark-game-fasta | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/benchmark-game-mandelbrot | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/benchmark-game-pidigits | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/benchmark-game-regex-redux | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/benchmark-game-reverse-complement | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/big-integer | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/big-integer-bits | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
@@ -2848,6 +2849,7 @@ runtime/reference-place-updates | linux-x86-64, linux-arm64, darwin-arm64, freeb
 runtime/regex-api | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/regex-engines-agree | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/regex-linear-time | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/regex-prefilter-watch | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/regex-redux-patterns | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/regex-rust-suite | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/region-beside-parent | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

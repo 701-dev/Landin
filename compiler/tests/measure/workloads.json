@@ -54,6 +54,13 @@
    }
   },
   {
+   "name": "regex-redux",
+   "fixture": "runtime/benchmark-game-regex-redux",
+   "timing": {
+    "stdin_repeat": 200
+   }
+  },
+  {
    "name": "fibre",
    "fixture": "runtime/measure-fibre-switches",
    "timing": {

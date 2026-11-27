@@ -69,6 +69,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v1/none-all/regex-redux": {
+   "sections": {
+    ".text": 871962,
+    ".rdata": 119628,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v1/none-all/reverse-complement": {
    "sections": {
     ".text": 109442,
@@ -156,6 +167,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v1/none-auto/regex-redux": {
+   "sections": {
+    ".text": 872142,
+    ".rdata": 119628,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v1/none-auto/reverse-complement": {
@@ -247,6 +269,17 @@
     ".reloc": 56
    }
   },
+  "x86-64-v1/none-off/regex-redux": {
+   "sections": {
+    ".text": 872164,
+    ".rdata": 119628,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 312
+   }
+  },
   "x86-64-v1/none-off/reverse-complement": {
    "sections": {
     ".text": 109464,
@@ -334,6 +367,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v1/size-all/regex-redux": {
+   "sections": {
+    ".text": 301032,
+    ".rdata": 80988,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7344,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v1/size-all/reverse-complement": {
@@ -425,6 +469,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v1/size-auto/regex-redux": {
+   "sections": {
+    ".text": 301352,
+    ".rdata": 80988,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7344,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v1/size-auto/reverse-complement": {
    "sections": {
     ".text": 38361,
@@ -512,6 +567,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 56
+   }
+  },
+  "x86-64-v1/size-off/regex-redux": {
+   "sections": {
+    ".text": 301417,
+    ".rdata": 80988,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7344,
+    ".tls": 8,
+    ".reloc": 312
    }
   },
   "x86-64-v1/size-off/reverse-complement": {
@@ -603,6 +669,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v1/speed-all/regex-redux": {
+   "sections": {
+    ".text": 413768,
+    ".rdata": 80236,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7344,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v1/speed-all/reverse-complement": {
    "sections": {
     ".text": 51646,
@@ -690,6 +767,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v1/speed-auto/regex-redux": {
+   "sections": {
+    ".text": 413768,
+    ".rdata": 80236,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7344,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v1/speed-auto/reverse-complement": {
@@ -781,6 +869,17 @@
     ".reloc": 56
    }
   },
+  "x86-64-v1/speed-off/regex-redux": {
+   "sections": {
+    ".text": 414152,
+    ".rdata": 80236,
+    ".buildid": 81,
+    ".data": 33145,
+    ".pdata": 7344,
+    ".tls": 8,
+    ".reloc": 312
+   }
+  },
   "x86-64-v1/speed-off/reverse-complement": {
    "sections": {
     ".text": 51454,
@@ -868,6 +967,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v2/none-all/regex-redux": {
+   "sections": {
+    ".text": 876885,
+    ".rdata": 120196,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7572,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v2/none-all/reverse-complement": {
@@ -959,6 +1069,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v2/none-auto/regex-redux": {
+   "sections": {
+    ".text": 877065,
+    ".rdata": 120196,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7572,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v2/none-auto/reverse-complement": {
    "sections": {
     ".text": 114365,
@@ -1046,6 +1167,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 56
+   }
+  },
+  "x86-64-v2/none-off/regex-redux": {
+   "sections": {
+    ".text": 877087,
+    ".rdata": 120196,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7572,
+    ".tls": 8,
+    ".reloc": 312
    }
   },
   "x86-64-v2/none-off/reverse-complement": {
@@ -1137,6 +1269,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v2/size-all/regex-redux": {
+   "sections": {
+    ".text": 303051,
+    ".rdata": 81556,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7452,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v2/size-all/reverse-complement": {
    "sections": {
     ".text": 40380,
@@ -1224,6 +1367,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v2/size-auto/regex-redux": {
+   "sections": {
+    ".text": 303371,
+    ".rdata": 81556,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7452,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v2/size-auto/reverse-complement": {
@@ -1315,6 +1469,17 @@
     ".reloc": 56
    }
   },
+  "x86-64-v2/size-off/regex-redux": {
+   "sections": {
+    ".text": 303436,
+    ".rdata": 81556,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7452,
+    ".tls": 8,
+    ".reloc": 312
+   }
+  },
   "x86-64-v2/size-off/reverse-complement": {
    "sections": {
     ".text": 40445,
@@ -1402,6 +1567,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v2/speed-all/regex-redux": {
+   "sections": {
+    ".text": 416136,
+    ".rdata": 80796,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7452,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v2/speed-all/reverse-complement": {
@@ -1493,6 +1669,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v2/speed-auto/regex-redux": {
+   "sections": {
+    ".text": 416136,
+    ".rdata": 80796,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7452,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v2/speed-auto/reverse-complement": {
    "sections": {
     ".text": 54055,
@@ -1580,6 +1767,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 56
+   }
+  },
+  "x86-64-v2/speed-off/regex-redux": {
+   "sections": {
+    ".text": 416520,
+    ".rdata": 80796,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7452,
+    ".tls": 8,
+    ".reloc": 312
    }
   },
   "x86-64-v2/speed-off/reverse-complement": {
@@ -1671,6 +1869,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v3/none-all/regex-redux": {
+   "sections": {
+    ".text": 878943,
+    ".rdata": 120260,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7584,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v3/none-all/reverse-complement": {
    "sections": {
     ".text": 116909,
@@ -1758,6 +1967,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v3/none-auto/regex-redux": {
+   "sections": {
+    ".text": 879123,
+    ".rdata": 120260,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7584,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v3/none-auto/reverse-complement": {
@@ -1849,6 +2069,17 @@
     ".reloc": 56
    }
   },
+  "x86-64-v3/none-off/regex-redux": {
+   "sections": {
+    ".text": 879145,
+    ".rdata": 120260,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7584,
+    ".tls": 8,
+    ".reloc": 312
+   }
+  },
   "x86-64-v3/none-off/reverse-complement": {
    "sections": {
     ".text": 116931,
@@ -1936,6 +2167,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v3/size-all/regex-redux": {
+   "sections": {
+    ".text": 303719,
+    ".rdata": 81620,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v3/size-all/reverse-complement": {
@@ -2027,6 +2269,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v3/size-auto/regex-redux": {
+   "sections": {
+    ".text": 304039,
+    ".rdata": 81620,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v3/size-auto/reverse-complement": {
    "sections": {
     ".text": 41103,
@@ -2114,6 +2367,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 56
+   }
+  },
+  "x86-64-v3/size-off/regex-redux": {
+   "sections": {
+    ".text": 304104,
+    ".rdata": 81620,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 312
    }
   },
   "x86-64-v3/size-off/reverse-complement": {
@@ -2205,6 +2469,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v3/speed-all/regex-redux": {
+   "sections": {
+    ".text": 416840,
+    ".rdata": 80860,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v3/speed-all/reverse-complement": {
    "sections": {
     ".text": 54831,
@@ -2292,6 +2567,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v3/speed-auto/regex-redux": {
+   "sections": {
+    ".text": 416840,
+    ".rdata": 80860,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v3/speed-auto/reverse-complement": {
@@ -2383,6 +2669,17 @@
     ".reloc": 56
    }
   },
+  "x86-64-v3/speed-off/regex-redux": {
+   "sections": {
+    ".text": 417224,
+    ".rdata": 80860,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7464,
+    ".tls": 8,
+    ".reloc": 312
+   }
+  },
   "x86-64-v3/speed-off/reverse-complement": {
    "sections": {
     ".text": 54639,
@@ -2470,6 +2767,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v4/none-all/regex-redux": {
+   "sections": {
+    ".text": 880352,
+    ".rdata": 120324,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7596,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v4/none-all/reverse-complement": {
@@ -2561,6 +2869,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v4/none-auto/regex-redux": {
+   "sections": {
+    ".text": 880532,
+    ".rdata": 120324,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7596,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v4/none-auto/reverse-complement": {
    "sections": {
     ".text": 118318,
@@ -2648,6 +2967,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 56
+   }
+  },
+  "x86-64-v4/none-off/regex-redux": {
+   "sections": {
+    ".text": 880554,
+    ".rdata": 120324,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7596,
+    ".tls": 8,
+    ".reloc": 312
    }
   },
   "x86-64-v4/none-off/reverse-complement": {
@@ -2739,6 +3069,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v4/size-all/regex-redux": {
+   "sections": {
+    ".text": 304106,
+    ".rdata": 81684,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7476,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v4/size-all/reverse-complement": {
    "sections": {
     ".text": 41490,
@@ -2826,6 +3167,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v4/size-auto/regex-redux": {
+   "sections": {
+    ".text": 304426,
+    ".rdata": 81684,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7476,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v4/size-auto/reverse-complement": {
@@ -2917,6 +3269,17 @@
     ".reloc": 56
    }
   },
+  "x86-64-v4/size-off/regex-redux": {
+   "sections": {
+    ".text": 304491,
+    ".rdata": 81684,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7476,
+    ".tls": 8,
+    ".reloc": 312
+   }
+  },
   "x86-64-v4/size-off/reverse-complement": {
    "sections": {
     ".text": 41555,
@@ -3004,6 +3367,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
+   }
+  },
+  "x86-64-v4/speed-all/regex-redux": {
+   "sections": {
+    ".text": 417352,
+    ".rdata": 80932,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7476,
+    ".tls": 8,
+    ".reloc": 288
    }
   },
   "x86-64-v4/speed-all/reverse-complement": {
@@ -3095,6 +3469,17 @@
     ".reloc": 36
    }
   },
+  "x86-64-v4/speed-auto/regex-redux": {
+   "sections": {
+    ".text": 417352,
+    ".rdata": 80932,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7476,
+    ".tls": 8,
+    ".reloc": 288
+   }
+  },
   "x86-64-v4/speed-auto/reverse-complement": {
    "sections": {
     ".text": 55337,
@@ -3182,6 +3567,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 56
+   }
+  },
+  "x86-64-v4/speed-off/regex-redux": {
+   "sections": {
+    ".text": 417736,
+    ".rdata": 80932,
+    ".buildid": 81,
+    ".data": 33153,
+    ".pdata": 7476,
+    ".tls": 8,
+    ".reloc": 312
    }
   },
   "x86-64-v4/speed-off/reverse-complement": {

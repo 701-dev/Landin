@@ -277,17 +277,38 @@ end cross_alternate
 
 --  The first position at or after `origin` where a literal of the set
 --  begins, and the length of the first in its order that does, or
---  `lenof bytes + 1` and zero when none does.
-next_literal: (set: literal_set, bytes: []u8, origin: usize)
-              -> (at: usize, length: usize) =
+--  `lenof bytes + 1` and zero when none does.  Each position whose byte
+--  begins a literal is a try `watch` counts.  With `may_stop`, once the
+--  watch finds the set no longer worth searching for, the search stops
+--  at the position it has reached, which no literal before it begins at,
+--  with `stopped`, and the watch is inert from then on.
+next_literal: (set: literal_set, inout watch: prefilter_watch, bytes: []u8,
+               origin: usize, may_stop: bool)
+              -> (at: usize, length: usize, stopped: bool) =
     length = 0
-    count: usize = literal_count(set)
+    stopped = false
+    ends: []u32 = vec.used(set.ends)
+    held: []u8 = vec.used(set.bytes)
     mut place: usize = origin
     while place < lenof bytes do
-        if set.first[usize(bytes[place])] then
-            for index in usize(0)..<count do
-                piece: []u8 = literal_at(set, index)
-                if begins_with(bytes, place, piece) then
+        byte: u8 = bytes[place]
+        if set.first[usize(byte)] then
+            inc watch.tries
+            if may_stop and watch.tries >= watch_minimum_tries
+              and not worth_searching(watch, set, place - origin) then
+                watch.inert = true
+                watch.moved += place - origin
+                at = place
+                stopped = true
+                return
+            end if
+            mut begins: usize = 0
+            for ending in ends do
+                piece: []u8 = held[begins..<usize(ending)]
+                begins = usize(ending)
+                if lenof piece > 0 and piece[0] == byte
+                  and begins_with(bytes, place, piece) then
+                    watch.moved += place - origin
                     at = place
                     length = lenof piece
                     return
@@ -296,8 +317,48 @@ next_literal: (set: literal_set, bytes: []u8, origin: usize)
         end if
         inc place
     end while
+    watch.moved += lenof bytes - origin
     at = lenof bytes + 1
 end next_literal
+
+--  How a prefilter has done over a search, or over a walk's searches of
+--  one haystack: how many positions it tried, how far it moved all told,
+--  and whether it has been set aside.  The rule is the aho-corasick
+--  crate's: once it has tried `watch_minimum_tries` positions, a
+--  prefilter that has moved less than `watch_average_factor` times its
+--  longest literal a position tried is stopping at nearly every byte, no
+--  faster than the DFA behind it, and the search goes on without it.
+prefilter_watch: type = struct
+    tries: usize
+    moved: usize
+    longest: usize
+    inert: bool
+end prefilter_watch
+
+watch_minimum_tries: usize = 40
+watch_average_factor: usize = 2
+
+new_watch: () -> (watch: prefilter_watch) =
+    watch = (tries: 0, moved: 0, longest: 0, inert: false)
+end new_watch
+
+--  Whether `set` has moved far enough a try, counting `moving` more than
+--  the watch holds, to be worth searching for still.
+worth_searching: (inout watch: prefilter_watch, set: literal_set,
+                  moving: usize) -> (yes: bool) =
+    if watch.longest == 0 then
+        mut begins: usize = 0
+        for ending in vec.used(set.ends) do
+            if usize(ending) - begins > watch.longest then
+                watch.longest = usize(ending) - begins
+            end if
+            begins = usize(ending)
+        end for
+        if watch.longest == 0 then watch.longest = 1 end if
+    end if
+    yes = watch.moved + moving >= watch_average_factor * watch.longest
+                                  * watch.tries
+end worth_searching
 
 begins_with: (bytes: []u8, at: usize, piece: []u8) -> (yes: bool) =
     yes = false
