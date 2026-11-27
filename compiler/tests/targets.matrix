@@ -2198,6 +2198,7 @@ runtime/core-region-resize | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64
 runtime/core-self-append | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
 runtime/core-sort-context | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-spill-pointer-items | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/core-text-ascii-caseless | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-builder | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
 runtime/core-text-byte-positions | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/core-text-decimal-widths | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
@@ -2208,13 +2209,20 @@ runtime/core-text-format | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, 
 runtime/core-text-format-firmware | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-format-onto-offsets | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-format-spec | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
+runtime/core-text-parse-radix | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/core-text-parse-radix-oracle | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-parse-signed | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/core-text-parts | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/core-text-quoted | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-runtime-helpers | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/core-text-search-everyday | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-step-at-end-traps | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-utf8-builder | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-utf8-builder-firmware | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-utf8-firmware | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-text-utf8-split | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/core-text-writers | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/core-text-writers-bytes | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/core-tree-count-overflow | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/core-tree-indices | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/core-tree-node-queries | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
@@ -2985,6 +2993,10 @@ runtime/undo-cleanups-follow-failure-edges | linux-x86-64, linux-arm64, darwin-a
 runtime/undo-does-not-unwind-traps | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/unicode-case-scalars | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0
 runtime/unicode-case-title | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/unicode-caseless | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/unicode-caseless-canonical | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
+runtime/unicode-caseless-scalars | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/unicode-caseless-sequences | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/unicode-category | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0
 runtime/unicode-category-runs | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0
 runtime/unicode-graphemes | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0

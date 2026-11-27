@@ -1,0 +1,262 @@
+--  The everyday searches beside `find`: a prefix and a suffix, the last
+--  occurrence, how many occurrences, and the byte forms of the searches
+--  over `[]u8`, which a protocol's bytes need where they are not text.
+--  Over `utf8` each works on encoded bytes, which valid UTF-8 makes the
+--  same as working on scalars: a match of whole scalars can begin only
+--  where a scalar does, so none is ever found inside one.
+
+import core/mem
+
+--- Whether `source` begins with `prefix`, byte for byte.  Every text
+--- begins with the empty text.
+public starts_with: (source: utf8, prefix: utf8) -> (yes: bool) =
+    yes = bytes_start_with(bytes(source), bytes(prefix))
+end starts_with
+
+--- Whether `source` ends with `suffix`, byte for byte.  Every text ends
+--- with the empty text.
+public ends_with: (source: utf8, suffix: utf8) -> (yes: bool) =
+    yes = bytes_end_with(bytes(source), bytes(suffix))
+end ends_with
+
+--  Whether `source` begins with the bytes `prefix`.
+bytes_start_with: (source: []u8, prefix: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof prefix > lenof source
+    mut index: usize = 0
+    while index < lenof prefix do
+        return when source[index] <> prefix[index]
+        inc index
+    end while
+    yes = true
+end bytes_start_with
+
+--  Whether `source` ends with the bytes `suffix`.
+bytes_end_with: (source: []u8, suffix: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof suffix > lenof source
+    offset: usize = lenof source - lenof suffix
+    mut index: usize = 0
+    while index < lenof suffix do
+        return when source[offset + index] <> suffix[index]
+        inc index
+    end while
+    yes = true
+end bytes_end_with
+
+--- The position where the last occurrence of `sought` in `source` begins,
+--- or `mem.not_found`.  Empty text is found at the end.  The parts either
+--- side of the match are text, as `find`'s are.
+public find_last: (source: utf8, sought: utf8)
+                  -> (found: position) ! mem.not_found =
+    index: usize = last_match(bytes(source), bytes(sought))
+    fail mem.not_found when index > lenof source
+    found = (offset: index)
+end find_last
+
+--- The position of the last scalar of `source` equal to `scalar`, or
+--- `mem.not_found`, which a surrogate or a value above U+10FFFF always is.
+public find_last_scalar: (source: utf8, scalar: u32)
+                         -> (found: position) ! mem.not_found =
+    count: usize = encoded_width(scalar)
+    fail mem.not_found when count == 0
+    mut encoded: [4]u8 = zeroed
+    stored(scalar, count, encoded[0..<count])
+    index: usize = last_match(bytes(source), encoded[0..<count])
+    fail mem.not_found when index > lenof source
+    found = (offset: index)
+end find_last_scalar
+
+--  Where `sought_bytes` last occurs in `source_bytes`, or one past the
+--  source's length when it does not: the empty sequence at the end.  Each
+--  candidate from the right is compared from its first byte, so the
+--  search takes the two lengths' product at worst; the byte that ends
+--  the sought value is found first with a scan from the right, as
+--  `memrchr` does, which keeps the usual case linear.
+last_match: (source_bytes: []u8, sought_bytes: []u8) -> (found: usize) =
+    found = lenof source_bytes + 1
+    sought_length: usize = lenof sought_bytes
+    if sought_length == 0 then
+        found = lenof source_bytes
+        return
+    end if
+    return when sought_length > lenof source_bytes
+    last: u8 = sought_bytes[sought_length - 1]
+    mut ends: usize = lenof source_bytes
+    while ends >= sought_length do
+        if source_bytes[ends - 1] == last then
+            start: usize = ends - sought_length
+            mut index: usize = 0
+            while index + 1 < sought_length
+              and source_bytes[start + index] == sought_bytes[index]
+            do
+                inc index
+            end while
+            if index + 1 >= sought_length then
+                found = start
+                return
+            end if
+        end if
+        dec ends
+    end while
+end last_match
+
+--- How many times `sought` occurs in `source` without overlapping, counted
+--- from the left as Go's `strings.Count` counts: "aaaa" holds "aa" twice.
+--- The empty text occurs once before each scalar and once at the end, so
+--- it occurs one time more than `source` has scalars.
+public occurrences: (source: utf8, sought: utf8) -> (count: usize) =
+    count = 0
+    source_bytes: []u8 = bytes(source)
+    sought_bytes: []u8 = bytes(sought)
+    if lenof sought_bytes == 0 then
+        for scalar in source do
+            _ = scalar
+            inc count
+        end for
+        inc count
+        return
+    end if
+    mut at: usize = 0
+    while lenof source_bytes - at >= lenof sought_bytes do
+        rest: []u8 = source_bytes[at..<lenof source_bytes]
+        index: usize = first_match(rest, sought_bytes)
+        return when index == lenof rest
+        inc count
+        at += index + lenof sought_bytes
+    end while
+end occurrences
+
+--  The byte searches, `memchr`'s and `memmem`'s, over bytes that need not
+--  be text.  A position over `[]u8` is a byte offset, as `first` and
+--  `next` make, so any offset is one; a search from past the end traps,
+--  as a range of the bytes from it does.
+
+--- The position of the first byte of `source` equal to `value`, or
+--- `mem.not_found`.
+public find_byte: (source: []u8, value: u8)
+                  -> (found: position) ! mem.not_found =
+    found = try find_byte_from(source, value, (offset: 0))
+end find_byte
+
+--- The position of the first byte of `source` equal to `value` at or
+--- after `at`, or `mem.not_found`.
+public find_byte_from: (source: []u8, value: u8, at: position)
+                       -> (found: position) ! mem.not_found =
+    rest: []u8 = source[at.offset..<lenof source]
+    mut index: usize = 0
+    while index < lenof rest do
+        if rest[index] == value then
+            found = (offset: at.offset + index)
+            return
+        end if
+        inc index
+    end while
+    fail mem.not_found
+end find_byte_from
+
+--- The position of the last byte of `source` equal to `value`, or
+--- `mem.not_found`.
+public find_last_byte: (source: []u8, value: u8)
+                       -> (found: position) ! mem.not_found =
+    mut index: usize = lenof source
+    while index > 0 do
+        dec index
+        if source[index] == value then
+            found = (offset: index)
+            return
+        end if
+    end while
+    fail mem.not_found
+end find_last_byte
+
+--- The position where the bytes `sought` first occur in `source`, or
+--- `mem.not_found`.  Empty bytes are found at the start.  `find`'s
+--- Two-Way search, linear in the two lengths and with no table.
+public find_bytes: (source: []u8, sought: []u8)
+                   -> (found: position) ! mem.not_found =
+    found = try find_bytes_from(source, sought, (offset: 0))
+end find_bytes
+
+--- The position where the bytes `sought` first occur in `source` at or
+--- after `at`, or `mem.not_found`.  Empty bytes are found at `at`.
+public find_bytes_from: (source: []u8, sought: []u8, at: position)
+                        -> (found: position) ! mem.not_found =
+    rest: []u8 = source[at.offset..<lenof source]
+    fail mem.not_found when lenof sought > lenof rest
+    found = (offset: at.offset)
+    return when lenof sought == 0
+    index: usize = first_match(rest, sought)
+    fail mem.not_found when index == lenof rest
+    found = (offset: at.offset + index)
+end find_bytes_from
+
+--- The position where the bytes `sought` last occur in `source`, or
+--- `mem.not_found`.  Empty bytes are found at the end.
+public find_last_bytes: (source: []u8, sought: []u8)
+                        -> (found: position) ! mem.not_found =
+    index: usize = last_match(source, sought)
+    fail mem.not_found when index > lenof source
+    found = (offset: index)
+end find_last_bytes
+
+--  Comparing without case over ASCII alone, for an image that cannot carry
+--  `core/unicode`'s case tables: A to Z fold to a to z and every other
+--  byte is itself, so "STRASSE" does not equal "straße" here as it does in
+--  `unicode.equal_caseless`.
+
+--  The byte `value` with A to Z folded to a to z.
+ascii_folded: (value: u8) -> (result: u8) =
+    result = value
+    if value >= u8('A') and value <= u8('Z') then
+        result = value + 32
+    end if
+end ascii_folded
+
+--  Whether `left` and `right` agree from `left_at` and `right_at` for
+--  `count` bytes, A to Z folded.
+ascii_agree: (left: []u8, left_at: usize, right: []u8, right_at: usize,
+              count: usize) -> (yes: bool) =
+    yes = false
+    mut index: usize = 0
+    while index < count do
+        return when ascii_folded(left[left_at + index])
+          <> ascii_folded(right[right_at + index])
+        inc index
+    end while
+    yes = true
+end ascii_agree
+
+--- Whether `left` and `right` are equal when A to Z are taken as a to z,
+--- and every other scalar only as itself.  The ASCII variant of
+--- `unicode.equal_caseless`, which a program uses where an image cannot
+--- carry the case tables.
+public equal_ascii_caseless: (left: utf8, right: utf8) -> (yes: bool) =
+    left_bytes: []u8 = bytes(left)
+    right_bytes: []u8 = bytes(right)
+    yes = lenof left_bytes == lenof right_bytes
+          and ascii_agree(left_bytes, 0, right_bytes, 0, lenof left_bytes)
+end equal_ascii_caseless
+
+--- Whether `source` begins with `prefix` when A to Z are taken as a to z:
+--- the ASCII variant of `unicode.starts_with_caseless`.
+public starts_with_ascii_caseless: (source: utf8, prefix: utf8)
+                                   -> (yes: bool) =
+    source_bytes: []u8 = bytes(source)
+    prefix_bytes: []u8 = bytes(prefix)
+    yes = lenof prefix_bytes <= lenof source_bytes
+          and ascii_agree(source_bytes, 0, prefix_bytes, 0,
+                          lenof prefix_bytes)
+end starts_with_ascii_caseless
+
+--- Whether `source` ends with `suffix` when A to Z are taken as a to z:
+--- the ASCII variant of `unicode.ends_with_caseless`.
+public ends_with_ascii_caseless: (source: utf8, suffix: utf8)
+                                 -> (yes: bool) =
+    source_bytes: []u8 = bytes(source)
+    suffix_bytes: []u8 = bytes(suffix)
+    yes = lenof suffix_bytes <= lenof source_bytes
+          and ascii_agree(source_bytes,
+                          lenof source_bytes - lenof suffix_bytes,
+                          suffix_bytes, 0, lenof suffix_bytes)
+end ends_with_ascii_caseless

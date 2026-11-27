@@ -946,6 +946,9 @@ def main(arguments=None):
             for name, size in sizes(database).items():
                 print("%-10s %6d" % (name, size))
             return 0
+        problems = white_space_problems(database)
+        if problems:
+            raise GeneratorError(problems)
         written = {OUTPUT: render(database),
                    REGEX_FOLDS: render_folds(database)}
         import unicode_fixtures
@@ -954,6 +957,46 @@ def main(arguments=None):
     except GeneratorError as problem:
         print("unicode_tables.py: %s" % problem, file=sys.stderr)
         return 1
+
+
+#  core/text writes Unicode's White_Space as comparisons in one routine,
+#  so that trimming and fields carry no table; the database holds it.
+WHITE_SPACE_SOURCE = ROOT / "core/text/parts.ldn"
+WHITE_SPACE_BIT = 1
+
+
+def white_space_written(text):
+    """The scalars core/text's `white_space` routine names."""
+    found = re.search(r"^white_space: .*?^end white_space$", text,
+                      re.MULTILINE | re.DOTALL)
+    if found is None:
+        return None
+    body = found.group(0)
+    scalars = set()
+    for first, last in re.findall(r"scalar >= (0x[0-9a-f]+) and"
+                                  r" scalar <= (0x[0-9a-f]+)", body):
+        scalars.update(range(int(first, 16), int(last, 16) + 1))
+    for single in re.findall(r"scalar == (0x[0-9a-f]+)", body):
+        scalars.add(int(single, 16))
+    return scalars
+
+
+def white_space_problems(database, text=None):
+    """What core/text's White_Space list says that the database does not."""
+    if text is None:
+        text = WHITE_SPACE_SOURCE.read_text()
+    written = white_space_written(text)
+    if written is None:
+        return "%s has no white_space routine" % WHITE_SPACE_SOURCE.relative_to(
+            ROOT)
+    held = {scalar for scalar in range(LIMIT)
+            if database.flags[scalar] & (1 << WHITE_SPACE_BIT)}
+    if written == held:
+        return ""
+    return ("core/text's white_space names %s and leaves out %s, which is"
+            " not the database's White_Space"
+            % (sorted("%04X" % s for s in written - held),
+               sorted("%04X" % s for s in held - written)))
 
 
 def leftovers(written):

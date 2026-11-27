@@ -1,0 +1,108 @@
+--  Trimming and the walks over a text's parts.  Each walk is checked
+--  against the parts it should give, joined with "|" after it, so a walk
+--  that gives "a", "" and "b" reads "a||b|" and one that gives nothing
+--  reads "".
+import core/text
+
+--  Whether a walk's parts, each followed by "|", are `expected`.
+gives: (source: utf8, walk: text.parts, expected: utf8) -> (yes: bool) =
+    mut storage: [256]u8 = zeroed
+    mut out: text.utf8_builder = text.utf8_over(storage)
+    yes = false
+    for piece in walk do
+        text.utf8_append_text(out, text.part(source, piece)) else begin
+            return
+        end
+        text.utf8_append_text(out, "|") else begin
+            return
+        end
+    end for
+    yes = text.equal(text.utf8_used(out), expected)
+end gives
+
+--  Trimming White_Space and a scalar.
+trims: () -> (yes: bool) =
+    spaced: utf8 = " \t\u{a0}a b\u{3000}\n\u{2029}"
+    yes = text.equal(text.trim(spaced), "a b")
+          and text.equal(text.trim_start(spaced), "a b\u{3000}\n\u{2029}")
+          and text.equal(text.trim_end(spaced), " \t\u{a0}a b")
+          and text.equal(text.trim(""), "")
+          and text.equal(text.trim(" \u{85}\u{1680}\u{205f} "), "")
+          and text.equal(text.trim("\u{200b}a\u{200b}"), "\u{200b}a\u{200b}")
+          and text.equal(text.trim("\u{2000}\u{200a}\u{202f}x"), "x")
+          and text.equal(text.trim_scalar("//a/b//", '/'), "a/b")
+          and text.equal(text.trim_scalar_start("//a/b//", '/'), "a/b//")
+          and text.equal(text.trim_scalar_end("//a/b//", '/'), "//a/b")
+          and text.equal(text.trim_scalar("ééaé", 'é'), "a")
+          and text.equal(text.trim_scalar("€€", '€'), "")
+          and text.equal(text.trim_scalar("😀a😀😀", '😀'), "a")
+          and text.equal(text.trim_scalar("abc", 0xd800), "abc")
+end trims
+
+--  The parts between a separator.
+splits: () -> (yes: bool) =
+    yes = gives("a,b,,c", text.split("a,b,,c", ","), "a|b||c|")
+          and gives(",a,", text.split(",a,", ","), "|a||")
+          and gives("", text.split("", ","), "|")
+          and gives("abc", text.split("abc", ","), "abc|")
+          and gives("a=>b=>", text.split("a=>b=>", "=>"), "a|b||")
+          and gives("aaa", text.split("aaa", "aa"), "|a|")
+          and gives("é€😀", text.split("é€😀", ""), "é|€|😀|")
+          and gives("", text.split("", ""), "")
+          and gives("é€😀€é", text.split("é€😀€é", "€"), "é|😀|é|")
+          and gives("a😀b😀", text.split_scalar("a😀b😀", '😀'), "a|b||")
+          and gives("aébé", text.split_scalar("aébé", 'é'), "a|b||")
+          and gives("a,b", text.split_scalar("a,b", ','), "a|b|")
+          and gives("a,b", text.split_scalar("a,b", 0xd800), "a,b|")
+          and gives("", text.split_scalar("", 0x110000), "|")
+end splits
+
+--  The fields between White_Space.
+fields: () -> (yes: bool) =
+    yes = gives(" a  b\t", text.fields(" a  b\t"), "a|b|")
+          and gives("", text.fields(""), "")
+          and gives(" \n\u{3000} ", text.fields(" \n\u{3000} "), "")
+          and gives("é\u{a0}€\u{2028}😀", text.fields("é\u{a0}€\u{2028}😀"),
+                    "é|€|😀|")
+          and gives("one", text.fields("one"), "one|")
+end fields
+
+--  The lines of a text.
+lines: () -> (yes: bool) =
+    yes = gives("a\nb\n", text.lines("a\nb\n"), "a|b|")
+          and gives("a\nb", text.lines("a\nb"), "a|b|")
+          and gives("a\r\n\nb", text.lines("a\r\n\nb"), "a||b|")
+          and gives("", text.lines(""), "")
+          and gives("\n", text.lines("\n"), "|")
+          and gives("\r\n", text.lines("\r\n"), "|")
+          and gives("a\rb\r\r\n", text.lines("a\rb\r\r\n"), "a\rb\r|")
+          and gives("\n\n", text.lines("\n\n"), "||")
+          and gives("é\n😀", text.lines("é\n😀"), "é|😀|")
+end lines
+
+--  Whether every field of a record such as "a, b, c" holds something
+--  once the spaces around it are trimmed.
+filled: (record: utf8) -> (yes: bool) =
+    yes = true
+    for piece in text.split(record, ",") do
+        field: utf8 = text.trim(text.part(record, piece))
+        if lenof field == 0 then
+            yes = false
+            return
+        end if
+    end for
+end filled
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not trims()
+    code = 2
+    return when not splits()
+    code = 3
+    return when not fields()
+    code = 4
+    return when not lines()
+    code = 5
+    return when not filled("a, b ,c") or filled("a, ,c") or filled(",a")
+    code = 42
+end main

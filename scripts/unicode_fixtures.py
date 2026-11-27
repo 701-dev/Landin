@@ -623,6 +623,285 @@ end main
     return lines
 
 
+
+# -------------------------------------------------------- caseless matches
+
+def folded(database, sequence):
+    """The full case folding of a sequence of scalars."""
+    result = []
+    for scalar in sequence:
+        result += database.full("fold", scalar)
+    return result
+
+
+def caseless_prefix(database, source, prefix):
+    """Whether PREFIX's folding is that of some leading scalars of SOURCE."""
+    wanted = folded(database, prefix)
+    held = []
+    if held == wanted:
+        return True
+    for scalar in source:
+        held += database.full("fold", scalar)
+        if held == wanted:
+            return True
+        if len(held) >= len(wanted):
+            return False
+    return False
+
+
+def caseless_suffix(database, source, suffix):
+    """Whether SUFFIX's folding is that of some trailing scalars of SOURCE."""
+    wanted = folded(database, suffix)
+    held = []
+    if held == wanted:
+        return True
+    for scalar in reversed(source):
+        held = database.full("fold", scalar) + held
+        if held == wanted:
+            return True
+        if len(held) >= len(wanted):
+            return False
+    return False
+
+
+def nfd(database, sequence):
+    """The canonical decomposition of SEQUENCE in canonical order."""
+    result = []
+    for scalar in sequence:
+        result += database.decomposed(scalar, False)
+    #  A stable sort of each run of marks by class.
+    ordered = []
+    run = []
+    for scalar in result:
+        if database.combining[scalar] == 0:
+            ordered += sorted(run, key=lambda mark: database.combining[mark])
+            run = []
+            ordered.append(scalar)
+        else:
+            run.append(scalar)
+    return ordered + sorted(run, key=lambda mark: database.combining[mark])
+
+
+def canonical_caseless(database, left, right):
+    """Unicode's D145: NFD(fold(NFD(X))) of the two are one."""
+    def form(sequence):
+        return nfd(database, folded(database, nfd(database, sequence)))
+    return form(left) == form(right)
+
+
+def neighbour(scalar):
+    """The scalar after SCALAR, past the surrogates, and zero after the last."""
+    if scalar == 0xD7FF:
+        return 0xE000
+    if scalar == 0x10FFFF:
+        return 0
+    return scalar + 1
+
+
+def caseless_scalars_fixture(database):
+    def bits(scalar):
+        source = [scalar]
+        upper = database.full("upper", scalar)
+        lower = database.full("lower", scalar)
+        fold = database.full("fold", scalar)
+        partner = [neighbour(scalar)]
+
+        def same(left, right):
+            return folded(database, left) == folded(database, right)
+        answers = [same(source, upper), same(source, lower),
+                   same(source, fold), same(upper, lower),
+                   same(source, partner),
+                   caseless_prefix(database, upper, source),
+                   caseless_suffix(database, lower, source),
+                   caseless_prefix(database, source, partner)]
+        value = 0
+        for bit, answer in enumerate(answers):
+            if answer:
+                value |= 1 << bit
+        return value
+
+    def digest(scalars):
+        state = OFFSET
+        for scalar in scalars:
+            state = fnv(state, [bits(scalar)])
+        return state
+    helpers = [text_lines("""
+--  The scalar after `scalar`, past the surrogates, and zero after the
+--  last.
+neighbour: (scalar: u32) -> (next: u32) =
+    next = if scalar == 0xd7ff then
+               0xe000
+           elsif scalar == 0x10ffff then
+               0
+           else
+               scalar + 1
+           end if
+end neighbour
+"""), text_lines("""
+--  One bit for each answer that holds, the first the lowest.
+bit: (answer: bool, place: u8) -> (value: u8) =
+    value = if answer then u8(1) << place else 0 end if
+end bit
+""")]
+    body = text_lines("""
+        source: utf8 = alone(scalar, encoded)
+        partner: utf8 = alone(neighbour(scalar), beside)
+        mut into_upper: text.utf8_builder = text.utf8_over(upper_storage)
+        unicode.append_upper(into_upper, source) else begin return end
+        upper: utf8 = text.utf8_used(into_upper)
+        mut into_lower: text.utf8_builder = text.utf8_over(lower_storage)
+        unicode.append_lower(into_lower, source) else begin return end
+        lower: utf8 = text.utf8_used(into_lower)
+        mut into_fold: text.utf8_builder = text.utf8_over(fold_storage)
+        unicode.append_folded(into_fold, source) else begin return end
+        fold: utf8 = text.utf8_used(into_fold)
+        feed(state, bit(unicode.equal_caseless(source, upper), 0)
+                    | bit(unicode.equal_caseless(source, lower), 1)
+                    | bit(unicode.equal_caseless(source, fold), 2)
+                    | bit(unicode.equal_caseless(upper, lower), 3)
+                    | bit(unicode.equal_caseless(source, partner), 4)
+                    | bit(unicode.starts_with_caseless(upper, source), 5)
+                    | bit(unicode.ends_with_caseless(lower, source), 6)
+                    | bit(unicode.starts_with_caseless(source, partner), 7))
+""")
+    return walk_fixture(
+        ["Every scalar, as a", "text of its own, compares without case as"
+         " the database's full case", "folding says: the digest of whether"
+         " it equals its full upper, lower", "and folded mappings, whether"
+         " those equal each other and the next", "scalar, whether its upper"
+         " mapping begins and its lower mapping ends", "with it, and"
+         " whether it begins with the next scalar, is the", "database's."],
+        ["core/text", "core/unicode"], [ENCODE] + helpers, body, digest,
+        CASELESS_STRIDE, True,
+        (("encoded", 4), ("beside", 4), ("upper_storage", 64),
+         ("lower_storage", 64), ("fold_storage", 64)))
+
+
+#  Every how many scalars firmware compares without case.
+CASELESS_STRIDE = 61
+
+
+def caseless_sequences_fixture(database):
+    data = bytearray()
+    ends = []
+    answers = []
+    for part, columns in normalization_lines(database):
+        if part == 1:
+            continue
+        data += tables.encoded(columns[0])
+        ends.append(len(data))
+        c1, c2, c3, c4, c5 = columns
+        upper = []
+        for scalar in c1:
+            upper += database.full("upper", scalar)
+        pairs = [(c1, c2), (c1, c3), (c1, c4), (c1, c5), (c4, c5),
+                 (upper, c3), (upper, c5)]
+        value = 0
+        for bit, (left, right) in enumerate(pairs):
+            if canonical_caseless(database, left, right):
+                value |= 1 << bit
+        if folded(database, c1) == folded(database, c3):
+            value |= 128
+        answers.append(value)
+
+    def digest(stride):
+        state = OFFSET
+        for value in answers[::stride]:
+            state = fnv(state, [value])
+        return state
+    lines = header([
+        "Each line of",
+        "NormalizationTest.txt but part 1's, whose source column c1 the",
+        "fixture holds and whose forms c2 to c5 core/unicode writes, as",
+        "unicode-normalization-sequences holds them to the file, has the",
+        "canonical caseless matches the database gives it: the",
+        "digest of whether c1 matches c2, c3, c4 and c5, c4 matches c5,",
+        "and c1's full uppercase matches c3 and c5, and whether c1 and c3",
+        "are equal without case and without normalization, is the",
+        "database's, by Unicode's D145 over its case folding and",
+        "decompositions."])
+    lines += ["", "import core/mem", "import core/text", "import core/unicode",
+              "",
+              "--  Firmware checks every %s line, within the emulator's"
+              % ordinal(SEQUENCE_STRIDE),
+              "--  session; a hosted target checks them all.",
+              "fixed if compiler.os == freestanding then",
+              "    stride: usize = %d" % SEQUENCE_STRIDE,
+              "    expected: u32 = 0x%08x" % digest(SEQUENCE_STRIDE),
+              "else",
+              "    stride: usize = 1",
+              "    expected: u32 = 0x%08x" % digest(1),
+              "end if", ""]
+    lines += byte_array("sources", data)
+    lines += tables.array("ends", "u32", ends)
+    lines += [""] + FEED
+    lines += text_lines("""
+--  The source column of line `line`.
+source_of: (line: usize) -> (value: utf8) =
+    begins: usize = if line == 0 then 0 else usize(ends[line - 1]) end if
+    unchecked begin
+        value = compiler.utf8_unvalidated(sources[begins..<usize(ends[line])])
+    end unchecked
+end source_of
+
+--  Form `form` of `source`, NFC, NFD, NFKC or NFKD from zero, written
+--  over `storage`.
+form_of: (form: u8, source: utf8, storage: []mut u8)
+         -> (result: utf8 from storage) ! mem.out_of_memory =
+    mut into: text.utf8_builder = text.utf8_over(storage)
+    if form == 0 then
+        try unicode.append_nfc(into, source)
+    elsif form == 1 then
+        try unicode.append_nfd(into, source)
+    elsif form == 2 then
+        try unicode.append_nfkc(into, source)
+    else
+        try unicode.append_nfkd(into, source)
+    end if
+    result = text.utf8_used(into)
+end form_of
+
+--  One bit for each answer that holds, the first the lowest.
+bit: (answer: bool, place: u8) -> (value: u8) =
+    value = if answer then u8(1) << place else 0 end if
+end bit
+
+public main: () -> (code: i32) =
+    code = 1
+    mut state: u32 = 0x811c9dc5
+    mut storage: [256]u8 = zeroed
+    mut c2_storage: [256]u8 = zeroed
+    mut c3_storage: [256]u8 = zeroed
+    mut c4_storage: [256]u8 = zeroed
+    mut c5_storage: [256]u8 = zeroed
+    mut line: usize = 0
+    while line < lenof ends do
+        c1: utf8 = source_of(line)
+        c2: utf8 = form_of(0, c1, c2_storage) else begin return end
+        c3: utf8 = form_of(1, c1, c3_storage) else begin return end
+        c4: utf8 = form_of(2, c1, c4_storage) else begin return end
+        c5: utf8 = form_of(3, c1, c5_storage) else begin return end
+        mut into: text.utf8_builder = text.utf8_over(storage)
+        unicode.append_upper(into, c1) else begin return end
+        upper: utf8 = text.utf8_used(into)
+        feed(state, bit(unicode.equal_canonical_caseless(c1, c2), 0)
+                    | bit(unicode.equal_canonical_caseless(c1, c3), 1)
+                    | bit(unicode.equal_canonical_caseless(c1, c4), 2)
+                    | bit(unicode.equal_canonical_caseless(c1, c5), 3)
+                    | bit(unicode.equal_canonical_caseless(c4, c5), 4)
+                    | bit(unicode.equal_canonical_caseless(upper, c3), 5)
+                    | bit(unicode.equal_canonical_caseless(upper, c5), 6)
+                    | bit(unicode.equal_caseless(c1, c3), 7))
+        line += stride
+    end while
+    if state == expected then
+        code = 42
+    end if
+end main
+""")
+    return lines
+
+
 BREAKS = (
     ("auxiliary/GraphemeBreakTest.txt", "grapheme", "graphemes"),
     ("auxiliary/WordBreakTest.txt", "word", "words"),
@@ -642,6 +921,8 @@ def render_all(database):
         "unicode-normalization-compatible":
             scalar_normalization_fixture(database, "compatible", 181),
         "unicode-normalization-sequences": sequences_fixture(database),
+        "unicode-caseless-scalars": caseless_scalars_fixture(database),
+        "unicode-caseless-sequences": caseless_sequences_fixture(database),
     }
     for member, unit, plural in BREAKS:
         parts = break_parts(break_cases(database.members[member]))

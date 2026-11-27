@@ -1,0 +1,200 @@
+--  The everyday writers beside the builder's appends: the narrow integers,
+--  parts joined by a separator, a text with each occurrence replaced, a
+--  text repeated, and a text quoted as a Landin literal spells it.  Each
+--  appends its whole result or nothing: on `mem.out_of_memory` the builder
+--  holds what it held (D2616).  None allocates a string of its own, since
+--  the builder is the caller's.
+
+import core/mem
+
+--- Append a `u8` in decimal, as `append_u32` writes it.
+public append_u8: (inout into: builder, value: u8)
+                  -> none ! mem.out_of_memory =
+    try decimal_u32(into, u32(value))
+end append_u8
+
+--- Append a `u16` in decimal.
+public append_u16: (inout into: builder, value: u16)
+                   -> none ! mem.out_of_memory =
+    try decimal_u32(into, u32(value))
+end append_u16
+
+--- Append an `i8` in decimal, with a `-` before a negative value, as
+--- `append_i32` writes it.
+public append_i8: (inout into: builder, value: i8)
+                  -> none ! mem.out_of_memory =
+    try append_i32(into, i32(value))
+end append_i8
+
+--- Append an `i16` in decimal, signed as `append_i8` is.
+public append_i16: (inout into: builder, value: i16)
+                   -> none ! mem.out_of_memory =
+    try append_i32(into, i32(value))
+end append_i16
+
+--- Append each of `parts` in order with `separator` between each two:
+--- nothing for no parts, and the one part alone for one.
+public append_joined: (inout into: builder, parts: []utf8, separator: utf8)
+                      -> none ! mem.out_of_memory =
+    start: usize = length(into)
+    undo truncate(into, start)
+    mut index: usize = 0
+    while index < lenof parts do
+        if index > 0 then
+            try append_text(into, separator)
+        end if
+        try append_text(into, parts[index])
+        inc index
+    end while
+end append_joined
+
+--- Append `source` with each occurrence of `sought` replaced by
+--- `replacement`, the occurrences found from the left without overlapping,
+--- as `occurrences` counts them.  An empty `sought` occurs before each
+--- scalar and at the end, so replacing "" with "-" in "ab" gives "-a-b-".
+public append_replaced: (inout into: builder, source: utf8, sought: utf8,
+                         replacement: utf8) -> none ! mem.out_of_memory =
+    start: usize = length(into)
+    undo truncate(into, start)
+    held: []u8 = bytes(source)
+    sought_bytes: []u8 = bytes(sought)
+    if lenof sought_bytes == 0 then
+        mut at: position = (offset: 0)
+        while at.offset < lenof held do
+            try append_text(into, replacement)
+            after: position = step(source, at)
+            try append(into, held[at.offset..<after.offset])
+            at = after
+        end while
+        try append_text(into, replacement)
+        return
+    end if
+    mut at: usize = 0
+    while lenof held - at >= lenof sought_bytes do
+        rest: []u8 = held[at..<lenof held]
+        index: usize = first_match(rest, sought_bytes)
+        break when index == lenof rest
+        try append(into, rest[0..<index])
+        try append_text(into, replacement)
+        at += index + lenof sought_bytes
+    end while
+    try append(into, held[at..<lenof held])
+end append_replaced
+
+--- Append `source` `times` times over; zero times appends nothing.
+public append_repeated: (inout into: builder, source: utf8, times: usize)
+                        -> none ! mem.out_of_memory =
+    start: usize = length(into)
+    undo truncate(into, start)
+    mut left: usize = times
+    while left > 0 do
+        try append_text(into, source)
+        dec left
+    end while
+end append_repeated
+
+--  Whether `scalar` is written as an escape in a quoted text rather than
+--  as itself: the C0 and C1 controls and DEL, which a reader cannot see,
+--  and the scalars that change how text around them is shown or read
+--  without being seen themselves: the line and paragraph separators, the
+--  byte order mark, and the bidirectional controls, which can make source
+--  read in an order other than the one it runs in.
+escaped: (scalar: u32) -> (yes: bool) =
+    yes = scalar < 0x20 or (scalar >= 0x7f and scalar < 0xa0)
+          or scalar == 0x061c or scalar == 0x200e or scalar == 0x200f
+          or (scalar >= 0x2028 and scalar <= 0x202e)
+          or (scalar >= 0x2066 and scalar <= 0x2069) or scalar == 0xfeff
+end escaped
+
+--- Append `source` between double quotes as a Landin text literal spells
+--- it, so that the literal reads back as `source`, as Go's
+--- `strconv.Quote` and Rust's `{:?}` write a string: a line feed as `\n`,
+--- a carriage return as `\r`, a tab as `\t`, the escape character as
+--- `\e`, a backslash as `\\` and a double quote as `\"`.  Any other
+--- control, and each scalar that changes how the text around it reads
+--- unseen, a bidirectional control or U+2028 among them, is written
+--- `\u{...}` with its value in lower-case hexadecimal; every other scalar
+--- is written as itself.
+public append_quoted: (inout into: builder, source: utf8)
+                      -> none ! mem.out_of_memory =
+    start: usize = length(into)
+    undo truncate(into, start)
+    try append_byte(into, u8('"'))
+    for scalar in source do
+        if scalar == 0x0a then
+            try append(into, "\\n")
+        elsif scalar == 0x0d then
+            try append(into, "\\r")
+        elsif scalar == 0x09 then
+            try append(into, "\\t")
+        elsif scalar == 0x1b then
+            try append(into, "\\e")
+        elsif scalar == 0x5c then
+            try append(into, "\\\\")
+        elsif scalar == 0x22 then
+            try append(into, "\\\"")
+        elsif escaped(scalar) then
+            try append(into, "\\u{")
+            try append_hex_u32(into, scalar)
+            try append_byte(into, u8('}'))
+        else
+            append_scalar(into, scalar) else (problem)
+                match problem
+                    mem.out_of_memory: fail mem.out_of_memory
+                    _: compiler.unreachable()
+                end match
+            end
+        end if
+    end for
+    try append_byte(into, u8('"'))
+end append_quoted
+
+--- Append a `u8` in decimal, as `append_u8` does.
+public utf8_append_u8: (inout into: utf8_builder, value: u8)
+                       -> none ! mem.out_of_memory =
+    try append_u8(into.inner, value)
+end utf8_append_u8
+
+--- Append a `u16` in decimal.
+public utf8_append_u16: (inout into: utf8_builder, value: u16)
+                        -> none ! mem.out_of_memory =
+    try append_u16(into.inner, value)
+end utf8_append_u16
+
+--- Append an `i8` in decimal, signed as `append_i8` is.
+public utf8_append_i8: (inout into: utf8_builder, value: i8)
+                       -> none ! mem.out_of_memory =
+    try append_i8(into.inner, value)
+end utf8_append_i8
+
+--- Append an `i16` in decimal, signed as `append_i8` is.
+public utf8_append_i16: (inout into: utf8_builder, value: i16)
+                        -> none ! mem.out_of_memory =
+    try append_i16(into.inner, value)
+end utf8_append_i16
+
+--- Append `parts` joined by `separator`, as `append_joined` does.
+public utf8_append_joined: (inout into: utf8_builder, parts: []utf8,
+                            separator: utf8) -> none ! mem.out_of_memory =
+    try append_joined(into.inner, parts, separator)
+end utf8_append_joined
+
+--- Append `source` with each occurrence of `sought` replaced, as
+--- `append_replaced` does.
+public utf8_append_replaced: (inout into: utf8_builder, source: utf8,
+                              sought: utf8, replacement: utf8)
+                             -> none ! mem.out_of_memory =
+    try append_replaced(into.inner, source, sought, replacement)
+end utf8_append_replaced
+
+--- Append `source` `times` times over, as `append_repeated` does.
+public utf8_append_repeated: (inout into: utf8_builder, source: utf8,
+                              times: usize) -> none ! mem.out_of_memory =
+    try append_repeated(into.inner, source, times)
+end utf8_append_repeated
+
+--- Append `source` quoted as a Landin literal, as `append_quoted` does.
+public utf8_append_quoted: (inout into: utf8_builder, source: utf8)
+                           -> none ! mem.out_of_memory =
+    try append_quoted(into.inner, source)
+end utf8_append_quoted

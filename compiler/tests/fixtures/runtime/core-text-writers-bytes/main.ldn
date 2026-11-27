@@ -1,0 +1,70 @@
+--  The everyday writers through the byte builder, and the narrow
+--  integers at their bounds through both builders.
+import core/text
+
+--  The same through the byte builder, for one case of each.
+bytes_write: () -> (yes: bool) =
+    yes = false
+    mut storage: [64]u8 = zeroed
+    mut out: text.builder = text.over(storage)
+    parts: [2]utf8 = ["a", "b"]
+    text.append_joined(out, parts, ", ") else begin
+        return
+    end
+    text.append_replaced(out, "xyx", "y", "_") else begin
+        return
+    end
+    text.append_repeated(out, "ab", 2) else begin
+        return
+    end
+    text.append_quoted(out, "a\"") else begin
+        return
+    end
+    yes = text.equal(utf8(text.used(out)), "a, bx_xabab\"a\\\"\"")
+end bytes_write
+
+--  The narrow integers at their bounds.
+narrow: () -> (yes: bool) =
+    yes = false
+    mut storage: [64]u8 = zeroed
+    mut out: text.utf8_builder = text.utf8_over(storage)
+    text.utf8_append_u8(out, 0) else begin
+        return
+    end
+    text.utf8_append_u8(out, 255) else begin
+        return
+    end
+    text.utf8_append_u16(out, 65535) else begin
+        return
+    end
+    text.utf8_append_i8(out, 0 - 127 - 1) else begin
+        return
+    end
+    text.utf8_append_i8(out, 127) else begin
+        return
+    end
+    text.utf8_append_i16(out, 0 - 32767 - 1) else begin
+        return
+    end
+    text.utf8_append_i16(out, 32767) else begin
+        return
+    end
+    mut bytes_storage: [16]u8 = zeroed
+    mut raw: text.builder = text.over(bytes_storage)
+    text.append_i8(raw, 0 - 1) else begin
+        return
+    end
+    text.append_u16(raw, 7) else begin
+        return
+    end
+    yes = text.equal(text.utf8_used(out), "025565535-128127-3276832767")
+          and text.equal(utf8(text.used(raw)), "-17")
+end narrow
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not bytes_write()
+    code = 2
+    return when not narrow()
+    code = 42
+end main

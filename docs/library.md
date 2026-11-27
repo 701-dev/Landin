@@ -573,20 +573,28 @@ comparison must be a strict weak ordering while it runs.
 
 ## core/text
 
-Byte cursors, validated UTF-8 views, positions and searches inside them, a scalar encoder, two text builders, formatting and parsing numbers.
+Byte cursors, validated UTF-8 views, positions and searches inside them, trimming and taking text apart, a scalar encoder, two text builders, formatting and parsing numbers.
 
 | Call | What it does |
 |---|---|
 | `text.from_bytes`, `text.valid` | Check that bytes are UTF-8, as a view or as a yes or no. |
 | `text.start`, `text.step`, `text.utf8_at_end`, `text.scalar_length` | Walk text a scalar at a time, keeping each scalar's byte position. |
 | `text.find`, `text.find_scalar` and their `_from` forms | Find where text or a scalar first occurs. |
+| `text.find_last`, `text.find_last_scalar` | Find where text or a scalar last occurs. |
+| `text.starts_with`, `text.ends_with`, `text.occurrences` | Test a prefix or a suffix, and count how many times text occurs. |
+| `text.trim` and its kin | Take White_Space, or a scalar you name, off either end. |
+| `text.split`, `text.split_scalar`, `text.fields`, `text.lines` | Walk the parts between separators, the fields between spaces, or the lines, in a `for` loop. |
+| `text.find_byte`, `text.find_bytes` and their kin | Search bytes that need not be text. |
+| `text.equal_ascii_caseless` and its kin | Compare with only A to Z folded, for an image that cannot carry `core/unicode`. |
 | `text.encode` | Write a scalar's UTF-8 bytes into your buffer. |
 | `text.utf8_over` | Make a builder that only ever holds UTF-8. |
 | `text.over`, `text.growing` | Make a builder over your buffer, or one that grows from an allocator. |
 | `text.append_text`, `text.append_u32` and the rest | Append a piece to a builder. |
+| `text.append_joined`, `text.append_replaced`, `text.append_repeated` | Append parts with a separator between them, a text with each occurrence replaced, or a text repeated. |
+| `text.append_quoted` | Append a text as a Landin literal spells it, escapes and quotes included. |
 | `text.format` | Append a template with each `{}` filled in. |
 | `text.format_onto` | Format a template through a buffer, handing the text to an `outlet` as the buffer fills. |
-| `text.parse_u32` and the rest | Read a number from bytes. |
+| `text.parse_u32` and the rest, `text.parse_radix_u32` and its kin, `text.parse_bool` | Read a number in decimal or another radix, or a `bool`, from bytes. |
 | `text.os_string_over`, `text.from_os_string` | Make an OS string, and check that one is UTF-8. |
 
 ### Views and cursors
@@ -619,12 +627,15 @@ whole scalar, so each position is where a scalar starts, or the end:
 | Call | What it does |
 |---|---|
 | `start(source)` | The first scalar's position, offset zero. |
-| `done(source, at)` | Whether `at` is at the end. |
-| `width(source, at)` | How many bytes, one to four, the scalar at `at` takes. |
+| `utf8_at_end(source, at)` | Whether `at` is at the end. |
+| `scalar_length(source, at)` | How many bytes, one to four, the scalar at `at` takes. |
 | `step(source, at)` | The position after the scalar at `at`. |
 | `find(source, sought)` | Where `sought` first begins, or `mem.not_found`. |
 | `find_from(source, sought, at)` | The same, searching from `at`. |
 | `find_scalar(source, scalar)`, `find_scalar_from` | Where a scalar first is, or `mem.not_found`. |
+| `find_last(source, sought)`, `find_last_scalar` | Where `sought` or a scalar last begins, or `mem.not_found`. |
+| `starts_with(source, prefix)`, `ends_with(source, suffix)` | Whether `source` begins or ends with the other text. |
+| `occurrences(source, sought)` | How many times `sought` occurs, counted from the left without overlapping. |
 
 Read the scalar at a position as `source[at]`. Walk the text by stepping
 until `utf8_at_end`. This function walks a key that way, and checks each scalar
@@ -672,13 +683,87 @@ end split
 [The splitter](../compiler/tests/fixtures/runtime/core-text-utf8-split/main.ldn)
 goes on to take each field between arrows with `find_from`.
 
-Three more facts about searches:
+Four more facts about searches:
 
 - Empty sought text is found where the search begins, as `contains` finds
-  it.
+  it, and `find_last` finds it at the end.
 - A surrogate is in no text, so `find_scalar` reports `mem.not_found` for one.
-- Searches are the Two-Way search that `contains` uses. It is linear in
-  the two lengths, with no table and no allocation.
+- `occurrences` counts as Go's `strings.Count` does: "aaaa" holds "aa"
+  twice, and the empty text occurs once more than the source has scalars.
+- The forward searches are the Two-Way search that `contains` uses. It is
+  linear in the two lengths, with no table and no allocation. `find_last`
+  compares each candidate from the right, which a periodic sought text
+  makes slower.
+
+### Trimming and taking text apart
+
+`trim(source)` gives `source` without the White_Space at either end;
+`trim_start` and `trim_end` take it off one end. `trim_scalar(source,
+scalar)` and its `_start` and `_end` forms take off a scalar you name
+instead, so trimming `'/'` from "//a/b//" gives "a/b". Each gives a view
+of `source`, with nothing copied.
+
+White_Space is Unicode's property: 25 scalars, U+00A0 no-break space and
+U+3000 ideographic space among them. `core/text` holds the list without a
+table, and a check holds it to the Unicode Character Database.
+
+Four walks give a text's parts to a `for` loop:
+
+| Walk | Gives |
+|---|---|
+| `split(source, separator)` | the parts between the occurrences of `separator`, found as `find_from` finds them: "a,b,,c" gives "a", "b", "" and "c" |
+| `split_scalar(source, scalar)` | the parts between a scalar |
+| `fields(source)` | the runs between runs of White_Space: " a  b\t" gives "a" and "b" |
+| `lines(source)` | the lines, each without its line feed or a carriage return before it |
+
+Each item is a `text.span`: two positions, as `regex.span` and
+`unicode.segment` are. `text.part(source, piece)` is its text:
+
+```landin
+--  Whether every field of a record such as "a, b, c" holds something
+--  once the spaces around it are trimmed.
+filled: (record: utf8) -> (yes: bool) =
+    yes = true
+    for piece in text.split(record, ",") do
+        field: utf8 = text.trim(text.part(record, piece))
+        if lenof field == 0 then
+            yes = false
+            return
+        end if
+    end for
+end filled
+```
+
+[The parts](../compiler/tests/fixtures/runtime/core-text-parts/main.ldn)
+walks each kind at its edges.
+
+The edges:
+
+- A separator at either end gives an empty part there, and an empty
+  `source` is one empty part.
+- An empty `separator` gives each scalar as a part, and an empty source
+  then has none.
+- `fields` gives no part for text that is empty or only White_Space.
+- `lines` begins no line after a final line feed, so "a\nb\n" is two
+  lines, and an empty text has none. It keeps a carriage return anywhere
+  but before a line feed.
+
+### Bytes that are not text
+
+`find_byte(source, value)` and `find_bytes(source, sought)` search a
+`[]u8`, which need not be UTF-8, as C's `memchr` and `memmem` do. Each has
+a `_from` form, and `find_last_byte` and `find_last_bytes` search from the
+end. A position over bytes is a byte offset, so every offset is a
+position.
+
+### Comparing without case over ASCII
+
+`equal_ascii_caseless`, `starts_with_ascii_caseless` and
+`ends_with_ascii_caseless` fold A to Z to a to z and nothing else, so
+"Content-Type" begins with "content-" but "Straße" does not equal
+"STRASSE". They are for an image that cannot carry `core/unicode`'s case
+tables, and for protocols whose names are ASCII. Compare text a person
+wrote with `unicode.equal_caseless`.
 
 ### Encoding a scalar
 
@@ -740,12 +825,29 @@ builder as it was:
 | `append_scalar` | a scalar's UTF-8 bytes, as `encode` writes them, or `invalid_scalar` |
 | `append_os_string` | an OS string's bytes |
 | `append_u32`, `append_u64`, `append_usize` | decimal |
-| `append_i32`, `append_i64`, `append_isize` | decimal, with a `-` before a negative value |
+| `append_u8`, `append_u16` | decimal |
+| `append_i8`, `append_i16`, `append_i32`, `append_i64`, `append_isize` | decimal, with a `-` before a negative value |
 | `append_hex_u32`, `append_hex_u64`, `append_hex_usize` | lower-case hexadecimal with no `0x` |
 
 Each append takes exactly its own type, and nothing widens at the call:
-passing a `u8` to `append_u32` is refused. Convert a narrower integer
-explicitly, `text.append_u32(line, u32(byte))`.
+passing a `u8` to `append_u32` is refused, and `append_u8` takes it.
+
+Four appends write a text made of others, each whole or not at all:
+
+| Append | Writes |
+|---|---|
+| `append_joined(into, parts, separator)` | each of the `[]utf8` `parts` with `separator` between each two |
+| `append_replaced(into, source, sought, replacement)` | `source` with each occurrence of `sought`, as `occurrences` counts them, replaced |
+| `append_repeated(into, source, times)` | `source` `times` times over |
+| `append_quoted(into, source)` | `source` between double quotes as a Landin literal spells it |
+
+`append_quoted` writes `\n`, `\r`, `\t`, `\e`, `\\` and `\"` for those
+scalars. It writes `\u{...}` for any other control, and for each scalar
+that is not seen but changes how the text around it reads: the
+bidirectional controls, U+2028, U+2029 and the byte order mark. It writes
+every other scalar as itself. What it writes reads back as the text, so a
+program can print a value a person must see exactly, as Go's
+`strconv.Quote` and Rust's `{:?}` do.
 
 Width and padding apply to whatever was written since an earlier
 `length`:
@@ -904,6 +1006,8 @@ not be UTF-8:
 | `parse_u8` to `parse_u64`, `parse_usize` | nonempty ASCII digits |
 | `parse_i8` to `parse_i64`, `parse_isize` | an optional `-` before them, never a `+`, since no append writes one |
 | `parse_hex_u32`, `parse_hex_u64`, `parse_hex_usize` | hexadecimal digits of either case, with no `0x` |
+| `parse_radix_u8` to `parse_radix_u64`, `parse_radix_usize`, `parse_radix_i8` to `parse_radix_isize`, each `(source, radix)` | digits in a radix from 2 to 36, with `a` to `z` in either case for ten and up; before them the `-` of a signed value, then an optional prefix in either case, `0x` in radix 16, `0o` in 8 or `0b` in 2; no other radix has a prefix, so "0b1" in radix 16 is 0xb1 |
+| `parse_bool` | `true` or `false`, exactly, or `invalid_bool` |
 | `parse_f64`, `parse_f32` | an optional `-`, digits with an optional point and a digit beside it, `2.` and `.25` too, and an optional exponent, `e` or `E` with an optional sign; or `inf`, `infinity` or `nan` in any case |
 | `to_u32` | `parse_u32` over a `utf8` view |
 
@@ -911,7 +1015,8 @@ A parse fails in two ways. The scan goes from the left and reports
 whichever it meets first:
 
 - Any input other than what the table allows, a space included, is
-  `invalid_number`.
+  `invalid_number`. So is every input to a radix parse whose radix is
+  outside 2 to 36.
 - A value outside the type, above its maximum or below a signed minimum,
   is `number_overflow`. A float's is a finite decimal whose nearest float
   is beyond the greatest; one too small for the least subnormal is zero.
@@ -990,29 +1095,28 @@ The four `append_` routines apply Unicode's default full mappings, which
 are right for every language except Turkish, Azerbaijani and Lithuanian.
 Those three need a locale, which a later item adds.
 
-To compare two texts ignoring case, fold each and compare the results
-with `text.equal`. Put them in NFC as well where an accent may be written
-either as part of its letter or as a mark of its own:
+Three calls compare two texts without case, by each scalar's full case
+folding, and keep no buffer:
 
-```landin
---  Whether two texts say the same words whatever their case and however
---  their accents are spelled: each folded, then put in NFC, compares
---  equal.
-same_words: (left: utf8, right: utf8) -> (yes: bool) ! mem.out_of_memory =
-    mut folded: [64]u8 = zeroed
-    mut left_storage: [64]u8 = zeroed
-    mut right_storage: [64]u8 = zeroed
-    mut scratch: text.utf8_builder = text.utf8_over(folded)
-    mut left_form: text.utf8_builder = text.utf8_over(left_storage)
-    try unicode.append_folded(scratch, left)
-    try unicode.append_nfc(left_form, text.utf8_used(scratch))
-    text.utf8_clear(scratch)
-    mut right_form: text.utf8_builder = text.utf8_over(right_storage)
-    try unicode.append_folded(scratch, right)
-    try unicode.append_nfc(right_form, text.utf8_used(scratch))
-    yes = text.equal(text.utf8_used(left_form), text.utf8_used(right_form))
-end same_words
-```
+| Call | What it does |
+|---|---|
+| `equal_caseless(left, right)` | Whether the texts are equal without case: "Straße" equals "STRASSE", and "ΣΑΣ" equals "σας". |
+| `starts_with_caseless(source, prefix)`, `ends_with_caseless(source, suffix)` | Whether `source` begins or ends with the other text without case. The match must end where a scalar of `source` does, so "STRASSE" begins with "straß", but "ß" does not begin with "s". |
+| `equal_canonical_caseless(left, right)` | Unicode's canonical caseless match, which also equates the spellings of an accent: "Å" as U+00C5, as "A" and U+030A, and as U+212B, the angstrom sign, all equal "å". |
+
+`equal_caseless` compares no normalization form, so "é" as one scalar and
+as "e" with U+0301 differ there and are equal under
+`equal_canonical_caseless`. The folding is Unicode's default, as the
+`append_` routines' is. Each runs in time linear in the texts, except
+`equal_canonical_caseless` over a run of combining marks out of canonical
+order, which takes longer, as normalizing it does.
+`text.equal_ascii_caseless` and its kin fold only A to Z, for an image
+that cannot carry the case tables.
+
+`core/unicode` has no caseless search. `core/regex`'s `(?i)` searches
+without case by simple folding, a scalar for a scalar, so "ß" does not
+match "ss" there. To search by full folding, fold both texts with
+`append_folded` and search with `text.find`.
 
 ### Normalization
 
@@ -1108,9 +1212,13 @@ linked images:
 | Grapheme clusters | 5,388 | 2,636 |
 | Words | 7,100 | 3,480 |
 | Sentences | 7,964 | 2,816 |
+| Equality, a prefix and a suffix without case | 5,662 | 3,648 |
+| The canonical caseless match | 19,570 | 9,440 |
 
 NFKC and NFKD do not fit Cortex-M0's 32 KiB profile beside anything. Each
-of the others does.
+of the others does. The caseless rows were measured against an image that
+calls only `text.equal`; their ASCII variants in `core/text` take 724
+bytes of code and no table.
 
 [Executable example](../compiler/tests/fixtures/runtime/example-text-as-read/main.ldn)
 

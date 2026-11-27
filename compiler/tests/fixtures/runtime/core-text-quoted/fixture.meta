@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: text.utf8_append_quoted writes the quoted form scripts/text_fixtures.py spells for every escape, every C0 and C1 control, each bidirectional control and unseen separator, and scalars of every width, and each quoted form, pasted into the program as a literal, reads back as its text
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0260, 0270, 0600, 0940
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
