@@ -10,9 +10,14 @@
 --  unless it ended first.  Windows' own limits cover no overlapped call.
 --  Shutting a side through the provider cancels the calls waiting on that
 --  side, and closing it every call, each failing `io_failed` (D449).
+--  A Unix-domain stream socket is waited on as an internet one is, its
+--  accept through `AcceptEx` with room for a `SOCKADDR_UN`; its connect,
+--  and `resolve`, hold the thread, as their comments say.  Windows has no
+--  Unix-domain datagram sockets.
 
 import core/io
 import core/net
+import core/text
 import core/time
 import hosted/system
 import platform/windows
@@ -398,16 +403,17 @@ fixed if compiler.os == windows then
         opened = try connection(self, to, deadline)
     end events_connect_within
 
-    --  The family of the socket `socket`, from its own address.
+    --  The family of the socket `socket`, from its own address: room for a
+    --  Unix-domain one, whose `SOCKADDR_UN` is 110 bytes.
     family_named: (self: host, socket: windows.handle) -> (family: i32)
                   ! io.io_failed =
-        mut found: sockets.socket_address = (bytes: zeroed, length: 28)
-        if sockets.socket_name(socket, addr found.bytes[0],
-                               addr found.length) <> 0 then
+        mut found: [128]u8 = zeroed
+        mut length: i32 = 128
+        if sockets.socket_name(socket, addr found[0], addr length) <> 0 then
             record(self, last())
             fail io.io_failed
         end if
-        family = i32(u16(found.bytes[0]) | (u16(found.bytes[1]) << 8))
+        family = i32(u16(found[0]) | (u16(found[1]) << 8))
     end family_named
 
     events_accept: (self: host, listener: io.file) -> (accepted: io.file)
@@ -419,6 +425,10 @@ fixed if compiler.os == windows then
         address: usize = extension(self, socket, sockets.accept_extension)
         fail io.io_failed when address == 0
         accept: sockets.accept_routine = sockets.accept_routine(address)
+        --  `AcceptEx` takes each address's room and 16 bytes more: a
+        --  Unix-domain listener's addresses are `SOCKADDR_UN`s.
+        room: u32 = if family == sockets.af_unix then sockets.local_address_room
+                    else sockets.address_room end if
         try joined(self, socket)
         loop do
             (socket: made, code: given) := family_socket(family,
@@ -427,12 +437,12 @@ fixed if compiler.os == windows then
                 record(self, given)
                 fail io.io_failed
             end if
-            mut addresses: [88]u8 = zeroed
+            mut addresses: [252]u8 = zeroed
             mut entry: waiting = on_handle(socket, deadline)
             link(self.state, addr entry)
             mut received: u32 = 0
             done: i32 = accept(socket, made, addr addresses[0], 0,
-                               sockets.address_room, sockets.address_room,
+                               room, room,
                                addr received, usize(addr entry.asked))
             ended: call_result = socket_completed(self, socket, addr entry,
                                                   if done <> 0 then 0
@@ -659,6 +669,293 @@ fixed if compiler.os == windows then
         end if
     end events_close_socket
 
+    --  An option's code as the concept's atoms: an option Windows does not
+    --  have, or one this socket's level does not, is `unsupported`.
+    option_failure: (self: host, code: u32)
+                    -> none ! net.unsupported | io.io_failed =
+        record(self, code)
+        fail net.unsupported when code == sockets.wsa_no_protocol_option
+          or code == sockets.wsa_operation_unsupported
+        fail io.io_failed
+    end option_failure
+
+    events_set_flag: (self: host, socket: io.file, which: net.flag_option,
+                      on: bool) -> none ! net.unsupported | io.io_failed =
+        cleared(self)
+        code: u32 = system.set_socket_flag(socket, which, on)
+        if code <> 0 then try option_failure(self, code) end if
+    end events_set_flag
+
+    events_flag: (self: host, socket: io.file, which: net.flag_option)
+                 -> (on: bool) ! net.unsupported | io.io_failed =
+        cleared(self)
+        (on: held, code) := system.socket_flag(socket, which)
+        if code <> 0 then try option_failure(self, code) end if
+        on = held
+    end events_flag
+
+    events_set_number: (self: host, socket: io.file,
+                        which: net.number_option, value: u32)
+                       -> none ! net.unsupported | io.io_failed =
+        cleared(self)
+        code: u32 = system.set_socket_number(socket, which, value)
+        if code <> 0 then try option_failure(self, code) end if
+    end events_set_number
+
+    events_number: (self: host, socket: io.file, which: net.number_option)
+                   -> (value: u32) ! net.unsupported | io.io_failed =
+        cleared(self)
+        (value: held, code) := system.socket_number(socket, which)
+        if code <> 0 then try option_failure(self, code) end if
+        value = held
+    end events_number
+
+    events_set_span: (self: host, socket: io.file, which: net.span_option,
+                      value: time.duration)
+                     -> none ! net.unsupported | io.io_failed =
+        cleared(self)
+        code: u32 = system.set_socket_span(socket, which, value)
+        if code <> 0 then try option_failure(self, code) end if
+    end events_set_span
+
+    events_span: (self: host, socket: io.file, which: net.span_option)
+                 -> (value: time.duration) ! net.unsupported | io.io_failed =
+        cleared(self)
+        (value: held, code) := system.socket_span(socket, which)
+        if code <> 0 then try option_failure(self, code) end if
+        value = held
+    end events_span
+
+    events_set_linger: (self: host, socket: io.file, on: bool,
+                        limit: time.duration) -> none ! io.io_failed =
+        cleared(self)
+        code: u32 = system.set_socket_linger(socket, on, limit)
+        if code <> 0 then
+            record(self, code)
+            fail io.io_failed
+        end if
+    end events_set_linger
+
+    events_linger: (self: host, socket: io.file)
+                   -> (on: bool, limit: time.duration) ! io.io_failed =
+        cleared(self)
+        (on: lingers, limit: kept, code) := system.socket_linger(socket)
+        if code <> 0 then
+            record(self, code)
+            fail io.io_failed
+        end if
+        on = lingers
+        limit = kept
+    end events_linger
+
+    --  A membership's or a multicast interface's code as the concept's
+    --  atoms: an address that is no group, or an interface Windows does
+    --  not have, is `address_unavailable`.
+    group_failure: (self: host, code: u32)
+                   -> none ! net.address_unavailable | io.io_failed =
+        record(self, code)
+        fail net.address_unavailable when unavailable(code)
+          or code == sockets.wsa_invalid
+        fail io.io_failed
+    end group_failure
+
+    events_join_group: (self: host, socket: io.file, group: net.address,
+                        through: net.address)
+                       -> none ! net.address_unavailable | io.io_failed =
+        cleared(self)
+        code: u32 = system.socket_membership(socket, group, through, true)
+        if code <> 0 then try group_failure(self, code) end if
+    end events_join_group
+
+    events_leave_group: (self: host, socket: io.file, group: net.address,
+                         through: net.address)
+                        -> none ! net.address_unavailable | io.io_failed =
+        cleared(self)
+        code: u32 = system.socket_membership(socket, group, through, false)
+        if code <> 0 then try group_failure(self, code) end if
+    end events_leave_group
+
+    events_set_multicast_interface: (self: host, socket: io.file,
+                                     through: net.address)
+                                    -> none ! net.address_unavailable
+                                            | io.io_failed =
+        cleared(self)
+        code: u32 = system.set_multicast_interface(socket, through)
+        if code <> 0 then try group_failure(self, code) end if
+    end events_set_multicast_interface
+
+    events_multicast_interface: (self: host, socket: io.file)
+                                -> (through: net.address) ! io.io_failed =
+        cleared(self)
+        (through: chosen, code) := system.multicast_interface(socket)
+        if code <> 0 then
+            record(self, code)
+            fail io.io_failed
+        end if
+        through = chosen
+    end events_multicast_interface
+
+    --  Windows' resolver has no overlapped form this loop can wait on
+    --  (`GetAddrInfoExW`'s completion is a routine or an event, not a packet
+    --  on the port), so the call holds the thread while Windows asks, as the
+    --  POSIX provider's does under the C library, and every other fibre
+    --  waits with it.
+    events_resolve: (self: host, name: []u8, port: u16,
+                     into: []mut net.address)
+                    -> (count: usize)
+                    ! net.unknown_name | net.timed_out | io.io_failed =
+        cleared(self)
+        (count: found, code) := system.resolve_named(name, port, into)
+        if code <> 0 then
+            record(self, code)
+            fail net.unknown_name when code == sockets.wsa_host_not_found
+              or code == sockets.wsa_no_data
+            fail net.timed_out when code == sockets.wsa_try_again
+            fail io.io_failed
+        end if
+        fail net.unknown_name when found == 0
+        count = found
+    end events_resolve
+
+    --  The system's record of a Unix-domain path: a path it cannot hold is
+    --  `invalid_address`.
+    local_record: (self: host, path: text.os_string)
+                  -> (made: sockets.local_socket_address)
+                  ! net.invalid_address =
+        made = system.local_address(path) else (problem)
+            _ = problem
+            record(self, sockets.wsa_invalid)
+            fail net.invalid_address
+        end
+    end local_record
+
+    --  A new Unix-domain stream socket, made as every socket here is, or
+    --  the reason there is none.
+    local_socket: () -> (socket: windows.handle, code: u32) =
+        socket = sockets.invalid_socket
+        code = sockets.started()
+        return when code <> 0
+        socket = sockets.make_socket(sockets.af_unix, sockets.sock_stream, 0,
+                                     0, 0,
+                                     sockets.wsa_flag_overlapped
+                                     | sockets.wsa_flag_no_handle_inherit)
+        if socket == sockets.invalid_socket then code = last() end if
+    end local_socket
+
+    --  Whether a code says Windows has no Unix-domain sockets: one before
+    --  Windows 10 1803.
+    no_local_sockets: (code: u32) -> (yes: bool) =
+        yes = code == sockets.wsa_family_unsupported
+              or code == sockets.wsa_protocol_unsupported
+              or code == sockets.wsa_kind_unsupported
+    end no_local_sockets
+
+    events_listen_local: (self: host, path: text.os_string)
+                         -> (listener: io.file)
+                         ! net.address_in_use | net.invalid_address
+                         | net.unsupported | io.no_access | io.io_failed =
+        cleared(self)
+        at: sockets.local_socket_address = try local_record(self, path)
+        (socket: made, code: given) := local_socket()
+        mut code: u32 = given
+        if code == 0 then
+            if sockets.bind(made, addr at.bytes[0], at.length) <> 0 then
+                code = last()
+            elsif sockets.listen(made, backlog) <> 0 then
+                code = last()
+            end if
+            if code <> 0 then quietly_closed(made) end if
+        end if
+        if code <> 0 then
+            record(self, code)
+            fail net.address_in_use when code == sockets.wsa_address_in_use
+            fail net.unsupported when no_local_sockets(code)
+            fail io.no_access when code == sockets.wsa_access
+            fail io.io_failed
+        end if
+        listener = system.socket_of(made)
+    end events_listen_local
+
+    --  Whether a code says nothing listens at a Unix-domain path: Windows
+    --  refuses the connection, or finds no file there.
+    nobody_there: (code: u32) -> (yes: bool) =
+        yes = code == sockets.wsa_connection_refused
+              or code == windows.error_file_not_found
+              or code == windows.error_path_not_found
+    end nobody_there
+
+    --  A Unix-domain connection is made with a plain `connect`, which holds
+    --  the thread rather than parking the fibre: Microsoft's account of
+    --  `ConnectEx` does not say it takes an AF_UNIX socket, and Go's
+    --  runtime, which waits for its other socket calls on a completion
+    --  port, uses it for TCP alone and connects a Unix-domain socket this
+    --  way.  A local connect does not
+    --  wait for the listener to accept, only for its queue to take the
+    --  connection, so the hold is short.  The socket is then joined to the
+    --  loop by its first overlapped call, as every socket here is; its
+    --  accept, sends and receives are the overlapped calls an internet
+    --  socket's are, untried here before the gate's Windows lanes.
+    events_connect_local: (self: host, path: text.os_string)
+                          -> (connected: io.file)
+                          ! net.refused | net.invalid_address
+                          | net.unsupported | io.no_access | io.io_failed =
+        cleared(self)
+        at: sockets.local_socket_address = try local_record(self, path)
+        (socket: made, code: given) := local_socket()
+        mut code: u32 = given
+        if code == 0
+          and sockets.connect(made, addr at.bytes[0], at.length) <> 0 then
+            code = last()
+            quietly_closed(made)
+        end if
+        if code <> 0 then
+            record(self, code)
+            fail net.refused when nobody_there(code)
+            fail net.unsupported when no_local_sockets(code)
+            fail io.no_access when code == sockets.wsa_access
+            fail io.io_failed
+        end if
+        connected = system.socket_of(made)
+    end events_connect_local
+
+    --  Windows has Unix-domain stream sockets alone: no datagram socket
+    --  can be opened, so none can be sent to or received from.
+    events_open_local_datagram: (self: host, path: text.os_string)
+                                -> (socket: io.file)
+                                ! net.address_in_use | net.invalid_address
+                                | net.unsupported | io.no_access
+                                | io.io_failed =
+        cleared(self)
+        _ = path
+        record(self, sockets.wsa_kind_unsupported)
+        fail net.unsupported
+    end events_open_local_datagram
+
+    events_send_to_local: (self: host, socket: io.file, bytes: []u8,
+                           path: text.os_string)
+                          -> none ! net.refused | net.invalid_address
+                                  | net.timed_out | io.io_failed =
+        cleared(self)
+        _ = socket
+        _ = bytes
+        _ = path
+        record(self, sockets.wsa_kind_unsupported)
+        fail io.io_failed
+    end events_send_to_local
+
+    events_receive_from_local: (self: host, socket: io.file, into: []mut u8,
+                                room: []mut u8)
+                               -> (count: usize,
+                                   sender: text.os_string from room)
+                               ! net.timed_out | io.io_failed =
+        cleared(self)
+        _ = socket
+        _ = into
+        _ = room
+        record(self, sockets.wsa_kind_unsupported)
+        fail io.io_failed
+    end events_receive_from_local
+
     host is net.network
         (connect: events_connect, connect_within: events_connect_within,
          listen: events_listen,
@@ -670,5 +967,18 @@ fixed if compiler.os == windows then
          peer_address: events_peer_address,
          set_timeouts: events_set_timeouts,
          set_no_delay: events_set_no_delay,
-         close: events_close_socket)
+         close: events_close_socket,
+         set_flag: events_set_flag, flag: events_flag,
+         set_number: events_set_number, number: events_number,
+         set_span: events_set_span, span: events_span,
+         set_linger: events_set_linger, linger: events_linger,
+         join_group: events_join_group, leave_group: events_leave_group,
+         set_multicast_interface: events_set_multicast_interface,
+         multicast_interface: events_multicast_interface,
+         resolve: events_resolve,
+         connect_local: events_connect_local,
+         listen_local: events_listen_local,
+         open_local_datagram: events_open_local_datagram,
+         send_to_local: events_send_to_local,
+         receive_from_local: events_receive_from_local)
 end if
