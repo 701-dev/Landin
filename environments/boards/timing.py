@@ -804,11 +804,21 @@ def compare(args):
     print('compared %d configurations\' cycles with %s: %d within tolerance, %d declared, %d undeclared,'
           ' %d unrecorded, %d at another clock' % (len(measured['figures']), base, ok, len(declared),
                                                   len(undeclared), len(unrecorded), len(clocks)))
+    if getattr(args, 'report', False) is True:
+        # A branch's comparison reports and passes (R22.34): the commit
+        # recording these figures reuses the run, and main refuses the
+        # tree until one does.
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        import measure
+        measure.report_moves(Path(args.figures).parent / measure.MOVES, dict(
+            {'class': 'cycles', 'undeclared': sorted(key for key, _, _ in undeclared),
+             'unrecorded': sorted(unrecorded)}),
+            'environments/boards/timing.py record FIGURES.json, the measure-cycles artifact')
     if undeclared or unrecorded:
         print('a deliberate change is declared by recording it: environments/boards/timing.py record'
               ' FIGURES.json, the figures a gate run kept as its measure-cycles artifact, and the'
               ' commit message says why', file=sys.stderr)
-        return 1
+        return 0 if getattr(args, 'report', False) is True else 1
     return 0
 
 
@@ -970,6 +980,9 @@ def main(argv=None):
     held = commands.add_parser('compare', help="hold figures to the base commit's baselines")
     held.add_argument('figures', type=Path)
     held.add_argument('--base', help="the commit compared with; measure.py's base by default")
+    held.add_argument('--report', action='store_true',
+                      help='a branch\'s comparison: write what no baseline records to moves.json'
+                      ' beside the figures and into the step summary, and pass')
     kept = commands.add_parser('record', help='write figures as the baselines')
     kept.add_argument('figures', type=Path)
     kept.add_argument('--board', choices=BOARDS, action='append', help='only this board; repeat')

@@ -46,6 +46,18 @@ A run that itself reused a pass skipped its lanes, so neither rule ever
 takes it as a full pass.  Manual dispatch always runs the lanes.  Anything
 uncertain runs every lane.
 
+A branch's measurement comparisons report a figure no baseline records
+and pass; the aggregate counts them in one `unrecorded figures`
+annotation, `moves` (D2854).  Such a pass is reused by the commit that
+records those figures alone: declared like an explanatory edit, its tree
+differing from the run's only in the explanatory files and the size and
+instruction baselines, which hold every reported key at exactly the run's
+figure, read from its artifacts, and change no other entry except to the
+run's figure.  An identical tree on a branch takes the pass with its
+moves, which its own aggregate reports again; main's push refuses, in
+`reuse` or `physical`, a tree whose pass or boards reported figures no
+baseline there records.
+
 GitHub is asked in requests it answers: a run's jobs thirty to a page,
 since a hundred-job page of a run holding 193 jobs was answered 502, and a
 server error is asked again a bounded number of times.  When a request
@@ -70,6 +82,9 @@ cannot ask has no pass to point at.
                                     this run's, by DIR's board identity
     verdict [--evidence DIR] [--always JOB ...]
                                     judge the `needs` context in $NEEDS
+    moves DIR ...                   annotate the figures DIR's moves.json
+                                    files and $INHERITED name, no baseline
+                                    recording them
 
 The board jobs run on a board-scope event -- a push to main, the weekly
 schedule or a manual dispatch, in this repository and not a fork of it --
@@ -178,6 +193,14 @@ NAMES_THE_TREE = {"bundle.json": ("compiler_identity", "source_identity"),
                   "timing.json": ("compiler", "source_identity", "build_seconds")}
 IDENTITY_PARTS = ("images", "harness", "records", "workflow")
 IDENTITY_TITLE = "board identity"
+#  The annotation the aggregate writes when a comparison reported a
+#  figure no baseline records (R22.34), and the baselines a recording
+#  commit may change.
+MOVES_TITLE = "unrecorded figures"
+MOVES = "moves.json"
+MEASURED_BASELINES = re.compile(
+    r"compiler/tests/measure/baselines/([^/]+)\.(size|instructions)\.json")
+CYCLES_BASELINES = "compiler/tests/measure/baselines/%s.cycles.json"
 
 
 def entries(rev, cwd=None):
@@ -194,13 +217,17 @@ def entries(rev, cwd=None):
     return rows
 
 
-def key(rev="HEAD", cwd=None, content_free=CONTENT_FREE):
+def key(rev="HEAD", cwd=None, content_free=CONTENT_FREE, measured=False):
+    """REV's key.  MEASURED leaves out the size and instruction baselines
+    too, the files a recording commit changes (R22.34)."""
     digest = hashlib.sha256()
     for mode, kind, name, path in entries(rev, cwd):
         decoded = path.decode("utf-8", "surrogateescape")
         if content_free and (decoded.startswith(CONTENT_FREE_TREES) or any(
                 pattern.fullmatch(decoded)
                 for pattern in CONTENT_FREE_PATTERNS)):
+            continue
+        if measured and MEASURED_BASELINES.fullmatch(decoded):
             continue
         if decoded in content_free:
             name = b"-"
@@ -315,18 +342,37 @@ def full_run(run, listing, required, now):
     return True
 
 
+class Unrecorded(Exception):
+    """Main's push of a tree whose last pass reported figures no baseline
+    records (R22.34): the gate fails at once rather than run every lane
+    to fail the same way."""
+
+
+def main_push(event_name, event):
+    return event_name == "push" and event.get("ref") == "refs/heads/main"
+
+
+def no_moves(run, listing):
+    return {}
+
+
 def decide_candidate(event_name, event, api, key_of, checked_out,
-                     workflow, required, now):
+                     workflow, required, now, moves_of=no_moves):
     """Reuse a full GitHub push run only when every tracked input is identical.
 
     KEY_OF must include every file and mode, including the four documents.
     Runs are obtained from this repository's workflow API, never from a
     branch-provided artifact or a local test transcript. A PR's checked-out
     merge tree must match; its head alone is insufficient.
+
+    (reuse, reason, moves): MOVES_OF(run, listing) is what the run reported
+    and no baseline records.  A branch's identical tree takes the run with
+    its moves, which this run then reports in turn; main's raises
+    Unrecorded, since main refuses such a tree.
     """
     tips, why = tips_of(event_name, event, checked_out)
     if tips is None:
-        return False, why
+        return False, why, {}
     here = key_of("HEAD")
     runs = api("actions/workflows/%s/runs?event=push&status=success&per_page=30"
                % workflow)
@@ -336,9 +382,19 @@ def decide_candidate(event_name, event, api, key_of, checked_out,
             continue
         listing = run_jobs(api, run["id"])
         if full_run(run, listing, required, now):
-            return True, "identical candidate tree: reusing %s, which ran every lane on %s" % (
-                run["html_url"], run["head_sha"][:12])
-    return False, "no recent full push run has the identical candidate tree"
+            moves = moves_of(run, listing)
+            if moves and main_push(event_name, event):
+                raise Unrecorded(
+                    "%s, this tree's pass, reported figures no baseline records"
+                    " (%s): main refuses the tree until a commit records them,"
+                    " `scripts/measure.py record --from-run %s` or"
+                    " `environments/boards/timing.py record`"
+                    % (run["html_url"], describe_moves(moves), run["id"]))
+            return True, "identical candidate tree: reusing %s, which ran every lane on %s%s" % (
+                run["html_url"], run["head_sha"][:12],
+                "; it reported figures no baseline records (%s), still unrecorded"
+                % describe_moves(moves) if moves else ""), moves
+    return False, "no recent full push run has the identical candidate tree", {}
 
 
 def undeclared(compared):
@@ -356,13 +412,22 @@ def undeclared(compared):
             if not DECLARATION.search(commit["commit"]["message"])]
 
 
-def decide(event_name, event, api, key_of, checked_out, workflow, required, now):
+def decide(event_name, event, api, key_of, checked_out, workflow, required, now,
+           moves_of=no_moves, recording=None):
     """(reuse, reason).  API(path) answers GitHub's REST API; KEY_OF(rev).
 
     The record is GitHub's own: a run of WORKFLOW from a push to a branch
     of this repository, main or another.  Nothing a pull request can write
     -- a cache, an artifact, a file -- is consulted, and the key holds the
     workflow a branch's run executed to the one this checkout carries.
+
+    A run that reported figures no baseline records (MOVES_OF), or whose
+    tree differs in the size and instruction baselines too, is reused only
+    by a commit that records its figures: RECORDING(run, base) answers
+    (same, recorded, why), whether the trees differ in nothing else and
+    whether this tree's baselines hold the run's figures, read from its
+    artifacts (R22.34).  Main's push of a tree whose newest such run's
+    figures it does not record raises Unrecorded.
     """
     tips, why = tips_of(event_name, event, checked_out)
     if tips is None:
@@ -376,18 +441,143 @@ def decide(event_name, event, api, key_of, checked_out, workflow, required, now)
         if not full_run(run, listing, required, now):
             continue
         base = run["head_sha"]
-        if key_of(base) != here:
-            reasons.append("%s: more than the explanatory files differ"
-                           % base[:12])
-            continue
-        missing = [problem for tip in tips
-                   for problem in undeclared(api("compare/%s...%s" % (base, tip)))]
-        if missing:
-            reasons.append("%s: %s" % (base[:12], ", ".join(missing)))
-            continue
-        return True, "reusing %s, which ran every lane on %s of %s" % (
-            run["html_url"], base[:12], run["head_branch"])
+        moves = moves_of(run, listing)
+        records = ""
+        if key_of(base) != here or moves:
+            same, recorded, why = recording(run, base) if recording else (
+                False, False, "")
+            if not same:
+                reasons.append("%s: more than the explanatory files differ"
+                               % base[:12])
+                continue
+            missing = [problem for tip in tips
+                       for problem in undeclared(api("compare/%s...%s" % (base, tip)))]
+            if missing:
+                reasons.append("%s: %s" % (base[:12], ", ".join(missing)))
+                continue
+            if not recorded:
+                if moves and main_push(event_name, event):
+                    raise Unrecorded(
+                        "%s reported figures no baseline records (%s), and this"
+                        " tree does not record them: %s; main refuses it until"
+                        " a commit does, `scripts/measure.py record --from-run %s`"
+                        % (run["html_url"], describe_moves(moves), why, run["id"]))
+                reasons.append("%s: %s" % (base[:12], why))
+                continue
+            records = ", whose figures this tree's baselines record"
+        else:
+            missing = [problem for tip in tips
+                       for problem in undeclared(api("compare/%s...%s" % (base, tip)))]
+            if missing:
+                reasons.append("%s: %s" % (base[:12], ", ".join(missing)))
+                continue
+        return True, "reusing %s, which ran every lane on %s of %s%s" % (
+            run["html_url"], base[:12], run["head_branch"], records)
     return False, "; ".join(reasons) or "no recent push run ran every lane"
+
+
+def describe_moves(moves):
+    """MOVES, {class: {target: count}}, in a line."""
+    return ", ".join("%d %s on %s" % (count, kind, target)
+                     for kind, targets in sorted(moves.items())
+                     for target, count in sorted(targets.items())) or "none"
+
+
+def moves_in(directories):
+    """{class: {target: count}} of the moves.json files under DIRECTORIES,
+    each key counted once however many copies of a file there are."""
+    keys = {}
+    for directory in directories:
+        if not directory or not os.path.isdir(directory):
+            continue
+        for path in sorted(Path(directory).rglob(MOVES)):
+            found = json.loads(path.read_text(encoding="utf-8"))
+            for name in found.get("undeclared", []) + found.get("unrecorded", []):
+                keys.setdefault(found["class"], set()).add(name)
+    counts = {}
+    for kind, names in keys.items():
+        for name in names:
+            #  A size or instruction key is `TARGET KEY`; a cycles key
+            #  `BOARD/KEY`.
+            target = name.split(" ", 1)[0] if " " in name else name.split("/", 1)[0]
+            counts.setdefault(kind, {}).setdefault(target, 0)
+            counts[kind][target] += 1
+    return counts
+
+
+def merged_moves(*all_moves):
+    merged = {}
+    for moves in all_moves:
+        for kind, targets in moves.items():
+            for target, count in targets.items():
+                merged.setdefault(kind, {})[target] = max(
+                    count, merged.get(kind, {}).get(target, 0))
+    return merged
+
+
+def reported_moves(api, listing):
+    """What a run's aggregate recorded as figures no baseline records, from
+    its `gate` job's annotation; {} when it recorded none."""
+    for job in listing.get("jobs", []):
+        if job.get("name") != "gate" or "id" not in job:
+            continue
+        for note in api("check-runs/%d/annotations?per_page=50" % job["id"]):
+            if note.get("title") == MOVES_TITLE:
+                try:
+                    return json.loads(note.get("message", ""))
+                except ValueError:
+                    #  A record that cannot be read is not shown to be
+                    #  empty: the run is taken as having moved.
+                    return {"unreadable": {"annotation": 1}}
+    return {}
+
+
+def baseline_entries(read, rev, path):
+    """The baseline file at PATH in REV, by READ(rev, path) -> text or None."""
+    text = read(rev, path)
+    return json.loads(text) if text else {}
+
+
+def figures_record(read, base, figures, moved_keys, changed):
+    """(recorded, why): whether HEAD's size and instruction baselines record
+    the figures FIGURES, [(class, measured)], a run on BASE took.
+
+    Every key the run reported moved is recorded with exactly its figure;
+    every entry HEAD changed from BASE's holds exactly the run's figure, or
+    is gone because no workload measures it any more; each baseline file
+    of CHANGED, the paths BASE and HEAD differ in, is one the run measured.
+    READ(rev, path) gives a file's text, or None.
+    """
+    measured_files = set()
+    for kind, measured in figures:
+        named = "sections" if kind == "size" else "instructions"
+        for target, entries in measured.get("targets", {}).items():
+            path = "compiler/tests/measure/baselines/%s.%s.json" % (target, kind)
+            measured_files.add(path)
+            old = baseline_entries(read, base, path)
+            new = baseline_entries(read, "HEAD", path)
+            before, after = old.get("entries", {}), new.get("entries", {})
+            environment = measured.get("environments", {}).get(target)
+            if new.get("environment") not in (old.get("environment"), environment):
+                return False, "%s records an environment the run did not measure" % path
+            for name in moved_keys.get(kind, ()):
+                if name.split(" ", 1)[0] == target:
+                    figure = entries.get(name.split(" ", 1)[1])
+                    if figure is None or after.get(name.split(" ", 1)[1], {}).get(
+                            named) != figure[named]:
+                        return False, "%s does not record the run's figure" % name
+            for name, entry in after.items():
+                if before.get(name) != entry and (
+                        name not in entries or entry != {named: entries[name][named]}):
+                    return False, ("%s %s holds a figure the run did not measure"
+                                   % (target, name))
+            for name in set(before) - set(after):
+                if name in entries:
+                    return False, "%s %s, which the run measured, is gone" % (target, name)
+    for path in changed:
+        if MEASURED_BASELINES.fullmatch(path) and path not in measured_files:
+            return False, "%s changed, which the run did not measure" % path
+    return True, "this tree's baselines record the run's figures"
 
 
 def board_jobs():
@@ -423,8 +613,47 @@ def board_runs(api, workflow):
     return sorted(runs, key=lambda run: run["run_started_at"], reverse=True)
 
 
+def cycles_recorded(read, figures, moved):
+    """(recorded, why): whether HEAD's cycles baselines record each moved
+    key of MOVED, `BOARD/KEY`, with the figure FIGURES, a run's
+    measure-cycles figures, holds for it, as `timing.py record` writes it."""
+    for name in sorted(moved):
+        board, rest = name.split("/", 1)
+        figure = figures.get("figures", {}).get(name)
+        entry = baseline_entries(read, "HEAD", CYCLES_BASELINES % board).get(
+            "entries", {}).get(rest)
+        if figure is None or entry is None:
+            return False, "%s is not recorded" % name
+        if "limit" in figure or "limit" in entry:
+            if entry.get("limit") != figure.get("limit"):
+                return False, "%s records another limit" % name
+        elif (entry.get("cycles"), entry.get("placement"), entry.get("clock")) != (
+                figure.get("figure"), figure.get("placement"), figure.get("clock")):
+            return False, "%s does not record the run's figure" % name
+    return True, "this tree's cycles baselines record them"
+
+
+def run_cycles(run_id):
+    """(figures, moved keys) of run RUN_ID's measure-cycles artifact."""
+    import tempfile
+    where = Path(tempfile.mkdtemp(prefix="gate-cycles-"))
+    subprocess.run(["gh", "run", "download", str(run_id), "--name", "measure-cycles",
+                    "--dir", str(where)], check=True, capture_output=True)
+    figures = json.loads((where / "figures.json").read_text(encoding="utf-8"))
+    moves = where / MOVES
+    found = json.loads(moves.read_text(encoding="utf-8")) if moves.exists() else {}
+    return figures, set(found.get("undeclared", []) + found.get("unrecorded", []))
+
+
+def boards_recording(run):
+    """(recorded, why) for `decide_boards`: whether HEAD records the cycles
+    RUN reported."""
+    figures, moved = run_cycles(run["id"])
+    return cycles_recorded(git_read, figures, moved)
+
+
 def decide_boards(event_name, event, api, key_of, candidate_key_of,
-                  checked_out, workflow, now):
+                  checked_out, workflow, now, moves_of=no_moves, recording=None):
     """(reuse, reason, url): whether main's push may take its boards from
     a passed board run (D1647).
 
@@ -458,10 +687,26 @@ def decide_boards(event_name, event, api, key_of, candidate_key_of,
             if missing:
                 reasons.append("%s: %s" % (base[:12], ", ".join(missing)))
                 continue
-        if not passed_jobs(run_jobs(api, run["id"]), board_jobs()):
+        listing = run_jobs(api, run["id"])
+        if not passed_jobs(listing, board_jobs()):
             reasons.append("%s: run %s did not run and pass every board job"
                            % (base[:12], run["id"]))
             continue
+        #  A branch's dispatch reports cycles no baseline records and
+        #  passes; main takes its boards only with those cycles recorded
+        #  (R22.34), and its push refuses the tree otherwise.
+        cycles = {kind: targets for kind, targets in moves_of(run, listing).items()
+                  if kind in ("cycles", "unreadable")}
+        if cycles:
+            recorded, why = recording(run) if recording else (
+                False, "nothing reads its figures")
+            if not recorded:
+                raise Unrecorded(
+                    "%s, whose boards this tree's would be, reported cycles no"
+                    " baseline records (%s): %s; main refuses the tree until a"
+                    " commit records them, `environments/boards/timing.py record`"
+                    " of its measure-cycles artifact"
+                    % (run["html_url"], describe_moves(cycles), why))
         return True, "reusing the boards of %s, which ran them on %s" % (
             run["html_url"], base[:12]), run["html_url"]
     return False, "; ".join(reasons) or "no recent run passed the boards", ""
@@ -760,12 +1005,53 @@ def prefetch(revs):
         FETCHED.update(wanted)
 
 
-def fetched_key(rev, content_free=CONTENT_FREE):
+def fetched_key(rev, content_free=CONTENT_FREE, measured=False):
     if rev not in FETCHED:
         subprocess.run(["git", "fetch", "-q", "--no-tags", "--depth=1",
                         "origin", rev], check=True)
         FETCHED.add(rev)
-    return key(rev, content_free=content_free)
+    return key(rev, content_free=content_free, measured=measured)
+
+
+def git_read(rev, path):
+    """PATH's text in REV, or None where REV has no such file."""
+    shown = subprocess.run(["git", "show", "%s:%s" % (rev, path)],
+                           capture_output=True, text=True)
+    return shown.stdout if shown.returncode == 0 else None
+
+
+def run_figures(run_id, patterns=("measure-size-*", "measure-instructions-*")):
+    """([(class, measured)], {class: {key}}): the figures run RUN_ID's
+    artifacts hold and the keys its comparisons reported, as `measure.py
+    record --from-run` reads them."""
+    import tempfile
+    where = Path(tempfile.mkdtemp(prefix="gate-figures-"))
+    for pattern in patterns:
+        subprocess.run(["gh", "run", "download", str(run_id), "--pattern", pattern,
+                        "--dir", str(where)], check=True, capture_output=True)
+    figures, moved = [], {}
+    for path in sorted(where.rglob("*.json")):
+        found = json.loads(path.read_text(encoding="utf-8"))
+        if path.name == MOVES:
+            moved.setdefault(found["class"], set()).update(
+                found.get("undeclared", []) + found.get("unrecorded", []))
+        elif path.name in ("size.json", "instructions.json"):
+            figures.append((found.get("class", "size"), found))
+    return figures, moved
+
+
+def recording(run, base):
+    """(same, recorded, why) for `decide`: whether HEAD differs from BASE
+    only where an explanatory edit or a recording may, and whether its
+    baselines record the figures RUN's artifacts hold."""
+    if fetched_key(base, measured=True) != fetched_key("HEAD", measured=True):
+        return False, False, "more than the explanatory files and the baselines differ"
+    changed = subprocess.run(["git", "diff", "--name-only", "-z", base, "HEAD"],
+                             check=True, capture_output=True, text=True).stdout
+    figures, moved = run_figures(run["id"])
+    recorded, why = figures_record(git_read, base, figures, moved,
+                                   [path for path in changed.split("\0") if path])
+    return True, recorded, why
 
 
 def fetched_candidate_key(rev):
@@ -1101,6 +1387,7 @@ def main(argv):
         #  equal the way two empty strings would in a shell.
         return 0 if key(argv[1]) == key(argv[2]) else 1
     if len(argv) >= 3 and argv[0] == "reuse":
+        moves = {}
         try:
             with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as stream:
                 event = json.load(stream)
@@ -1109,14 +1396,21 @@ def main(argv):
             prefetch(run["head_sha"] for run in github(
                 "actions/workflows/%s/runs?event=push&status=success&per_page=30"
                 % argv[1]).get("workflow_runs", []))
-            reuse, why = decide_candidate(
+            moves_of = lambda run, listing: reported_moves(github, listing)  # noqa: E731
+            reuse, why, moves = decide_candidate(
                 os.environ["GITHUB_EVENT_NAME"], event, github,
-                fetched_candidate_key, checked_out, argv[1], argv[2:], now)
+                fetched_candidate_key, checked_out, argv[1], argv[2:], now,
+                moves_of)
             if not reuse:
                 reuse, explanatory_why = decide(
                     os.environ["GITHUB_EVENT_NAME"], event, github,
-                    fetched_key, checked_out, argv[1], argv[2:], now)
+                    fetched_key, checked_out, argv[1], argv[2:], now,
+                    moves_of, recording)
                 why += "; " + explanatory_why
+        except Unrecorded as error:
+            print("::error title=Unrecorded figures::%s" % error, file=sys.stderr)
+            print("gate_inputs: %s" % error, file=sys.stderr)
+            return 1
         except Unanswered as error:
             #  Not a finding about this tree: the check never got to ask.
             reuse = False
@@ -1128,6 +1422,10 @@ def main(argv):
             reuse, why = False, "%s: %s" % (type(error).__name__, error)
         print("gate_inputs: " + why, file=sys.stderr)
         print("reuse=" + ("true" if reuse else "false"))
+        #  An identical tree's pass taken with what it reported, which the
+        #  aggregate reports again on this run.
+        print("moves=" + (json.dumps(moves, sort_keys=True, separators=(",", ":"))
+                          if reuse and moves else ""))
         return 0
     if len(argv) == 2 and argv[0] == "physical":
         #  Each answer is false unless shown: any doubt runs the boards
@@ -1150,7 +1448,9 @@ def main(argv):
                 ("boards", found["boards_reusable"], schedule_unmoved
                  if name == "schedule" else lambda: decide_boards(
                     name, event, github, fetched_key, fetched_candidate_key,
-                    checkout(), argv[1], now)),
+                    checkout(), argv[1], now,
+                    lambda run, listing: reported_moves(github, listing),
+                    boards_recording)),
                 ("timing", found["timing_reusable"], schedule_unmoved
                  if name == "schedule" else lambda: decide_timing(
                     name, os.environ.get("GITHUB_REF_NAME", ""), checkout()[0],
@@ -1159,6 +1459,10 @@ def main(argv):
             if wanted:
                 try:
                     reuse, why, url = decide_one()
+                except Unrecorded as error:
+                    print("::error title=Unrecorded figures::%s" % error, file=sys.stderr)
+                    print("gate_inputs: %s: %s" % (what, error), file=sys.stderr)
+                    return 1
                 except Unanswered as error:
                     why = "could not ask GitHub, so it runs (%s)" % error
                 except Exception as error:  # noqa: BLE001 -- doubt runs it
@@ -1166,6 +1470,29 @@ def main(argv):
             print("gate_inputs: %s: %s" % (what, why), file=sys.stderr)
             print("%s-reuse=%s" % (what, flag(reuse)))
             print("%s-from=%s" % (what, url))
+        return 0
+    if argv[:1] == ["moves"]:
+        #  The aggregate's record of what this run's comparisons reported
+        #  and no baseline records, or what the identical tree's pass it
+        #  took did ($INHERITED): one annotation, which a later run's reuse
+        #  and item.py's promotion read (R22.34).
+        found = merged_moves(moves_in(argv[1:]),
+                             json.loads(os.environ.get("INHERITED") or "{}"))
+        if not found:
+            print("gate_inputs: every figure measured is one a baseline records")
+            return 0
+        print("::warning title=%s::%s" % (MOVES_TITLE, json.dumps(
+            found, sort_keys=True, separators=(",", ":"))))
+        line = ("figures no baseline records: %s.  Reported, not failed, on a"
+                " branch; a commit recording them (`scripts/measure.py record"
+                " --from-run %s`, `environments/boards/timing.py record` of the"
+                " measure-cycles artifact) reuses this run's pass, and main"
+                " refuses the tree until one does"
+                % (describe_moves(found), os.environ.get("GITHUB_RUN_ID", "RUN")))
+        print("gate_inputs: " + line)
+        if os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
+                stream.write("## Unrecorded figures\n\n%s.\n\n" % line)
         return 0
     if argv == ["scope"]:
         found = event_scope(os.environ)

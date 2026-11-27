@@ -282,13 +282,30 @@ class Promote(Clone):
                 "tree": git(self.worktree, "rev-parse", commit + "^{tree}"),
                 "kind": kind, "status": "completed", "conclusion": "success"}
 
-    def problems(self, commit):
-        saved = item.complete_listing
+    def problems(self, commit, moved=None):
+        saved = item.complete_listing, item.unrecorded_figures
         item.complete_listing = lambda run: None
+        item.unrecorded_figures = lambda run: (moved or {}).get(run, {})
         try:
             return item.evidence(self.state, commit)
         finally:
-            item.complete_listing = saved
+            item.complete_listing, item.unrecorded_figures = saved
+
+    def test_a_gate_that_reported_unrecorded_figures_is_no_promotion(self):
+        #  R22.34: a branch's gate reports a figure no baseline records and
+        #  passes; main would refuse the tree, so promotion refuses first
+        #  and says how the figures are recorded.
+        head = self.commit("work")
+        self.state["gates"].append(self.gate(head, "software"))
+        self.state["gates"].append(self.gate(head, "boards"))
+        self.assertEqual(self.problems(head), [])
+        problems = self.problems(head, {1: {"size": {"linux-x86-64": 3}}})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("3 size on linux-x86-64", problems[0])
+        self.assertIn("measure.py record --from-run 1", problems[0])
+        problems = self.problems(head, {2: {"cycles": {"rp2040": 2}}})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("boards run 2 reported cycles", problems[0])
 
     def test_without_runs_both_passes_are_missing(self):
         head = self.commit("work")
@@ -916,7 +933,8 @@ class Window(Clone):
     def offline(self, passed=True):
         """GitHub as a listing would give it: the head's push gate passed
         or not, and nothing else running."""
-        saved = (item.record_gates, item.complete_listing, item.gh)
+        saved = (item.record_gates, item.complete_listing, item.gh,
+                 item.unrecorded_figures)
         def record(state, commit):
             if passed and not any(entry["commit"] == commit
                                   for entry in state["gates"]):
@@ -929,10 +947,12 @@ class Window(Clone):
         item.record_gates = record
         item.complete_listing = lambda run: None
         item.gh = lambda *arguments: []
+        item.unrecorded_figures = lambda run: {}
         self.addCleanup(lambda: (
             setattr(item, "record_gates", saved[0]),
             setattr(item, "complete_listing", saved[1]),
-            setattr(item, "gh", saved[2])))
+            setattr(item, "gh", saved[2]),
+            setattr(item, "unrecorded_figures", saved[3])))
 
     def test_start_branches_from_the_window_and_says_so(self):
         state, worktree, out = self.started()
@@ -1341,13 +1361,14 @@ class Train(Clone):
         self.item("start", THIRD, "--force")
         self.item("start", SECOND)
         item.REPOSITORY[0] = self.clone
-        self.saved = (item.runs_of, item.complete_listing)
+        self.saved = (item.runs_of, item.complete_listing, item.unrecorded_figures)
         item.runs_of = lambda commit: []
         item.complete_listing = lambda run: None
+        item.unrecorded_figures = lambda run: {}
         self.holder = Path(item.load(FIRST)["worktree"])
 
     def tearDown(self):
-        item.runs_of, item.complete_listing = self.saved
+        item.runs_of, item.complete_listing, item.unrecorded_figures = self.saved
         super().tearDown()
 
     def gated(self, name, path):

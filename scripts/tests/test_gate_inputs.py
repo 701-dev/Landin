@@ -134,6 +134,20 @@ class Key(unittest.TestCase):
         self.write("compiler/tests/measure/baselines/x/esp32.cycles.json", "{}\n")
         self.assertFalse(self.same())
 
+    def test_the_measured_key_leaves_out_the_size_and_instruction_baselines(self):
+        #  R22.34: the key a recording commit is held to leaves out the
+        #  files it records, and nothing else.
+        self.write("compiler/tests/measure/baselines/cortex-m0.size.json", "{}\n")
+        self.write("compiler/tests/measure/baselines/cortex-m0.instructions.json", "{}\n")
+        changed = self.commit()
+        self.assertEqual(gate_inputs.key(self.first, self.root, measured=True),
+                         gate_inputs.key(changed, self.root, measured=True))
+        self.assertNotEqual(gate_inputs.key(self.first, self.root),
+                            gate_inputs.key(changed, self.root))
+        self.write("compiler/tests/measure/workloads.json", "{}\n")
+        self.assertNotEqual(gate_inputs.key(self.first, self.root, measured=True),
+                            gate_inputs.key(self.commit(), self.root, measured=True))
+
     def test_any_other_content_counts(self):
         for name in ("spec.md", "docs/README.md", "compiler/main.adb"):
             with self.subTest(name=name):
@@ -458,7 +472,7 @@ class Decide(unittest.TestCase):
                  "gate.yml", "compiler"], cwd=directory, text=True,
                 env=dict(os.environ, **environment), stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
-        self.assertEqual((result.returncode, result.stdout), (0, "reuse=false\n"))
+        self.assertEqual((result.returncode, result.stdout), (0, "reuse=false\nmoves=\n"))
 
     def test_the_runs_commits_are_fetched_once_together(self):
         #  One `git fetch` for every commit not yet here, and none again
@@ -555,7 +569,7 @@ class Decide(unittest.TestCase):
                          GITHUB_REPOSITORY="example/example",
                          GITHUB_API_URL="http://127.0.0.1:%d" % port),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=HANG)
-        self.assertEqual((result.returncode, result.stdout), (0, "reuse=false\n"))
+        self.assertEqual((result.returncode, result.stdout), (0, "reuse=false\nmoves=\n"))
         self.assertIn("gate_inputs: could not ask GitHub whether a pass may "
                       "be reused, so every lane runs (GET actions/workflows/"
                       "gate.yml/runs?event=push&status=success&per_page=30: "
@@ -996,8 +1010,257 @@ def workflow_reuse_gaps(workflow, called,
     return expected - set(required), set(required) - expected
 
 
+SIZE = "compiler/tests/measure/baselines/t.size.json"
+MOVED = {"size": {"t": 1}}
+
+
+def size_figures(**entries):
+    return ("size", {"class": "size", "environments": {"t": "env"}, "targets": {"t": {
+        name: {"sections": {".text": value}} for name, value in entries.items()}}})
+
+
+def size_baseline(**entries):
+    return json.dumps({"schema": 1, "target": "t", "environment": "env", "entries": {
+        name: {"sections": {".text": value}} for name, value in entries.items()}})
+
+
+class Figures(unittest.TestCase):
+    """R22.34: a branch's pass that reported figures no baseline records is
+    reused only by the commit that records them, and main refuses a tree
+    whose last pass reported one not recorded since."""
+
+    def setUp(self):
+        self.files = {BASE: {SIZE: size_baseline(a=10, b=20)},
+                      "HEAD": {SIZE: size_baseline(a=11, b=20)}}
+
+    def read(self, rev, path):
+        return self.files[rev].get(path)
+
+    def recorded(self, figures, moved, changed=(SIZE,)):
+        return gate_inputs.figures_record(self.read, BASE, figures, moved, list(changed))
+
+    def test_a_commit_recording_the_run_s_figures_records_them(self):
+        ok, why = self.recorded([size_figures(a=11, b=20)], {"size": {"t a"}})
+        self.assertTrue(ok, why)
+
+    def test_a_moved_key_left_unrecorded_is_not_recorded(self):
+        self.files["HEAD"][SIZE] = self.files[BASE][SIZE]
+        ok, why = self.recorded([size_figures(a=11, b=20)], {"size": {"t a"}}, ())
+        self.assertFalse(ok)
+        self.assertIn("t a does not record the run's figure", why)
+
+    def test_a_figure_the_run_did_not_measure_is_refused(self):
+        self.files["HEAD"][SIZE] = size_baseline(a=12, b=20)
+        ok, why = self.recorded([size_figures(a=11, b=20)], {"size": {"t a"}})
+        self.assertFalse(ok)
+        self.files["HEAD"][SIZE] = size_baseline(a=11, b=21)
+        ok, why = self.recorded([size_figures(a=11, b=20)], {"size": {"t a"}})
+        self.assertFalse(ok)
+        self.assertIn("t b holds a figure the run did not measure", why)
+
+    def test_a_key_no_workload_measures_may_go_and_a_measured_one_may_not(self):
+        self.files[BASE][SIZE] = size_baseline(a=10, b=20, gone=5)
+        ok, why = self.recorded([size_figures(a=11, b=20)], {"size": {"t a"}})
+        self.assertTrue(ok, why)
+        self.files["HEAD"][SIZE] = size_baseline(a=11)
+        ok, why = self.recorded([size_figures(a=11, b=20)], {"size": {"t a"}})
+        self.assertFalse(ok)
+        self.assertIn("is gone", why)
+
+    def test_a_changed_baseline_the_run_did_not_measure_is_refused(self):
+        ok, why = self.recorded([size_figures(a=11, b=20)], {"size": {"t a"}},
+                                (SIZE, "compiler/tests/measure/baselines/u.size.json"))
+        self.assertFalse(ok)
+        self.assertIn("u.size.json changed", why)
+
+    def test_cycles_are_recorded_as_timing_py_records_them(self):
+        cycles = "compiler/tests/measure/baselines/esp32.cycles.json"
+        figure = {"figure": 120, "placement": "p", "clock": "c"}
+        figures = {"figures": {"esp32/l/size-auto/w": figure}}
+        self.files["HEAD"][cycles] = json.dumps({"entries": {
+            "l/size-auto/w": {"cycles": 120, "placement": "p", "clock": "c"}}})
+        self.assertTrue(gate_inputs.cycles_recorded(
+            self.read, figures, {"esp32/l/size-auto/w"})[0])
+        self.files["HEAD"][cycles] = json.dumps({"entries": {
+            "l/size-auto/w": {"cycles": 100, "placement": "p", "clock": "c"}}})
+        self.assertFalse(gate_inputs.cycles_recorded(
+            self.read, figures, {"esp32/l/size-auto/w"})[0])
+
+    def test_the_aggregate_counts_each_moved_key_once(self):
+        where = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, where)
+        for copy in ("one", "two"):
+            (where / copy).mkdir()
+            (where / copy / "moves.json").write_text(json.dumps({
+                "class": "size", "undeclared": ["t a", "u a"], "unrecorded": ["t b"]}))
+        (where / "moves.json").write_text(json.dumps({
+            "class": "cycles", "undeclared": ["esp32/l/size-auto/w"], "unrecorded": []}))
+        found = gate_inputs.moves_in([str(where), str(where / "absent")])
+        self.assertEqual(found, {"size": {"t": 2, "u": 1}, "cycles": {"esp32": 1}})
+        self.assertEqual(gate_inputs.merged_moves(found, {"size": {"t": 3}})["size"],
+                         {"t": 3, "u": 1})
+
+    def run_moves(self, directory, inherited=""):
+        environment = dict(os.environ, INHERITED=inherited, GITHUB_STEP_SUMMARY="",
+                           GITHUB_RUN_ID="77")
+        return subprocess.run([sys.executable, str(ROOT / "scripts/gate_inputs.py"), "moves",
+                               directory], capture_output=True, text=True, env=environment)
+
+    def test_the_moves_command_writes_one_annotation_or_none(self):
+        where = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, where)
+        done = self.run_moves(str(where))
+        self.assertEqual(done.returncode, 0)
+        self.assertNotIn("::warning", done.stdout)
+        done = self.run_moves(str(where), json.dumps(MOVED))
+        self.assertIn("::warning title=unrecorded figures::" + json.dumps(
+            MOVED, separators=(",", ":")), done.stdout)
+        self.assertIn("record --from-run 77", done.stdout)
+
+    def test_the_annotation_is_read_from_the_gate_job(self):
+        notes = {9: [{"title": "other"}, {"title": gate_inputs.MOVES_TITLE,
+                                           "message": json.dumps(MOVED)}]}
+        api = lambda path: notes[int(path.split("/")[1])]  # noqa: E731
+        listing = {"jobs": [{"name": "compiler", "id": 3}, {"name": "gate", "id": 9}]}
+        self.assertEqual(gate_inputs.reported_moves(api, listing), MOVED)
+        notes[9][1]["message"] = "not json"
+        self.assertIn("unreadable", gate_inputs.reported_moves(api, listing))
+        self.assertEqual(gate_inputs.reported_moves(api, {"jobs": [
+            {"name": "compiler", "id": 3}]}), {})
+
+
+class FiguresReuse(unittest.TestCase):
+    """The reuse rules with a run that reported figures no baseline records."""
+
+    api = Decide.api
+
+    def setUp(self):
+        Decide.setUp(self)
+        self.run["head_branch"] = "topic"
+        self.event_name = "push"
+        self.event = {"ref": "refs/heads/topic", "after": HEAD}
+        self.checked_out = (HEAD, [BASE])
+        self.histories = {HEAD: [EXPLANATORY]}
+        self.statuses = {HEAD: "ahead"}
+        self.moves = MOVED
+        self.answer = (True, True, "recorded")
+        self.recordings = []
+
+    def moves_of(self, run, listing):
+        return self.moves
+
+    def recording(self, run, base):
+        self.recordings.append(base)
+        return self.answer
+
+    def decide(self):
+        return gate_inputs.decide(self.event_name, self.event, self.api,
+                                  self.keys.get, self.checked_out, "gate.yml",
+                                  LANES, NOW, self.moves_of, self.recording)
+
+    def candidate(self):
+        return gate_inputs.decide_candidate(self.event_name, self.event, self.api,
+                                            self.keys.get, self.checked_out,
+                                            "gate.yml", LANES, NOW, self.moves_of)
+
+    def main(self):
+        self.event = {"ref": "refs/heads/main", "after": HEAD}
+
+    def test_a_branch_s_identical_tree_takes_the_pass_with_its_moves(self):
+        reuse, why, moves = self.candidate()
+        self.assertTrue(reuse)
+        self.assertEqual(moves, MOVED)
+        self.assertIn("still unrecorded", why)
+
+    def test_main_refuses_an_identical_tree_whose_pass_reported_moves(self):
+        self.main()
+        with self.assertRaisesRegex(gate_inputs.Unrecorded, "main refuses the tree"):
+            self.candidate()
+        self.moves = {}
+        self.assertEqual(self.candidate()[:1], (True,))
+
+    def test_an_explanatory_commit_does_not_take_a_pass_that_reported_moves(self):
+        self.answer = (True, False, "t a does not record the run's figure")
+        reuse, why = self.decide()
+        self.assertFalse(reuse)
+        self.assertIn("does not record", why)
+        self.main()
+        with self.assertRaisesRegex(gate_inputs.Unrecorded, "main refuses it"):
+            self.decide()
+
+    def test_the_commit_recording_them_takes_it_on_a_branch_and_on_main(self):
+        self.keys["HEAD"] = "recorded"
+        for event in ("topic", "main"):
+            self.event = {"ref": "refs/heads/" + event, "after": HEAD}
+            reuse, why = self.decide()
+            self.assertTrue(reuse, why)
+            self.assertIn("whose figures this tree's baselines record", why)
+
+    def test_a_recording_still_needs_every_commit_declared(self):
+        self.keys["HEAD"] = "recorded"
+        self.histories[HEAD] = ["Record the figures"]
+        self.assertFalse(self.decide()[0])
+
+    def test_a_tree_differing_in_more_than_the_baselines_is_no_recording(self):
+        self.keys["HEAD"] = "other"
+        self.answer = (False, False, "")
+        reuse, why = self.decide()
+        self.assertFalse(reuse)
+        self.assertIn("more than the explanatory files differ", why)
+        self.moves = {}
+        self.assertFalse(self.decide()[0])
+
+    def test_a_run_without_moves_and_the_same_key_needs_no_recording(self):
+        self.moves = {}
+        self.assertTrue(self.decide()[0])
+        self.assertEqual(self.recordings, [])
+
+    def test_boards_with_cycles_no_baseline_records_are_main_s_refusal(self):
+        self.run.update(event="workflow_dispatch")
+        self.jobs = [{"name": name, "conclusion": "success"}
+                     for name in gate_inputs.board_jobs()]
+        self.main()
+        whole = {BASE: "w0", "HEAD": "w1"}
+
+        def boards(answer):
+            return gate_inputs.decide_boards(
+                self.event_name, self.event, self.api, self.keys.get, whole.get,
+                self.checked_out, "gate.yml", NOW, self.moves_of, lambda run: answer)
+        self.assertTrue(boards((False, "unrecorded"))[0])  # size moves do not count here
+        self.moves = {"cycles": {"esp32": 2}}
+        self.assertTrue(boards((True, "recorded"))[0])
+        with self.assertRaisesRegex(gate_inputs.Unrecorded, "reported cycles"):
+            boards((False, "esp32/k does not record the run's figure"))
+
+
 class Workflow(unittest.TestCase):
     """Hold every required matrix leg to the literal reuse inventory."""
+
+    def test_every_comparison_reports_on_a_branch_and_keeps_what_it_reported(self):
+        #  R22.34: each measurement comparison the gate runs reports a move
+        #  and passes on every event but main's, and the artifact its
+        #  figures go to carries the report to the aggregate's annotation.
+        source = (ROOT / ".github/workflows/gate.yml").read_text()
+        branch = "${{ github.ref != 'refs/heads/main' && 'yes' || '' }}"
+        compares = re.findall(r"(?:measure|timing)\.py compare( \$\{REPORT:\+--report\})?",
+                              source)
+        self.assertEqual(len(compares), 5)
+        self.assertEqual(compares, [" ${REPORT:+--report}"] * 5)
+        self.assertEqual(source.count("REPORT: " + branch), 4)
+        self.assertIn("--output=\"$RUNNER_TEMP/freebsd-evidence\" \\\n            ${{ matrix.kind"
+                      " == 'size' && github.ref != 'refs/heads/main' && '--report' || '' }}",
+                      source)
+        uploads = re.findall(r"name: (measure-(?:size|instructions|cycles)[^\n]*)\n"
+                             r"\s+path: \|\n((?:\s+\$\{\{[^\n]*\n)+)", source)
+        self.assertEqual(len(uploads), 5, uploads)
+        for name, paths in uploads:
+            with self.subTest(artifact=name):
+                self.assertEqual(paths.count("/moves.json"),
+                                 paths.count("/size.json") + paths.count("/instructions.json")
+                                 + paths.count("/figures.json"))
+        self.assertIn("python3 scripts/gate_inputs.py moves", source)
+        self.assertIn("INHERITED: ${{ needs.inputs.outputs.moves }}", source)
+        self.assertIn("moves: ${{ steps.reuse.outputs.moves }}", source)
 
     def test_every_needed_job_is_required_for_reuse(self):
         directory = ROOT / ".github/workflows"

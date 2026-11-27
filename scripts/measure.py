@@ -877,12 +877,48 @@ def compare(args) -> int:
     bad = sum(map(len, undeclared.values()))
     print(f"compared {count} configurations' {kind} with {base}:"
           f" {bad} undeclared, {len(missing)} unrecorded")
+    if args.report:
+        moves = {"class": kind,
+                 "undeclared": sorted(f"{group.split(' ', 1)[0]} {name}"
+                                      for group, rows in undeclared.items()
+                                      for name, _, _ in rows),
+                 "unrecorded": sorted(missing)}
+        report_moves(measurements_file(args.measurements).parent / MOVES, moves,
+                     "scripts/measure.py record --from-run RUN")
     if bad or missing:
         print("a deliberate change is declared by recording it: scripts/measure.py"
               " record DIR/FILE.json, or record --from-run RUN for a gate run's"
               " figures, and the commit message says why", file=sys.stderr)
-        return 1
+        return 0 if args.report else 1
     return 0
+
+
+#  What a reporting comparison found no baseline records, beside the
+#  figures, so the run's artifact carries it to the aggregate (R22.34).
+MOVES = "moves.json"
+
+
+def report_moves(path: Path, moves: dict, how: str) -> None:
+    """Write MOVES to PATH and, on a runner, into the step's summary: a
+    branch's comparison reports a figure no baseline records and passes,
+    and the commit that records it reuses the run (docs/measurement.md)."""
+    path.write_text(json.dumps(moves, indent=1) + "\n")
+    count = len(moves["undeclared"]) + len(moves["unrecorded"])
+    if not count:
+        return
+    print(f"REPORTED, not failed: {count} {moves['class']} figures no baseline"
+          f" records; a commit recording them ({how}) reuses this run's pass,"
+          " and main refuses the tree until one does")
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a", encoding="utf-8") as stream:
+            stream.write(f"## {count} {moves['class']} figures no baseline records\n\n"
+                         f"Reported, not failed, on a branch. `{how}` records them;"
+                         " that commit, recording nothing else, reuses this run's"
+                         " pass, and main refuses the tree until one does.\n\n")
+            for name in moves["undeclared"][:40] + moves["unrecorded"][:40]:
+                stream.write(f"- `{name}`\n")
+            stream.write("\n")
 
 
 def describe(old: dict, new: dict) -> str:
@@ -975,6 +1011,11 @@ def main(argv=None) -> int:
     against.add_argument("--base")
     against.add_argument("--verbose", action="store_true",
                          help="each key's sections, not only its group's total")
+    against.add_argument("--report", action="store_true",
+                         help="a branch's comparison: write what no baseline"
+                         " records to moves.json beside the figures and into"
+                         " the step summary, and pass; the gate gives it on"
+                         " every event but main's (docs/measurement.md)")
     against.set_defaults(run=compare)
     keep = commands.add_parser("record", help="write measurements as baselines")
     keep.add_argument("measurements", nargs="?")

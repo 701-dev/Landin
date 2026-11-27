@@ -26921,9 +26921,10 @@ needs, `flake` among them.
 
 ### D586 — An explanatory edit may take its base from any branch's full run
 
-**Amended by D1648 and D1650:** the key leaves out more than the four
+**Amended by D1648, D1650 and D2854:** the key leaves out more than the four
 documents' content: the guides and the tree D1648 names, and the boards'
-cycles baselines.
+cycles baselines; and a commit recording a run's figures reuses that run
+(D2854).
 
 **The tour said** nothing. The explanatory exception took its base only
 from a full run of a push to main, so a documents-only commit that closed
@@ -27188,6 +27189,47 @@ which was not asked for; and keeping the files in the key.
 **Pinned by** `scripts/tests/test_gate_inputs.py`'s
 `test_cycles_baselines_do_not_count_and_other_baselines_do` and its
 `DocumentReaders` case.
+
+### D2854 — A branch reports the figures it moved, and the recording commit reuses the run
+
+**The tour said** nothing. A size, instruction or cycles figure that moved
+without a baseline recording it failed its lane on every event, so an
+emission change cost a gate that failed only to measure it and a second
+for the commit recording what the first had measured: 48 of the 254
+defects the gate-time study of 2026-11-26 classified. The maintainer
+accepted the change that day, as R22.34.
+
+**Chosen:** on every event but `main`'s, `measure.py compare` and
+`timing.py compare` take `--report`: what no baseline records goes into
+the run's summary and a `moves.json` kept with the figures, and the lane
+passes; the aggregate writes one `unrecorded figures` annotation counting
+it. A commit declared `Gate: explanatory` that differs from such a run's
+tree only in the explanatory files and the size and instruction
+baselines reuses the run when `gate_inputs.py` finds, from the run's
+artifacts, every reported key recorded with exactly its figure and every
+other changed entry either the run's figure or a key no workload
+measures; a cycles recording, outside the key already (D1650), is held
+the same way when main takes the boards. A pass that reported a move is
+reused by no other commit but an identical tree on a branch, which
+reports the moves again; `item.py promote` refuses a head whose gate or
+boards reported one its tree does not record, and main's push refuses
+such a tree in `inputs`.
+
+**The reason:** the failed run had measured everything the recording
+needs, and its artifact is the record; holding the files to it, rather
+than trusting the declaration, keeps the recording commit from carrying
+any other figure.
+
+**The alternatives:** failing as before on a branch, which keeps the
+second gate; reporting on every event, main's included, which lets a
+move reach main unrecorded; and reusing the run for any later commit
+until main, which lets an unrecorded move ride an explanatory edit to
+the promotion.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Figures`,
+`FiguresReuse` and `Workflow` cases, `test_measure.py`'s and
+`test_board_timing.py`'s report cases, and `test_item.py`'s
+`test_a_gate_that_reported_unrecorded_figures_is_no_promotion`.
 
 ### D2794 — The gate records why a job failed, by rule and by outside signature
 

@@ -107,7 +107,7 @@ class Compare(unittest.TestCase):
                     contextlib.redirect_stdout(output), \
                     contextlib.redirect_stderr(io.StringIO()):
                 status = measure.compare(mock.Mock(
-                    measurements=str(path), base="BASE", verbose=True))
+                    measurements=str(path), base="BASE", verbose=True, report=False))
         return status, output.getvalue()
 
     def figures(self, text, environment="env"):
@@ -138,6 +138,31 @@ class Compare(unittest.TestCase):
     def test_a_declaration_must_match_the_measurement(self):
         status, _ = self.run_compare(self.figures(12), self.baseline(10), self.baseline(11))
         self.assertEqual(status, 1)
+
+    def test_a_branch_s_comparison_reports_a_move_and_passes(self):
+        #  R22.34: a branch's lane names what no baseline records, in
+        #  moves.json beside the figures and in the step summary, and
+        #  passes; main's comparison, without --report, fails as before.
+        with tempfile.TemporaryDirectory() as where:
+            path = Path(where) / "size.json"
+            path.write_text(json.dumps(self.figures(11)))
+            summary = Path(where) / "summary.md"
+            output = io.StringIO()
+            with mock.patch.object(measure, "read_baseline",
+                                   lambda target, rev, kind="size": self.baseline(10)), \
+                    mock.patch.dict(measure.os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}), \
+                    contextlib.redirect_stdout(output), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                status = measure.compare(mock.Mock(
+                    measurements=str(path), base="BASE", verbose=False, report=True))
+            moves = json.loads((Path(where) / "moves.json").read_text())
+            shown = summary.read_text() if summary.exists() else ""
+        self.assertEqual(status, 0)
+        self.assertIn("UNDECLARED", output.getvalue())
+        self.assertIn("REPORTED, not failed", output.getvalue())
+        self.assertEqual(moves["undeclared"], ["t l/size-auto/w"])
+        self.assertEqual(moves["class"], self.figures(11).get("class", "size"))
+        self.assertIn("t l/size-auto/w", shown)
 
     def test_a_key_with_no_baseline_is_unrecorded(self):
         status, output = self.run_compare(self.figures(10), {}, {})
