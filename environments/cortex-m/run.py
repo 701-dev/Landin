@@ -18,8 +18,8 @@ import threading
 import time
 
 from gdb_server import GdbServer
-from setup import (AREAS, DEFAULT, ESPRESSIF, GDB, HERE, QEMU_ARM, RISCV, arm_archive, installed_tools,
-                   inventory, probe_inputs, riscv_archive, sha, supported_host)
+from setup import (ARM, AREAS, BUILDER, DEFAULT, ESPRESSIF, GDB, HERE, QEMU_ARM, RISCV, gcc_version,
+                   installed_tools, inventory, probe_inputs, sha, supported_host)
 
 #  The GDB every session on one thread shares; `Run.debug` starts it.  One
 #  per thread, because a GDB serves one session at a time and the corpus
@@ -124,12 +124,13 @@ class Run:
         self.out, self.tools = output, tools
         self.commands = []
         self.env = dict(os.environ, LC_ALL='C', LANG='C')
-        #  Every locked emulator and the GDB need no library path: the
-        #  Espressif QEMU and GDB are static, and the Cortex-M QEMU's
-        #  launcher names the libraries it carries (D2571, D2572).
+        #  Every locked compiler, emulator and the GDB need no library path:
+        #  the two compilers, the Espressif QEMU and GDB are static, and the
+        #  Cortex-M QEMU's launcher names the libraries it carries (D2571,
+        #  D2572, D3034).
         self.bin = tools / QEMU_ARM / 'bin'
         self.gdb = tools / GDB / 'bin/gdb'
-        self.arm = tools / 'gnat-arm-elf/bin'
+        self.arm = tools / ARM / 'bin'
         self.riscv = tools / RISCV / 'bin'
         self.espressif = tools / ESPRESSIF / 'bin'
 
@@ -373,20 +374,16 @@ class Run:
         supported_host()
         installed = json.loads((self.tools / 'installation.json').read_text())
         current_lock(self.tools, installed)
-        require(installed.get('arm') == {key: arm_archive()[key] for key in ('version', 'sha256')},
-                'the installed arm-elf archive is not the one environments/pins.sh pins')
-        require(installed.get('riscv') == {key: riscv_archive()[key] for key in ('version', 'sha256')},
-                'the installed riscv64-elf archive is not the one environments/pins.sh pins')
         before = {area: inventory(self.tools / area) for area in AREAS}
         unchanged(self.tools, installed, before)
         (self.out / 'tools.json').write_text(json.dumps(installed, sort_keys=True)+'\n')
         for name, tool, expected in [
             ('qemu-version', self.bin / 'qemu-system-arm', '10.0.13'),
             ('gcc-version', self.arm / 'arm-eabi-gcc',
-             '(GNAT-FSF-builds) ' + arm_archive()['version'].rsplit('-', 1)[0]),
+             '(%s) %s' % (BUILDER, gcc_version(ARM))),
             ('binutils-version', self.arm / 'arm-eabi-as', '2.46.1'),
             ('riscv-gcc-version', self.riscv / 'riscv64-elf-gcc',
-             '(GNAT-FSF-builds) ' + riscv_archive()['version'].rsplit('-', 1)[0]),
+             '(%s) %s' % (BUILDER, gcc_version(RISCV))),
             ('riscv-binutils-version', self.riscv / 'riscv64-elf-as', '2.46.1'),
             ('espressif-qemu-version', self.espressif / 'qemu-system-riscv32',
              '9.2.2 (esp_develop_9.2.2_20260417)'),

@@ -37,10 +37,16 @@ jobs:
           BEFORE: ${{ github.event.before }}
         run: python3 scripts/links_inputs.py
 
+      #  The flake's lychee, at the version environments/pins.sh pins, from
+      #  the nix-packages cache.
+      - name: Install lychee
+        if: steps.inputs.outputs.scope != 'none'
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: lychee
+
       - name: Check links
         if: steps.inputs.outputs.scope != 'none'
-        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
-        with:
-          args: --config lychee.toml --no-progress --files-from ${{ runner.temp }}/lychee-inputs.txt
-          fail: true
-          failIfEmpty: false
+        run: >-
+          lychee --config lychee.toml --no-progress
+          --files-from "$RUNNER_TEMP/lychee-inputs.txt"

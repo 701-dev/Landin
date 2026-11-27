@@ -69,12 +69,15 @@ class LinkInputsTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/links.yml").read_text()
         check_step = workflow.split("      - name: Check links\n", 1)[1]
         self.assertIn("if: steps.inputs.outputs.scope != 'none'", check_step)
-        self.assertIn("uses: lycheeverse/lychee-action@", check_step)
-        self.assertIn("        with:\n"
-                      "          args: --config lychee.toml --no-progress --files-from "
-                      "${{ runner.temp }}/lychee-inputs.txt\n"
-                      "          fail: true\n"
-                      "          failIfEmpty: false\n", check_step)
+        #  The flake's lychee, from the nix-packages cache, before it.
+        install_step = workflow.split("      - name: Install lychee\n", 1)[1].split(
+            "      - name: Check links\n", 1)[0]
+        self.assertIn("if: steps.inputs.outputs.scope != 'none'", install_step)
+        self.assertIn("uses: ./.github/actions/nix-tools", install_step)
+        self.assertIn("packages: lychee\n", install_step)
+        self.assertIn("lychee --config lychee.toml --no-progress\n"
+                      "          --files-from \"$RUNNER_TEMP/lychee-inputs.txt\"\n",
+                      check_step)
 
     def test_non_document_change_or_deletion_skips_lychee(self):
         Path("changed.md").unlink()

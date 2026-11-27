@@ -140,7 +140,7 @@ package body Landin.Tests.Newcomer_Suite is
                 (Landin.Targets.Cortex_M, "", False),
               "arm-eabi-gcc"),
          "Cortex-M's advice names both spellings' sources");
-      --  D660: as D532, the pinned GNAT riscv64-elf driver, then the
+      --  D660: as D532, the pinned riscv64-elf driver, then the
       --  distributions' name for the same bare-metal GCC.
       Landin.Testing.Check_Equal
         (Item, Listed (Landin.Targets.RV32, "", False),

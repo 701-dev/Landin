@@ -14,7 +14,7 @@ import threading
 import time
 
 from run import FLAGS, CommandFailed, Run, gdb_listener, oracle, require, stop
-from setup import (DEFAULT, HERE, arm_archive, installed_tools, inventory, riscv_archive, sha,
+from setup import (ARM, DEFAULT, HERE, RISCV, installed_tools, inventory, locked, sha,
                    supported_host)
 
 ROOT = HERE.parent.parent
@@ -1241,8 +1241,7 @@ def build(run, refine, inputs, optimize, specialize, extra=(), linker=None,
     (run.out / 'helpers.json').write_text(json.dumps({
         'library': str(library), 'sha256': sha(library),
         'requested': sorted(set(re.findall(called, assembly.read_text()))),
-        'unresolved': [], 'provenance': 'pinned ' + (
-            riscv_archive() if rv32(level) else arm_archive())['file'],
+        'unresolved': [], 'provenance': 'pinned ' + locked(RISCV if rv32(level) else ARM)['file'],
     }, indent=2) + '\n')
     return elf
 

@@ -39251,6 +39251,62 @@ sandbox.
 which holds `flake.nix` to reading `LANDIN_CLANG_NIX`, and nix-packages'
 `qemu-system` and `emacs-nox` checks.
 
+### D3034 — The bare-metal compilers and the gate's last downloaded tools are nix-packages builds
+
+**The discrepancy:** after D2734 the Cortex-M and RV32 lanes still
+compiled with GNAT-FSF-builds' `gnat-arm-elf` and `gnat-riscv64-elf`
+release archives, glibc programs whose `cc1`, `lto1` and `gnat1` load the
+host's `libzstd.so.1` and which start on NixOS only inside `landin-fhs`,
+and `environments/cortex-m/setup.py` fetched them from a second provider
+beside the lock. The gate's `editor-grammar` job ran `npm ci` and then
+replaced the npm package's binary with tree-sitter's release, its
+`scripts` job fetched actionlint's and shellcheck's releases through
+`scripts/actionlint.py --install`, and `links.yml` took lychee from its
+action's own download, so four tools came from GitHub release pages and
+the shell patched three of the same binaries to the store.
+
+**Chosen:** 701-dev/nix-packages builds GCC 16.1.0, GNU Binutils 2.46.1
+and newlib 4.4.0.20231231 for `arm-eabi` and `riscv64-elf`, with the
+configure arguments, newlib patch and multilibs of GNAT-FSF-builds' 16.1.0-1
+archives, for C alone and static on Linux, so they load no library of the
+host's. `tools.lock.json` holds their Linux x86-64 archives, unpacked into
+the tool root's `gcc-arm-eabi` and `gcc-riscv64-elf`, and the shell takes
+each system's build from the flake's nix-packages input; `environments/pins.sh`
+loses the archives' pins, a lane checks the compilers' `--version` names
+`701-dev nix-packages`, and the lanes' host needs glibc 2.17, Espressif's
+Xtensa compiler's, rather than 2.35. Compared with the GNAT-FSF archives,
+every member of every multilib's `libgcc.a` is the same bytes once debugging
+sections are stripped, and the same C compiles to the same assembly at the
+lanes' Cortex-M and RV32 levels; newlib differs only in the source path its
+assertions print, and no lane links newlib. tree-sitter 0.26.9,
+actionlint 1.7.12, shellcheck 0.11.0 and lychee 0.24.2 become nixpkgs'
+packages at the lock's revision, served by the cache, held by the flake to
+version pins and taken by those three jobs through
+`.github/actions/nix-tools`; actionlint is nix-packages' build without the
+wrapper that adds a Python and a second shellcheck. nixpkgs' tree-sitter
+generates the committed parser byte for byte. `scripts/actionlint.py`
+loses `--install`, and no job installs Node packages.
+
+`landin-fhs` stays for Espressif's Xtensa compiler, the one release binary
+left in the lanes, without the zstd library it held for GNAT's.
+
+**The alternatives:** nixpkgs' own cross GCC for these targets, which
+builds without multilibs and names its driver `arm-none-eabi-gcc`; the
+GNAT-FSF archives kept and their `cc1` patched to a store `libzstd`, which
+keeps the second provider and the FHS route; dynamic Linux builds, which
+need the store or a bundled loader for every program GCC runs; the Ada
+front end and runtimes the archives carried, which no lane uses; and the
+release binaries of the four tools moved into the cache as fixed-output
+fetches, which keeps binaries nobody here built.
+
+**Pinned by** `environments/cortex-m/test.py`'s
+`test_the_lock_is_nix_packages_archives_only`, `scripts/tests/test_check_controls.py`'s
+`test_the_bare_metal_compilers_are_locked_and_recorded` and
+`test_the_cross_lane_is_read_from_the_pins`, `scripts/tests/test_actionlint.py`,
+`scripts/tests/test_links_inputs.py`, `check.py`, and nix-packages'
+`gcc-arm-eabi`, `gcc-riscv64-elf` and their export checks, which hold
+each build's multilibs to the GNAT-FSF archive's.
+
 ### D696 — The rv32imc lane refuses the A extension statically and in its core
 
 **The tour said** nothing; the `rv32imc` level has no A, and the C3 has

@@ -27,43 +27,43 @@ in `spec.md`, and `[1990]` a numbered paragraph of `tour.md` or `spec.md`;
 
 | Component | Exact selection |
 |---|---|
-| Probe host | native Linux x86-64 with glibc 2.35 or later, `libzstd.so.1`, `tar` and `xz`; the gate runs it on GitHub's `ubuntu-24.04` |
+| Probe host | native Linux x86-64 with glibc 2.17 or later (for Espressif's Xtensa compiler), `tar` and `xz`; the gate runs it on GitHub's `ubuntu-24.04` |
 | CPU/startup lane | QEMU 10.0.13, upstream's release built by [701-dev/nix-packages](https://github.com/701-dev/nix-packages) for `arm-softmmu` with only the microbit and MPS2 machines and TCG plugins, unpacked into the tool root's `qemu-arm` (D2572), `-M microbit -accel tcg,thread=single` |
 | Armv7-M corpus lane | the same QEMU binary, `-M mps2-an385`: a Cortex-M3, for corpus fixtures whose `levels:` name `armv7-m` (D255) |
 | Armv8-M corpus lane | the same QEMU binary, `-M mps2-an505`: a Cortex-M33 r0p3 in Secure state, for the whole corpus at `armv8-m.main` in `run.py`'s `mps2-an505` lane and for fixtures whose `levels:` name it, on the lane description `lanes/descriptions/mps2_an505` (D607, D619); libgcc from `thumb/v8-m.main/nofp` |
 | M7 corpus lane | the same QEMU binary, `-M mps2-an500`: a Cortex-M7 r1p2 with the double-precision FPv5-D16, for the whole corpus at `armv7e-m` hard-float in `run.py`'s `mps2-an500` lane, on the lane description `lanes/descriptions/mps2_an500` (D619), and for the VFP ABI control and the firmware lane's `float-unit` and `cache-sequence` cases, the latter on `lanes/descriptions/mps2_an500_cached` (D977); libgcc from `thumb/v7e-m+dp/hard` |
 | Core | nRF51822 Cortex-M0, ARMv6-M, Thumb, little endian, 16 MHz model clock; no FPU, caches or exclusive-access instruction requirement |
 | Peripheral lane | the same QEMU, with `machine.py` serving `models.py`'s synthetic devices through its debugger stub; `-icount shift=0` |
-| EABI compiler | `arm-eabi-gcc` 16.1.0, GNAT's arm-elf archive `16.1.0-1` from the host GNAT's release, pinned in `environments/pins.sh` |
+| EABI compiler | `arm-eabi-gcc` 16.1.0 with newlib 4.4.0.20231231, a static build by 701-dev/nix-packages configured as GNAT-FSF-builds' arm-elf archive is, unpacked into the tool root's `gcc-arm-eabi` (D3034) |
 | Assembler/linker | GNU Binutils 2.46.1, from the same archive |
 | Debugger | GDB 16.3 for Arm and RISC-V with Python 3.13, a static build by 701-dev/nix-packages without debuginfod, unpacked into the tool root's `gdb`; loopback QEMU remote stub |
 | Probe options | `-mcpu=cortex-m0 -mthumb -mfloat-abi=soft -mabi=aapcs -fno-short-enums -ffreestanding -fno-builtin -fno-omit-frame-pointer -g3 -O1 -nostdlib`; warnings are errors |
 | RV32 emulator | Espressif's QEMU `esp-develop-9.2.2-20260417`, built from that tag as a static, headless binary by [701-dev/nix-packages](https://github.com/701-dev/nix-packages), whose one archive holds `qemu-system-riscv32` and `qemu-system-xtensa` and is unpacked into the tool root's `qemu-espressif` and `qemu-xtensa` (D695, D2571) |
 | rv32imc corpus lane | `-M esp32c3 -cpu espressif,a=false,zawrs=false,f=false,d=false,zfa=false`: the ESP32-C3 machine with its core's A, F and D removed, which the C3 has not (D696), for the whole corpus at `rv32imc` in `run.py`'s `esp32c3` lane, on the lane description `lanes/descriptions/esp32c3` |
 | rv32imac corpus lane | `-M sifive_e`: a SiFive E31, rv32imac, for the whole corpus at `rv32imac` in `run.py`'s `sifive-e` lane, on the RV32 reference's map, 32 KiB of flash at `0x2040_0000` and the 16 KiB DTIM at `0x8000_0000` |
-| RV32 compiler | `riscv64-elf-gcc` 16.1.0 with Binutils 2.46.1, GNAT's riscv64-elf archive `16.1.0-1`, pinned in `environments/pins.sh`; libgcc from `rv32im/ilp32` at rv32imc and `rv32imac/ilp32` at rv32imac |
+| RV32 compiler | `riscv64-elf-gcc` 16.1.0 with Binutils 2.46.1 and newlib, the same kind of nix-packages build for `riscv64-elf`, unpacked into `gcc-riscv64-elf` (D3034); libgcc from `rv32im/ilp32` at rv32imc and `rv32imac/ilp32` at rv32imac |
 | RV32 options | `-march=rv32imc_zicsr_zifencei` or `-march=rv32imac_zicsr_zifencei`, then `-mabi=ilp32 -ffreestanding -fno-builtin -fno-omit-frame-pointer -g3 -O1 -nostdlib`; warnings are errors |
 
-`tools.lock.json` pins the URL and SHA-256 of three archives, each built
+`tools.lock.json` pins the URL and SHA-256 of five archives, each built
 from source by 701-dev/nix-packages and served from its cache: QEMU for
-the Cortex-M machines, GDB, and Espressif's QEMU. None needs a library
-of the host's. GDB and the Espressif QEMU are static, GDB with its
-Python linked in and the standard library beside it. QEMU loads the
+the Cortex-M machines, GDB, Espressif's QEMU, and the arm-eabi and
+riscv64-elf compilers. None needs a library of the host's. GDB, the
+Espressif QEMU and the two compilers are static, GDB with its Python
+linked in and the standard library beside it. QEMU loads the
 counting plugin of `scripts/measure_count.py` with `dlopen`, so it is
 dynamic and carries what it loads: its `bin/qemu-system-arm` is a launcher
 that runs `libexec/qemu-system-arm` through the glibc loader and libraries
-in the archive's `lib/` (D2572). GCC and binutils come from the arm-elf and
-riscv64-elf archives whose version and checksums `environments/pins.sh`
-holds beside the host GNAT's; the arm-elf GDB is built without the Python
-the debugger sessions run, so GDB is nix-packages' build.
+in the archive's `lib/` (D2572). The two compilers are configured as
+GNAT-FSF-builds' arm-elf and riscv64-elf archives of the host GNAT's
+release are, which the lanes used until D3034, with the same versions of
+GCC, binutils and newlib, so they generate the same code and link the same
+libgcc, but for C alone and without a GDB of their own.
 The installer verifies archives before extraction. Each probe verifies the
 installation inventory and versions before execution, checks it again afterward,
 and retains that inventory. The host supplies the Python that drives the
-probes, and for the cross compilers the C and C++ runtimes, which they
-ask of glibc 2.35 or later, and the zstd library GNAT's `cc1`, `lto1` and
-`gnat1` load, `libzstd.so.1`, which every distribution supplies (Debian's
-and Ubuntu's `libzstd1`); `landin-fhs` holds it on NixOS. So any such host
-runs the same locked binaries. This is a supported host profile, not a
+probes, and for Espressif's Xtensa compiler the C and C++ runtimes, which
+it asks of glibc 2.17 or later. So any such host runs the same locked
+binaries. This is a supported host profile, not a
 hermetic operating-system image.
 
 These C probe flags select base AAPCS soft-float transport and ELF32 EABI;
@@ -328,9 +328,9 @@ find and read the binding's spelling.
 
 ### On NixOS
 
-The pinned cross compilers, GNAT's arm-elf and riscv64-elf archives and
-Espressif's Xtensa GCC, are release binaries for glibc, and NixOS's own
-`/lib64/ld-linux-x86-64.so.2` is a stub that refuses them. Run the lanes
+Espressif's pinned Xtensa GCC is a release binary for glibc, and NixOS's
+own `/lib64/ld-linux-x86-64.so.2` is a stub that refuses it; the locked
+arm-eabi and riscv64-elf compilers are static and start anywhere. Run the lanes
 from `nix develop`: on Linux x86-64 its shell holds `landin-fhs`, the
 flake's FHS environment, which runs a command in a bubblewrap namespace
 with the store's glibc and libstdc++ at their FHS paths. A lane that finds

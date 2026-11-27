@@ -818,10 +818,10 @@ nix shell --inputs-from . nixpkgs#python312 -c python3 check.py
 # Every workflow through the actionlint environments/pins.sh pins, with
 # .github/actionlint.yaml's runner labels and the pinned shellcheck's pass
 # over every run: script, as the gate's scripts job runs it.  nix develop
-# provides both; elsewhere --install DIR fetches and verifies them first.  scripts/activations.py names it when a change
+# provides both, as the gate's job takes them through
+# .github/actions/nix-tools.  scripts/activations.py names it when a change
 # reaches .github/.
 python3 scripts/actionlint.py
-python3 scripts/actionlint.py --install "$(mktemp -d)"
 
 # Follow HEAD's gate run and return at its first failed job, rather than
 # when its last lane ends; with --all, follow it to its end and name every
@@ -1289,7 +1289,7 @@ environments/cortex-m/test.py`, which `check.py` runs.
 | `scripts/tests/test_release.py` | nothing of the jobs: it names the workflow in the API path the release check asks for main's run. |
 | `scripts/tests/test_nix_route.py` | `Gate`: the `flake-compiler` leg runs `scripts/nix_route.py` (D1707); it holds the matrix's `compiler` part by that step's condition. |
 | `scripts/tests/test_gate_history.py` | `Lanes`: every job the aggregate needs is in exactly one lane of `.github/gate-lanes.json`. `Wiring`: the selection's steps `continue-on-error`, no job's condition reads them, and `gate-rerun.yml` re-runs only a branch push's first attempt. |
-| `scripts/tests/test_check_controls.py` | nothing of the jobs: `PinnedToolchain` copies the workflow, so that `check.py` can hold the scripts job's actionlint step to `scripts/actionlint.py --install` and to no literal pin. |
+| `scripts/tests/test_check_controls.py` | nothing of the jobs: `PinnedToolchain` copies the workflow, so that `check.py` can hold the scripts, editor-grammar and links jobs to taking their tools from the flake through `.github/actions/nix-tools`. |
 
 ### Physical boards and promotion
 

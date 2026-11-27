@@ -3484,8 +3484,7 @@ def check_pinned_toolchain(full_run):
                         % (name, value)))
 
     out += gate_tool_pin_problems(pins, pins_text, record, record_text)
-    out += arm_elf_pin_problems(pins, pins_text, record, record_text)
-    out += riscv_elf_pin_problems(pins, pins_text, record, record_text)
+    out += elf_gcc_problems(record_text)
 
     #  A workflow need not install the toolchain itself -- the shared
     #  action and release.yml source pins.sh -- but every one is still a
@@ -3509,150 +3508,91 @@ def check_pinned_toolchain(full_run):
 
 
 GATE_TOOL_PINS = ("LANDIN_CLANG_NIX", "LANDIN_TREE_SITTER_VERSION",
-                  "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX",
-                  "LANDIN_TREE_SITTER_SHA256_AARCH64_LINUX",
-                  "LANDIN_TREE_SITTER_SHA256_AARCH64_DARWIN",
                   "LANDIN_CROSS_QEMU_NIX", "LANDIN_CROSS_GCC_NIX",
-                  "LANDIN_ACTIONLINT_VERSION",
-                  "LANDIN_ACTIONLINT_SHA256_X86_64_LINUX",
-                  "LANDIN_ACTIONLINT_SHA256_AARCH64_LINUX",
-                  "LANDIN_ACTIONLINT_SHA256_AARCH64_DARWIN",
-                  "LANDIN_SHELLCHECK_VERSION",
-                  "LANDIN_SHELLCHECK_SHA256_X86_64_LINUX",
-                  "LANDIN_SHELLCHECK_SHA256_AARCH64_LINUX",
-                  "LANDIN_SHELLCHECK_SHA256_AARCH64_DARWIN")
+                  "LANDIN_ACTIONLINT_VERSION", "LANDIN_SHELLCHECK_VERSION",
+                  "LANDIN_LYCHEE_VERSION")
 #  The versions the nix shell, and the gate's jobs through it, hold the
 #  package set to: read from the pins by name, and never written in
-#  flake.nix itself.
-CROSS_LANE_PINS = ("LANDIN_CROSS_QEMU_NIX", "LANDIN_CROSS_GCC_NIX", "LANDIN_CLANG_NIX")
-#  The shell's tree-sitter CLI is the gate's release binary, fetched by the
-#  pinned version and checked against the pinned sha256 for its system.
-SHELL_TREE_SITTER_READS = ('pin "LANDIN_TREE_SITTER_VERSION"',
-                           'pin "LANDIN_TREE_SITTER_SHA256_${suffix}"')
-#  The shell's actionlint likewise: the release binary scripts/actionlint.py
-#  fetches for the gate's scripts job, by the same version and checksums.
-SHELL_ACTIONLINT_READS = ('pin "LANDIN_ACTIONLINT_VERSION"',
-                          'pin "LANDIN_ACTIONLINT_RELEASES"',
-                          'pin "LANDIN_ACTIONLINT_SHA256_${suffix}"')
-#  And the shellcheck actionlint runs over the workflows' `run:` scripts,
-#  the release binary scripts/actionlint.py fetches beside it.
-SHELL_SHELLCHECK_READS = ('pin "LANDIN_SHELLCHECK_VERSION"',
-                          'pin "LANDIN_SHELLCHECK_RELEASES"',
-                          'pin "LANDIN_SHELLCHECK_SHA256_${suffix}"')
+#  flake.nix itself.  The editor grammar's CLI, the workflows' linter, the
+#  shellcheck it runs and the link checker are nixpkgs' packages held to
+#  their pins the same way.
+CROSS_LANE_PINS = ("LANDIN_CROSS_QEMU_NIX", "LANDIN_CROSS_GCC_NIX", "LANDIN_CLANG_NIX",
+                   "LANDIN_TREE_SITTER_VERSION", "LANDIN_ACTIONLINT_VERSION",
+                   "LANDIN_SHELLCHECK_VERSION", "LANDIN_LYCHEE_VERSION")
+#  The jobs that run those four take them from the flake through
+#  .github/actions/nix-tools: workflow, job-step package list.
+NIX_TOOL_JOBS = ((".github/workflows/gate.yml", "packages: actionlint shellcheck"),
+                 (".github/workflows/gate.yml", "packages: tree-sitter neovim emacs-nox"),
+                 (".github/workflows/links.yml", "packages: lychee"))
 
 
-#  The Cortex-M lane's GCC and binutils, read from the pins by the
-#  nix shell and the lane's installer, and never written in either.
-ARM_ELF_SYSTEMS = ("linux64-x86_64", "linux64-aarch64", "darwin-aarch64")
-ARM_ELF_READERS = {
-    "flake.nix": ('pin "LANDIN_GNAT_ARM_ELF_VERSION"',
-                  'pin "LANDIN_GNAT_ARM_ELF_SHA256_${suffix}"'),
-    "environments/cortex-m/setup.py": ('"LANDIN_GNAT_ARM_ELF_VERSION"',
-                                       '"LANDIN_GNAT_ARM_ELF_SHA256_X86_64_LINUX"'),
-}
+#  The Cortex-M and RV32 lanes' compilers: nix-packages' builds, which the
+#  lanes' lock holds as Linux x86-64 archives and the nix shell takes from
+#  the flake's nix-packages input (D3034).
+ELF_GCC_TARGETS = ("arm-eabi", "riscv64-elf")
+ELF_GCC_LOCK = "environments/cortex-m/tools.lock.json"
 
 
-def arm_elf_pin_problems(pins, pins_text, record, record_text):
-    """The Cortex-M lane's toolchain is pinned once and read everywhere.
+def elf_gcc_problems(record_text):
+    """The bare-metal compilers are one version, locked once and recorded.
 
-    GNAT's arm-elf archive is pinned in environments/pins.sh beside the
-    host GNAT, recorded in TOOLCHAIN.md, and fetched by the nix shell and
-    environments/cortex-m/setup.py; a reader that names the version itself
-    installs whatever it was last edited to say.
+    The lock holds a gcc-TARGET-VERSION-x86_64-linux.tar.xz archive for
+    each target, both of one GCC version, each recorded in TOOLCHAIN.md by
+    its file and checksum; the nix shell reads nix-packages' build of each
+    rather than fetching an archive of its own.
     """
-    values = dict(re.findall(r"^(LANDIN_\w+)=(\S+)$", pins_text, re.M))
-    version = values.get("LANDIN_GNAT_ARM_ELF_VERSION")
-    if version is None:
-        return [(pins, 1, "LANDIN_GNAT_ARM_ELF_VERSION is not pinned in "
-                          "environments/pins.sh")]
     out = []
-    #  The version alone also spells the host GNAT's archives, so the record
-    #  must name each arm-elf archive by its file.
-    for system in ARM_ELF_SYSTEMS:
-        archive = "gnat-arm-elf-%s-%s.tar.gz" % (system, version)
-        if archive not in record_text:
-            out.append((record, 1, "LANDIN_GNAT_ARM_ELF_VERSION %s's %s is not "
-                                   "recorded in compiler/ada/TOOLCHAIN.md"
-                        % (version, archive)))
-    for relative, reads in sorted(ARM_ELF_READERS.items()):
-        path = os.path.join(ROOT, relative)
-        missing = absent([path])
-        if missing:
-            out += missing
+    lock_path = os.path.join(ROOT, ELF_GCC_LOCK)
+    flake = os.path.join(ROOT, "flake.nix")
+    record = os.path.join(ROOT, "compiler/ada/TOOLCHAIN.md")
+    missing = absent([lock_path, flake])
+    if missing:
+        return missing
+    lock = json.loads(read_file(lock_path, encoding="utf-8"))
+    versions = {}
+    for target in ELF_GCC_TARGETS:
+        found = [item for item in lock
+                 if re.fullmatch(r"gcc-%s-([0-9.]+)-x86_64-linux\.tar\.xz"
+                                 % re.escape(target), item.get("file", ""))]
+        if len(found) != 1:
+            out.append((lock_path, 1, "%s holds %d gcc-%s archives, not one"
+                        % (ELF_GCC_LOCK, len(found), target)))
             continue
-        text = read_file(path, encoding="utf-8")
-        for read in reads:
-            if read not in text:
-                out.append((path, 1, "%s does not read %s from "
-                                     "environments/pins.sh" % (relative, read)))
-        if version in text:
-            out.append((path, 1, "%s names the arm-elf archive's %s literally "
-                                 "instead of reading it from "
-                                 "environments/pins.sh" % (relative, version)))
-    return out
-
-
-#  The RV32 lanes' GCC and binutils, GNAT's riscv64-elf archive of the
-#  same release (D660), read from the pins by the nix shell and by the
-#  lanes' installer, which fetches the Linux x86-64 one (D695).
-RISCV_ELF_READERS = {
-    "flake.nix": ('pin "LANDIN_GNAT_RISCV64_ELF_VERSION"',
-                  'pin "LANDIN_GNAT_RISCV64_ELF_SHA256_${suffix}"'),
-    "environments/cortex-m/setup.py": ('"LANDIN_GNAT_RISCV64_ELF_VERSION"',
-                                       '"LANDIN_GNAT_RISCV64_ELF_SHA256_X86_64_LINUX"'),
-}
-
-
-def riscv_elf_pin_problems(pins, pins_text, record, record_text):
-    """The RV32 lanes' toolchain is pinned once and read everywhere.
-
-    As arm_elf_pin_problems holds the Cortex-M lane's archive: GNAT's
-    riscv64-elf archive is pinned in environments/pins.sh, each host's
-    archive is named in TOOLCHAIN.md, and a reader takes the version and
-    checksum from the pins rather than spelling them itself.
-    """
-    values = dict(re.findall(r"^(LANDIN_\w+)=(\S+)$", pins_text, re.M))
-    version = values.get("LANDIN_GNAT_RISCV64_ELF_VERSION")
-    if version is None:
-        return [(pins, 1, "LANDIN_GNAT_RISCV64_ELF_VERSION is not pinned in "
-                          "environments/pins.sh")]
-    out = []
-    for system in ARM_ELF_SYSTEMS:
-        archive = "gnat-riscv64-elf-%s-%s.tar.gz" % (system, version)
-        if archive not in record_text:
-            out.append((record, 1, "LANDIN_GNAT_RISCV64_ELF_VERSION %s's %s is "
-                                   "not recorded in compiler/ada/TOOLCHAIN.md"
-                        % (version, archive)))
-    for relative, reads in sorted(RISCV_ELF_READERS.items()):
-        path = os.path.join(ROOT, relative)
-        missing = absent([path])
-        if missing:
-            out += missing
-            continue
-        text = read_file(path, encoding="utf-8")
-        for read in reads:
-            if read not in text:
-                out.append((path, 1, "%s does not read %s from "
-                                     "environments/pins.sh" % (relative, read)))
-        if "gnat-riscv64-elf-" + version in text:
-            out.append((path, 1, "%s names the riscv64-elf archive's %s "
-                                 "literally instead of reading it from "
-                                 "environments/pins.sh" % (relative, version)))
+        item = found[0]
+        versions[target] = item["file"][len("gcc-%s-" % target):].split("-")[0]
+        if item.get("into") != "gcc-" + target:
+            out.append((lock_path, 1, "%s's %s is not unpacked into gcc-%s"
+                        % (ELF_GCC_LOCK, item["file"], target)))
+        for value in (item["file"], item.get("sha256", "")):
+            if value not in record_text:
+                out.append((record, 1, "%s's %s is not recorded in "
+                                       "compiler/ada/TOOLCHAIN.md"
+                            % (ELF_GCC_LOCK, value)))
+    if len(set(versions.values())) > 1:
+        out.append((lock_path, 1, "%s's bare-metal compilers are GCC %s, not"
+                                  " one version" % (ELF_GCC_LOCK, " and ".join(
+                                      sorted(set(versions.values()))))))
+    flake_text = read_file(flake, encoding="utf-8")
+    for target in ELF_GCC_TARGETS:
+        read = "inputs.nix-packages.packages.${system}.gcc-%s;" % target
+        if read not in flake_text:
+            out.append((flake, 1, "flake.nix does not take the shell's %s "
+                                  "compiler from nix-packages (%s)" % (target, read)))
     return out
 
 
 def gate_tool_pin_problems(pins, pins_text, record, record_text):
     """The gate's other tools agree with every file that also names them.
 
-    The bindings job's Clang, the editor grammar's CLI and the workflows'
-    actionlint and the shellcheck it runs are pinned in environments/pins.sh
-    like the compiler.  Each is also written in one more place a reader or
-    a package manager reads -- TOOLCHAIN.md for all four, and the grammar's
-    package.json and lockfile for the CLI -- and a pin that agrees with
-    neither is a job that fetches something nobody recorded.  The gate's
-    scripts job runs actionlint and shellcheck through
-    scripts/actionlint.py, which reads the pins, so no workflow names a
-    version or a checksum of either itself.
+    The bindings job's Clang, the editor grammar's CLI, the workflows'
+    actionlint and the shellcheck it runs, and the link checker are
+    pinned in environments/pins.sh like the compiler, and flake.nix holds
+    nixpkgs' packages to them.  Each is also written in one more place a
+    reader or a package manager reads -- TOOLCHAIN.md for all of them, and
+    the grammar's package.json and lockfile for the CLI -- and a pin that
+    agrees with neither is a job that runs something nobody recorded.  The
+    jobs that run them take them from the flake through
+    .github/actions/nix-tools.
     """
     values = dict(re.findall(r"^(LANDIN_\w+)=(\S+)$", pins_text, re.M))
     out = []
@@ -3681,20 +3621,14 @@ def gate_tool_pin_problems(pins, pins_text, record, record_text):
     if locked.get("node_modules/tree-sitter-cli", {}).get("version") != version:
         out.append((lock, 1, "the lockfile's tree-sitter-cli is not %s, the "
                              "version environments/pins.sh names" % version))
-    gate = os.path.join(ROOT, ".github/workflows/gate.yml")
-    missing = absent([gate])
-    out += missing
-    if not missing:
-        gate_text = read_file(gate, encoding="utf-8")
-        if "python3 scripts/actionlint.py --install" not in gate_text:
-            out.append((gate, 1, "the gate does not run the pinned actionlint"
-                                 " through scripts/actionlint.py --install"))
-        for name in GATE_TOOL_PINS:
-            if (name.startswith(("LANDIN_ACTIONLINT", "LANDIN_SHELLCHECK"))
-                    and values[name] in gate_text):
-                out.append((gate, 1, "gate.yml names %s's %s literally instead"
-                                     " of reading it from environments/pins.sh"
-                            % (name, values[name])))
+    for relative, step in NIX_TOOL_JOBS:
+        workflow = os.path.join(ROOT, relative)
+        missing = absent([workflow])
+        out += missing
+        if not missing and step + "\n" not in read_file(workflow, encoding="utf-8"):
+            out.append((workflow, 1, "%s does not take its tool from the flake"
+                                     " through .github/actions/nix-tools (%s)"
+                        % (relative, step)))
     if not clang.startswith("19."):
         out.append((pins, 1, "LANDIN_CLANG_NIX %s is not a Clang 19 version"
                     % clang))
@@ -3707,28 +3641,6 @@ def gate_tool_pin_problems(pins, pins_text, record, record_text):
             out.append((flake, 1, "flake.nix does not hold its package set to "
                                   "%s from environments/pins.sh" % name))
         if '"%s"' % values[name] in flake_text:
-            out.append((flake, 1, "flake.nix names %s's %s literally instead "
-                                  "of reading it from environments/pins.sh"
-                        % (name, values[name])))
-    for read in SHELL_TREE_SITTER_READS:
-        if read not in flake_text:
-            out.append((flake, 1, "flake.nix does not take the shell's "
-                                  "tree-sitter CLI from environments/pins.sh"
-                                  " (%s)" % read))
-    for read in SHELL_ACTIONLINT_READS:
-        if read not in flake_text:
-            out.append((flake, 1, "flake.nix does not take the shell's "
-                                  "actionlint from environments/pins.sh"
-                                  " (%s)" % read))
-    for read in SHELL_SHELLCHECK_READS:
-        if read not in flake_text:
-            out.append((flake, 1, "flake.nix does not take the shell's "
-                                  "shellcheck from environments/pins.sh"
-                                  " (%s)" % read))
-    for name in GATE_TOOL_PINS:
-        if (name.startswith(("LANDIN_TREE_SITTER", "LANDIN_ACTIONLINT",
-                             "LANDIN_SHELLCHECK"))
-                and values[name] in flake_text):
             out.append((flake, 1, "flake.nix names %s's %s literally instead "
                                   "of reading it from environments/pins.sh"
                         % (name, values[name])))

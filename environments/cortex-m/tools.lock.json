@@ -22,5 +22,19 @@
     "sha256": "9862b2f8263407d6665f5767af157bbf799a2b1937afba21ddb8791ad98ff4ba",
     "kind": "tar.xz",
     "into": "gdb"
+  },
+  {
+    "url": "https://701-nix-packages.nbg1.your-objectstorage.com/exports/gcc-arm-eabi-16.1.0-x86_64-linux/gcc-arm-eabi-16.1.0-x86_64-linux.tar.xz",
+    "file": "gcc-arm-eabi-16.1.0-x86_64-linux.tar.xz",
+    "sha256": "f350aa91334945c92c73c73bc91452d93421622d888c82e1bafea040e24a8c37",
+    "kind": "tar.xz",
+    "into": "gcc-arm-eabi"
+  },
+  {
+    "url": "https://701-nix-packages.nbg1.your-objectstorage.com/exports/gcc-riscv64-elf-16.1.0-x86_64-linux/gcc-riscv64-elf-16.1.0-x86_64-linux.tar.xz",
+    "file": "gcc-riscv64-elf-16.1.0-x86_64-linux.tar.xz",
+    "sha256": "aeed42e1946e2b2ca2285b8b57fab29e5ed9ca431a9a6e055fbe6279a2bcd2e6",
+    "kind": "tar.xz",
+    "into": "gcc-riscv64-elf"
   }
 ]

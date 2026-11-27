@@ -132,8 +132,6 @@
 
           releases = pin "LANDIN_RELEASES";
           gnatVersion = pin "LANDIN_GNAT_VERSION";
-          armElfVersion = pin "LANDIN_GNAT_ARM_ELF_VERSION";
-          riscvElfVersion = pin "LANDIN_GNAT_RISCV64_ELF_VERSION";
           xtensaElfVersion = pin "LANDIN_XTENSA_ESP_ELF_VERSION";
           gprbuildVersion = pin "LANDIN_GPRBUILD_VERSION";
 
@@ -202,35 +200,17 @@
               };
             });
 
-          #  The Cortex-M lane's GCC and binutils, GNAT's arm-elf
-          #  archive from the same release, whose driver is `arm-eabi-gcc`.
-          #  Only the shell carries it: the refine package links hosted
-          #  programs, and refine finds a distribution's `arm-none-eabi-gcc`
-          #  for firmware without it (D532).
-          armElfSystem =
-            {
-              x86_64-linux = "linux64-x86_64";
-              aarch64-linux = "linux64-aarch64";
-              aarch64-darwin = "darwin-aarch64";
-            }
-            .${system};
-          gnatArmElf = fromArchive {
-            pname = "landin-gnat-arm-elf";
-            version = armElfVersion;
-            url = "${releases}/gnat-${armElfVersion}/gnat-arm-elf-${armElfSystem}-${armElfVersion}.tar.gz";
-            sha256 = pin "LANDIN_GNAT_ARM_ELF_SHA256_${suffix}";
-          };
-
-          #  The RV32 lanes' GCC and binutils, GNAT's riscv64-elf archive
-          #  from the same release, whose driver is `riscv64-elf-gcc` and
-          #  whose rv32imc and rv32imac multilibs firmware links against;
-          #  the shell alone carries it, as it carries arm-elf (D660).
-          gnatRiscvElf = fromArchive {
-            pname = "landin-gnat-riscv64-elf";
-            version = riscvElfVersion;
-            url = "${releases}/gnat-${riscvElfVersion}/gnat-riscv64-elf-${armElfSystem}-${riscvElfVersion}.tar.gz";
-            sha256 = pin "LANDIN_GNAT_RISCV64_ELF_SHA256_${suffix}";
-          };
+          #  The Cortex-M and RV32 lanes' GCC, binutils and newlib, whose
+          #  drivers are `arm-eabi-gcc` and `riscv64-elf-gcc`: nix-packages'
+          #  builds, static on Linux, configured as GNAT-FSF-builds' arm-elf
+          #  and riscv64-elf archives are, whose rv32imc and rv32imac
+          #  multilibs firmware links against (D660).  The Linux x86-64
+          #  archives environments/cortex-m/tools.lock.json locks are the
+          #  same builds.  Only the shell carries them: the refine package
+          #  links hosted programs, and refine finds a distribution's
+          #  `arm-none-eabi-gcc` for firmware without them (D532).
+          gccArmEabi = inputs.nix-packages.packages.${system}.gcc-arm-eabi;
+          gccRiscvElf = inputs.nix-packages.packages.${system}.gcc-riscv64-elf;
 
           xtensaElfSystem = {
             x86_64-linux = "x86_64-linux-gnu";
@@ -556,6 +536,8 @@
               llvm-19 = llvmVersioned;
               inherit (pkgs) bubblewrap neovim;
               inherit (inputs.nix-packages.packages.${system}) emacs-nox;
+              tree-sitter = treeSitter;
+              inherit actionlint shellcheck lychee;
             }
             // lib.optionalAttrs (system == "x86_64-linux") {
               qemu-system = qemuSystem;
@@ -578,119 +560,35 @@
             ++ map crossLane crossLanes
           );
 
-          #  The structural editor grammar's CLI: the release binary
-          #  tree-sitter publishes for the pinned version, checked against
-          #  the sha256 environments/pins.sh holds for this system -- the
-          #  binary the gate's editor-grammar job runs, not nixpkgs'
-          #  tree-sitter at whatever version the lock carries.  Its Linux
-          #  build is linked for a glibc system, so its interpreter is
-          #  patched to the store as the toolchain archives' are.
-          treeSitterVersion = pin "LANDIN_TREE_SITTER_VERSION";
-          treeSitterAsset =
-            {
-              x86_64-linux = "linux-x64";
-              aarch64-linux = "linux-arm64";
-              aarch64-darwin = "macos-arm64";
-            }
-            .${system};
-          treeSitter = pkgs.stdenvNoCC.mkDerivation {
-            pname = "landin-tree-sitter";
-            version = treeSitterVersion;
-            src = pkgs.fetchurl {
-              url =
-                "https://github.com/tree-sitter/tree-sitter/releases/download/"
-                + "v${treeSitterVersion}/tree-sitter-${treeSitterAsset}.gz";
-              sha256 = pin "LANDIN_TREE_SITTER_SHA256_${suffix}";
-            };
-            dontUnpack = true;
-            nativeBuildInputs = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
-              pkgs.autoPatchelfHook
-            ];
-            buildInputs = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
-              (lib.getLib pkgs.stdenv.cc.cc)
-            ];
-            installPhase = ''
-              runHook preInstall
-              mkdir -p "$out/bin"
-              gunzip -c "$src" > "$out/bin/tree-sitter"
-              chmod 755 "$out/bin/tree-sitter"
-              runHook postInstall
-            '';
-          };
+          #  The structural editor grammar's CLI, the workflows' linter, the
+          #  shell linter it runs over their `run:` scripts, and the link
+          #  checker: nixpkgs' own packages, built from source and served by
+          #  the nix-packages cache, held to the versions environments/pins.sh
+          #  names, so moving flake.lock moves them on purpose.  nixpkgs'
+          #  tree-sitter generates the committed parser byte for byte, as the
+          #  release binary did; its JavaScript runtime is the built-in one.
+          #  actionlint is nix-packages' build of nixpkgs' recipe without the
+          #  wrapper that brings a Python and a second shellcheck along;
+          #  scripts/actionlint.py names the pinned shellcheck by its path.
+          pinnedTool =
+            pinName: wanted: package:
+            if package.version != wanted then
+              throw "landin: nixpkgs' ${package.pname} is ${package.version} and environments/pins.sh pins ${pinName}=${wanted}; move the pin with flake.lock"
+            else
+              package;
+          treeSitter = pinnedTool "LANDIN_TREE_SITTER_VERSION" (pin "LANDIN_TREE_SITTER_VERSION") pkgs.tree-sitter;
+          actionlint = pinnedTool "LANDIN_ACTIONLINT_VERSION" (pin "LANDIN_ACTIONLINT_VERSION") inputs.nix-packages.packages.${system}.actionlint;
+          shellcheck = pinnedTool "LANDIN_SHELLCHECK_VERSION" (pin "LANDIN_SHELLCHECK_VERSION") pkgs.shellcheck;
+          lychee = pinnedTool "LANDIN_LYCHEE_VERSION" (pin "LANDIN_LYCHEE_VERSION") pkgs.lychee;
 
-          #  The workflows' linter: the release binary actionlint publishes
-          #  for the pinned version, checked against the sha256
-          #  environments/pins.sh holds for this system -- the binary
-          #  scripts/actionlint.py fetches for the gate's scripts job.  It
-          #  is a static Go program, so nothing is patched.
-          actionlintVersion = pin "LANDIN_ACTIONLINT_VERSION";
-          actionlintAsset =
-            {
-              x86_64-linux = "linux_amd64";
-              aarch64-linux = "linux_arm64";
-              aarch64-darwin = "darwin_arm64";
-            }
-            .${system};
-          actionlint = pkgs.stdenvNoCC.mkDerivation {
-            pname = "landin-actionlint";
-            version = actionlintVersion;
-            src = pkgs.fetchurl {
-              url =
-                "${pin "LANDIN_ACTIONLINT_RELEASES"}/v${actionlintVersion}/"
-                + "actionlint_${actionlintVersion}_${actionlintAsset}.tar.gz";
-              sha256 = pin "LANDIN_ACTIONLINT_SHA256_${suffix}";
-            };
-            sourceRoot = ".";
-            dontConfigure = true;
-            dontBuild = true;
-            installPhase = ''
-              runHook preInstall
-              install -Dm755 actionlint "$out/bin/actionlint"
-              runHook postInstall
-            '';
-          };
-
-          #  The shell linter actionlint runs over the workflows' `run:`
-          #  scripts: the release binary shellcheck publishes for the
-          #  pinned version, checked against the sha256 environments/pins.sh
-          #  holds for this system -- the binary scripts/actionlint.py
-          #  fetches beside actionlint.  It is a static program, so nothing
-          #  is patched.
-          shellcheckVersion = pin "LANDIN_SHELLCHECK_VERSION";
-          shellcheckAsset =
-            {
-              x86_64-linux = "linux.x86_64";
-              aarch64-linux = "linux.aarch64";
-              aarch64-darwin = "darwin.aarch64";
-            }
-            .${system};
-          shellcheck = pkgs.stdenvNoCC.mkDerivation {
-            pname = "landin-shellcheck";
-            version = shellcheckVersion;
-            src = pkgs.fetchurl {
-              url =
-                "${pin "LANDIN_SHELLCHECK_RELEASES"}/v${shellcheckVersion}/"
-                + "shellcheck-v${shellcheckVersion}.${shellcheckAsset}.tar.xz";
-              sha256 = pin "LANDIN_SHELLCHECK_SHA256_${suffix}";
-            };
-            dontConfigure = true;
-            dontBuild = true;
-            installPhase = ''
-              runHook preInstall
-              install -Dm755 shellcheck "$out/bin/shellcheck"
-              runHook postInstall
-            '';
-          };
-
-          #  The Cortex-M, RV32 and Xtensa lanes' QEMU 10.0.13, GDB 16.3
-          #  and Espressif's QEMU 9.2.2 are archives 701-dev/nix-packages
-          #  built, locked in environments/cortex-m/tools.lock.json and
-          #  installed by environments/cortex-m/setup.py; they need
-          #  nothing of the host's.  The cross compilers setup.py installs
-          #  beside them, GNAT's arm-elf and riscv64-elf archives and
-          #  Espressif's Xtensa GCC, are release binaries for glibc, and
-          #  NixOS's /lib64/ld-linux-x86-64.so.2 is a stub that refuses
-          #  them, so `landin-fhs CMD` runs CMD in a bubblewrap namespace
+          #  The Cortex-M, RV32 and Xtensa lanes' QEMU 10.0.13, GDB 16.3,
+          #  Espressif's QEMU 9.2.2 and the arm-eabi and riscv64-elf
+          #  compilers are archives 701-dev/nix-packages built, locked in
+          #  environments/cortex-m/tools.lock.json and installed by
+          #  environments/cortex-m/setup.py; they need nothing of the
+          #  host's.  The Xtensa compiler setup.py installs beside them,
+          #  Espressif's release, is a binary for glibc, and NixOS's
+          #  /lib64/ld-linux-x86-64.so.2 is a stub that refuses it, so `landin-fhs CMD` runs CMD in a bubblewrap namespace
           #  holding the store's glibc and libstdc++ at their FHS paths,
           #  and the lanes re-run themselves through it when they find
           #  the stub (environments/cortex-m/setup.py's nixos_route).
@@ -699,13 +597,9 @@
           #  puts its own /usr/bin first on PATH; this restores the
           #  shell's, so a lane finds the same tools inside as out, and
           #  LANDIN_FHS tells a lane it is inside.  Linux x86-64 only: the
-          #  pins are amd64 binaries, and the lanes refuse other hosts.
+          #  pin is an amd64 binary, and the lanes refuse other hosts.
           lockedToolsFhs = pkgs.buildFHSEnv {
             name = "landin-fhs";
-            #  GNAT's cc1, lto1 and gnat1 load libzstd.so.1 from the host,
-            #  as every distribution supplies it; until the lock lost its
-            #  Debian root, its library directory did so on LD_LIBRARY_PATH.
-            targetPkgs = p: [ p.zstd ];
             extraPreBwrapCmds = ''
               export LANDIN_FHS_PATH="$PATH"
             '';
@@ -921,8 +815,8 @@
             ] ++ [
               gnat
               gprbuild
-              gnatArmElf
-              gnatRiscvElf
+              gccArmEabi
+              gccRiscvElf
               xtensaElf
               pkgs.python3 #  check.py and docs/site/render_html.py
               #  The structural editor grammar's corpus, highlight/test.sh
@@ -933,6 +827,8 @@
               #  versions the gate's scripts job runs.
               actionlint
               shellcheck
+              #  The link checker links.yml runs, at the version it runs.
+              lychee
               #  stdenv's bash is built without readline, so it has no
               #  `compgen` or `complete` and a completion script run through
               #  `bash` fails here as it does on no contributor's system.

@@ -18,18 +18,19 @@ sys.path.insert(0, str(HERE.parents[1] / 'scripts'))
 import download  # noqa: E402
 DEFAULT = Path.home() / "work/.cortex-m"
 PINS = HERE.parent / "pins.sh"
-#  GCC and binutils are GNAT's arm-elf archive, and for the RV32 lanes its
-#  riscv64-elf archive, from the release the host GNAT comes from, and
-#  pinned beside it in environments/pins.sh; the lock keeps the emulators
-#  and the GDB whose Python the sessions run, each an archive built by
-#  701-dev/nix-packages.  Espressif's Xtensa compiler and its per-chip
-#  plugins share the pins of environments/pins.sh.
-ARM = "gnat-arm-elf"
-RISCV = "gnat-riscv64-elf"
+#  The lock holds archives built by 701-dev/nix-packages: GCC, binutils and
+#  newlib for the Cortex-M lanes (arm-eabi) and the RV32 lanes
+#  (riscv64-elf), the emulators, and the GDB whose Python the sessions run.
+#  Espressif's Xtensa compiler and its per-chip plugins are its release,
+#  pinned in environments/pins.sh.
 XTENSA = "xtensa-esp-elf"
-#  Where the lock's archives are unpacked: QEMU for the Cortex-M machines,
-#  GDB, and Espressif's QEMU, one archive serving the RV32 and the Xtensa
-#  lanes.
+#  Where the lock's archives are unpacked: the two bare-metal compilers,
+#  QEMU for the Cortex-M machines, GDB, and Espressif's QEMU, one archive
+#  serving the RV32 and the Xtensa lanes.
+ARM = "gcc-arm-eabi"
+RISCV = "gcc-riscv64-elf"
+#  What the two compilers' --version names as their package.
+BUILDER = "701-dev nix-packages"
 QEMU_ARM = "qemu-arm"
 GDB = "gdb"
 ESPRESSIF = "qemu-espressif"
@@ -41,24 +42,18 @@ def pins():
     return dict(re.findall(r"^(LANDIN_\w+)=(\S+)$", PINS.read_text(), re.M))
 
 
-def arm_archive():
-    """The pinned arm-elf archive for this host: its URL, file and sha256."""
-    values = pins()
-    version = values["LANDIN_GNAT_ARM_ELF_VERSION"]
-    name = "gnat-arm-elf-linux64-x86_64-%s.tar.gz" % version
-    return {"url": "%s/gnat-%s/%s" % (values["LANDIN_RELEASES"], version, name),
-            "file": name, "version": version,
-            "sha256": values["LANDIN_GNAT_ARM_ELF_SHA256_X86_64_LINUX"]}
+def locked(area):
+    """The lock's archive unpacked into AREA: its URL, file and sha256."""
+    for item in json.loads((HERE / 'tools.lock.json').read_text()):
+        if area in areas(item):
+            return item
+    raise RuntimeError('environments/cortex-m/tools.lock.json has no archive for ' + area)
 
 
-def riscv_archive():
-    """The pinned riscv64-elf archive for this host: its URL, file and sha256."""
-    values = pins()
-    version = values["LANDIN_GNAT_RISCV64_ELF_VERSION"]
-    name = "gnat-riscv64-elf-linux64-x86_64-%s.tar.gz" % version
-    return {"url": "%s/gnat-%s/%s" % (values["LANDIN_RELEASES"], version, name),
-            "file": name, "version": version,
-            "sha256": values["LANDIN_GNAT_RISCV64_ELF_SHA256_X86_64_LINUX"]}
+def gcc_version(area):
+    """The GCC version the lock's compiler archive for AREA holds, from its
+    file name, gcc-TARGET-VERSION-SYSTEM.tar.xz."""
+    return locked(area)['file'][len(area) + 1:].split('-', 1)[0]
 
 
 def xtensa_archive():
@@ -106,12 +101,12 @@ def probe_inputs(root):
             if not name.endswith('.md')}
 
 
-#  The emulators and GDB need nothing of the host's: the Espressif QEMU and
-#  GDB are static, and the Cortex-M QEMU carries its own glibc and loader.
-#  The cross compilers, GNAT's arm-elf and riscv64-elf archives, are glibc
-#  binaries that ask for glibc 2.35 (Espressif's Xtensa compiler, 2.17), so
-#  that is the host they need, whichever distribution supplies it.
-GLIBC = (2, 35)
+#  The lock's archives need nothing of the host's: the two compilers, the
+#  Espressif QEMU and GDB are static, and the Cortex-M QEMU carries its own
+#  glibc and loader.  Espressif's Xtensa compiler is a glibc binary that
+#  asks for glibc 2.17, so that is the host it needs, whichever
+#  distribution supplies it.
+GLIBC = (2, 17)
 
 
 def supported_host(output=None):
@@ -140,8 +135,8 @@ def nixos_route(output=None):
     """On NixOS, run this lane where the pinned cross compilers can start.
 
     NixOS's own loader path holds a stub that refuses a binary built for
-    another distribution, so the GNAT and Espressif compilers, release
-    binaries for glibc, start only inside an FHS environment.  The flake's `landin-fhs` is one: when it is on PATH, as it
+    another distribution, so Espressif's Xtensa compiler, a release binary
+    for glibc, starts only inside an FHS environment.  The flake's `landin-fhs` is one: when it is on PATH, as it
     is in `nix develop`, the lane runs itself again through it, with the
     same arguments, before it has done anything; without it the lane is
     refused naming that route.
@@ -168,7 +163,7 @@ def nixos_route(output=None):
             sys.stderr.flush()
             os.execv(wrapper, [wrapper, sys.executable, *sys.orig_argv[1:]])
         raise SystemExit(
-            'cortex-m: the pinned cross compilers are release binaries for glibc, and this'
+            'cortex-m: Espressif\'s pinned Xtensa compiler is a release binary for glibc, and this'
             ' NixOS host\'s %s is its stub loader, which refuses them.  Run the lane from `nix develop`,'
             ' whose %s runs it in an FHS environment of the store\'s glibc:\n  %s'
             % (LOADER, FHS, route))
@@ -195,7 +190,7 @@ def nixos_route(output=None):
 def installed_tools(path):
     """The resolved tool root, refused before any build if nothing is installed there.
 
-    Every lane runs `gnat-arm-elf/bin/arm-eabi-gcc` and friends under the
+    Every lane runs `gcc-arm-eabi/bin/arm-eabi-gcc` and friends under the
     root its --tools names, which defaults to DEFAULT; without this a host
     whose tools are elsewhere failed each profile with "No such file or
     directory" from a compile, naming neither where it looked nor how to
@@ -244,7 +239,7 @@ def unpack(archive, into, mode):
 
 
 #  The areas the lock's archives may be unpacked into.
-LOCKED = (QEMU_ARM, GDB, ESPRESSIF, ESPRESSIF_XTENSA)
+LOCKED = (ARM, RISCV, QEMU_ARM, GDB, ESPRESSIF, ESPRESSIF_XTENSA)
 
 
 def areas(item):
@@ -284,12 +279,8 @@ def main():
                 unpack(dest, root / area, '-xJf')
         else:
             raise RuntimeError('unknown archive kind: ' + item['kind'])
-    for area, archive in ((ARM, arm_archive()), (RISCV, riscv_archive())):
-        unpack(fetch(packages, archive), root / area, '-xzf')
     unpack(fetch(packages, xtensa_archive()), root / XTENSA, '-xJf')
     record = {'lock_sha256': sha(HERE / 'tools.lock.json'),
-              'arm': {key: arm_archive()[key] for key in ('version', 'sha256')},
-              'riscv': {key: riscv_archive()[key] for key in ('version', 'sha256')},
               'xtensa': {key: xtensa_archive()[key] for key in ('version', 'sha256')},
               'files': {area: inventory(root / area) for area in AREAS}}
     (root / 'installation.json').write_text(json.dumps(record, sort_keys=True) + '\n')

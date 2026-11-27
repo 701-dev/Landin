@@ -451,7 +451,7 @@ package body Landin.Tests.Toolchain_Suite is
       Landin.Testing.Check_Equal
         (Item, Landin.Backend.Toolchain.Driver_For (RV32, ""),
          "riscv64-elf-gcc",
-         "RV32 selects the pinned GNAT riscv64-elf driver");
+         "RV32 selects the pinned riscv64-elf driver");
       Landin.Testing.Check_Equal
         (Item, Landin.Platform.Joined
            (Landin.Backend.Toolchain.Assemble_Arguments
