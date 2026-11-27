@@ -1,0 +1,290 @@
+--  The matrix product, blocked and packed for the cache, the BLAS's
+--  `gemm`.
+--
+--  The product follows Goto and van de Geijn, "Anatomy of
+--  high-performance matrix multiplication", ACM TOMS 34 (2008): a panel
+--  of `b`, `depth_block` rows by `column_block` columns, is copied into
+--  the scratch in slivers `register_columns` wide, where it stays in
+--  the outer cache, and for each block of `a`, `row_block` rows by
+--  `depth_block` columns, copied in slivers `register_rows` high so it
+--  stays in the inner cache, a kernel multiplies one sliver of each,
+--  keeping its `register_rows` by `register_columns` sums in registers.
+--  Copying puts every operand the kernel reads next to the last, in the
+--  order it reads them, whatever the steps of the views.
+import core/math
+
+--  The kernel's block of sums, rows by columns.
+register_rows: usize = 4
+register_columns: usize = 2
+
+--  The largest blocks the scratch is cut into, in elements: `a`'s block
+--  is `row_block` by `depth_block`, and `b`'s panel `depth_block` by
+--  `column_block`.  For f64, `a`'s block is 256 KiB, half a Zen 2 core's
+--  second-level cache, and `b`'s panel 2 MiB.
+row_block: usize = 128
+depth_block: usize = 256
+column_block: usize = 1024
+
+--  `n` rounded up to a multiple of `step`.
+round_up: (n: usize, step: usize) -> (result: usize) =
+    result = (n + step - 1) / step * step
+end round_up
+
+lesser: (x: usize, y: usize) -> (result: usize) =
+    result = if x < y then x else y end if
+end lesser
+
+--- How many elements of scratch `dense.multiply` packs its operands
+--- into at its largest blocks, for a product of `rows` by `columns`
+--- over `depth`: the length it is fastest with.  It is at most
+--- 294,912, 2.25 MiB of f64.
+public product_scratch: (rows: usize, columns: usize, depth: usize)
+                        -> (length: usize) =
+    depth_size := lesser(depth, depth_block)
+    row_size := lesser(round_up(rows, register_rows), row_block)
+    column_size := lesser(round_up(columns, register_columns), column_block)
+    length = depth_size * (row_size + column_size)
+end product_scratch
+
+--  The blocks one product cuts its scratch into: zero `depth` when the
+--  scratch holds not even one sliver of each operand.
+blocking: type = struct
+    rows: usize
+    depth: usize
+    columns: usize
+end blocking
+
+choose_blocking: (room: usize, rows: usize, columns: usize, depth: usize)
+                 -> (b: blocking) =
+    slivers := register_rows + register_columns
+    mut depth_size := lesser(depth, depth_block)
+    if room < depth_size * slivers then
+        depth_size = room / slivers
+    end if
+    b = (rows: 0, depth: depth_size, columns: 0)
+    if depth_size == 0 then
+        return
+    end if
+    per_depth := room / depth_size
+    row_size := lesser(lesser(round_up(rows, register_rows), row_block),
+                       (per_depth - register_columns) / register_rows * register_rows)
+    column_size := lesser(lesser(round_up(columns, register_columns), column_block),
+                          (per_depth - row_size) / register_columns * register_columns)
+    b = (rows: row_size, depth: depth_size, columns: column_size)
+end choose_blocking
+
+--  Copy the block of `a` from (`row`, `first`), `rows` by `depth`, into
+--  `into` in slivers of `register_rows` rows: sliver `s` holds, for each
+--  column in turn, its `register_rows` elements, the rows past `a`'s end
+--  as zeros.
+pack_rows: (item: type is math.floating, into: []mut item, a: matrix(item),
+            row: usize, first: usize, rows: usize, depth: usize) -> none =
+    zero: item = item(0)
+    mut to: usize = 0
+    mut sliver: usize = 0
+    while sliver < rows do
+        height := lesser(register_rows, rows - sliver)
+        base := (row + sliver) * a.row_step + first * a.column_step
+        if height == register_rows then
+            unchecked begin
+                for p in 0..<depth do
+                    at := base + p * a.column_step
+                    into[to] = a.values[at]
+                    into[to + 1] = a.values[at + a.row_step]
+                    into[to + 2] = a.values[at + 2 * a.row_step]
+                    into[to + 3] = a.values[at + 3 * a.row_step]
+                    to += register_rows
+                end for
+            end unchecked
+        else
+            for p in 0..<depth do
+                for r in 0..<register_rows do
+                    into[to] = if r < height then a.values[base + p * a.column_step + r * a.row_step]
+                               else zero end if
+                    inc to
+                end for
+            end for
+        end if
+        sliver += register_rows
+    end while
+end pack_rows
+
+--  Copy the panel of `b` from (`first`, `column`), `depth` by
+--  `columns`, into `into` in slivers of `register_columns` columns:
+--  sliver `s` holds, for each row in turn, its `register_columns`
+--  elements, the columns past `b`'s end as zeros.
+pack_columns: (item: type is math.floating, into: []mut item, b: matrix(item),
+               first: usize, column: usize, depth: usize, columns: usize)
+              -> none =
+    zero: item = item(0)
+    mut to: usize = 0
+    mut sliver: usize = 0
+    while sliver < columns do
+        width := lesser(register_columns, columns - sliver)
+        base := first * b.row_step + (column + sliver) * b.column_step
+        if width == register_columns then
+            unchecked begin
+                for p in 0..<depth do
+                    at := base + p * b.row_step
+                    into[to] = b.values[at]
+                    into[to + 1] = b.values[at + b.column_step]
+                    to += register_columns
+                end for
+            end unchecked
+        else
+            for p in 0..<depth do
+                for c in 0..<register_columns do
+                    into[to] = if c < width then b.values[base + p * b.row_step + c * b.column_step]
+                               else zero end if
+                    inc to
+                end for
+            end for
+        end if
+        sliver += register_columns
+    end while
+end pack_columns
+
+--  The kernel: `alpha` times the product of the packed sliver of `a` at
+--  `at_a` and of `b` at `at_b`, over `depth`, added to the `height` by
+--  `width` block of `c` from (`row`, `column`).  The packing guarantees
+--  every index the unchecked loop reads.
+kernel: (item: type is math.floating, packed: []mut item,
+         at_a: usize, at_b: usize, depth: usize, alpha: item,
+         c: matrix(item), row: usize, column: usize,
+         height: usize, width: usize) -> none =
+    zero: item = item(0)
+    mut s00 := zero
+    mut s01 := zero
+    mut s10 := zero
+    mut s11 := zero
+    mut s20 := zero
+    mut s21 := zero
+    mut s30 := zero
+    mut s31 := zero
+    unchecked begin
+        mut pa := at_a
+        mut pb := at_b
+        for p in 0..<depth do
+            b0 := packed[pb]
+            b1 := packed[pb + 1]
+            a0 := packed[pa]
+            s00 = s00 + a0 * b0
+            s01 = s01 + a0 * b1
+            a1 := packed[pa + 1]
+            s10 = s10 + a1 * b0
+            s11 = s11 + a1 * b1
+            a2 := packed[pa + 2]
+            s20 = s20 + a2 * b0
+            s21 = s21 + a2 * b1
+            a3 := packed[pa + 3]
+            s30 = s30 + a3 * b0
+            s31 = s31 + a3 * b1
+            pa += register_rows
+            pb += register_columns
+        end for
+    end unchecked
+    for i in 0..<height do
+        first := if i == 0 then s00 elsif i == 1 then s10 elsif i == 2 then s20 else s30 end if
+        second := if i == 0 then s01 elsif i == 1 then s11 elsif i == 2 then s21 else s31 end if
+        at := (row + i) * c.row_step + column * c.column_step
+        c.values[at] = c.values[at] + alpha * first
+        if width > 1 then
+            next := at + c.column_step
+            c.values[next] = c.values[next] + alpha * second
+        end if
+    end for
+end kernel
+
+--  `C ← α·A·B + C` without packing, for a scratch too small to hold
+--  one sliver of each operand: each element of `c` a dot product.
+multiply_unpacked: (item: type is math.floating, c: matrix(item), alpha: item,
+                    a: matrix(item), b: matrix(item)) -> none =
+    for i in 0..<c.rows do
+        for j in 0..<c.columns do
+            mut total := item(0)
+            mut at_a: usize = i * a.row_step
+            mut at_b: usize = j * b.column_step
+            for p in 0..<a.columns do
+                total = total + a.values[at_a] * b.values[at_b]
+                at_a += a.column_step
+                at_b += b.row_step
+            end for
+            at := i * c.row_step + j * c.column_step
+            c.values[at] = c.values[at] + alpha * total
+        end for
+    end for
+end multiply_unpacked
+
+--  `c ← β·c`, with `c` not read when `beta` is 0 and left as it is
+--  when `beta` is 1.
+scale_result_matrix: (item: type is math.floating, c: matrix(item), beta: item)
+                     -> none =
+    if beta == item(0) then
+        fill_matrix(c, item(0))
+    elsif beta <> item(1) then
+        scale_matrix(c, beta)
+    end if
+end scale_result_matrix
+
+--- `C ← α·A·B + β·C`, the BLAS's `gemm`; a transposed operand is a
+--- transposed view.  `scratch` is the caller's storage the operands are
+--- packed into, `dense.product_scratch` long for the fastest product: a
+--- shorter one cuts smaller blocks, and one too short for a single
+--- sliver of each operand, eight elements per row of the depth block,
+--- an empty one included, multiplies without packing.  When `beta` is 0
+--- `into` is not read, and when `alpha` is 0 `a` and `b` are not.  Each
+--- element of the product is a sum in order of depth within each block
+--- of `depth_block`.  `into` must not overlap `a`, `b` or `scratch`.
+--- Stops the program when the shapes disagree.
+public multiply: (item: type is math.floating, into: matrix(item),
+                  alpha: item, a: matrix(item), b: matrix(item), beta: item,
+                  scratch: []mut item, caller where: site) -> none =
+    require(a.rows == into.rows and b.columns == into.columns
+            and a.columns == b.rows, where: where)
+    m := into.rows
+    n := into.columns
+    k := a.columns
+    if m == 0 or n == 0 then
+        return
+    end if
+    scale_result_matrix(into, beta)
+    if alpha == item(0) or k == 0 then
+        return
+    end if
+    blocks := choose_blocking(lenof scratch, m, n, k)
+    if blocks.depth == 0 then
+        multiply_unpacked(into, alpha, a, b)
+        return
+    end if
+    b_base := blocks.rows * blocks.depth
+    mut jc: usize = 0
+    while jc < n do
+        nb := lesser(blocks.columns, n - jc)
+        mut pc: usize = 0
+        while pc < k do
+            kb := lesser(blocks.depth, k - pc)
+            pack_columns(scratch[b_base..<lenof scratch], b, pc, jc, kb, nb)
+            mut ic: usize = 0
+            while ic < m do
+                mb := lesser(blocks.rows, m - ic)
+                pack_rows(scratch, a, ic, pc, mb, kb)
+                mut jr: usize = 0
+                while jr < nb do
+                    width := lesser(register_columns, nb - jr)
+                    at_b := b_base + jr * kb
+                    mut ir: usize = 0
+                    while ir < mb do
+                        height := lesser(register_rows, mb - ir)
+                        kernel(scratch, ir * kb, at_b, kb, alpha, into,
+                               ic + ir, jc + jr, height, width)
+                        ir += register_rows
+                    end while
+                    jr += register_columns
+                end while
+                ic += blocks.rows
+            end while
+            pc += blocks.depth
+        end while
+        jc += blocks.columns
+    end while
+end multiply

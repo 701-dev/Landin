@@ -1,0 +1,16 @@
+error[L0339]: a `caller` parameter needs a struct of exactly file_id, line and column, each u32, in order
+  --> ../tests/fixtures/negative/compiler-unreachable-undeclared-site/program.ldn:4:24
+  |
+4 | require: (holds: bool, caller where: site) -> none =
+  |                        ^^^^^^^^^^^^^^^^^^
+  --> ../tests/fixtures/negative/compiler-unreachable-undeclared-site/program.ldn:4:38
+  |
+4 | require: (holds: bool, caller where: site) -> none =
+  |                                      ^^^^ this written type
+  = note: D192: source filenames live in a separate table
+error[L0201]: `site` is not declared in any scope this reaches
+  --> ../tests/fixtures/negative/compiler-unreachable-undeclared-site/program.ldn:4:38
+  |
+4 | require: (holds: bool, caller where: site) -> none =
+  |                                      ^^^^
+  = note: [1860]: a name that names nothing is refused

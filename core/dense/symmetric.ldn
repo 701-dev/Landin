@@ -1,0 +1,213 @@
+--  Products with symmetric and triangular matrices, the rest of the
+--  BLAS's third level: the symmetric product, symmetric rank-k and
+--  rank-2k updates, and triangular products and solves with many
+--  right-hand sides.
+import core/math
+
+--  The other triangle.
+opposite: (part: triangle) -> (other: triangle) =
+    other = if part == upper then lower else upper end if
+end opposite
+
+--  Element (i, j) of the symmetric matrix whose triangle `part` `a`
+--  holds.
+symmetric_element: (item: type is math.floating, a: matrix(item),
+                    part: triangle, i: usize, j: usize) -> (value: item) =
+    stored_here := if part == upper then i <= j else i >= j end if
+    if stored_here then
+        value = a.values[i * a.row_step + j * a.column_step]
+    else
+        value = a.values[j * a.row_step + i * a.column_step]
+    end if
+end symmetric_element
+
+--- `C ← α·A·B + β·C` when `on` is `left`, or `C ← α·B·A + β·C` when it
+--- is `right`, for a symmetric `A` of which only the triangle `part` is
+--- read, the BLAS's `symm`.  When `beta` is 0 `into` is not read, and
+--- when `alpha` is 0 `a` and `b` are not.  Stops the program when the
+--- shapes disagree.
+public multiply_symmetric: (item: type is math.floating, into: matrix(item),
+                            on: side, alpha: item, a: matrix(item),
+                            part: triangle, b: matrix(item), beta: item,
+                            caller where: site) -> none =
+    order := if on == left then into.rows else into.columns end if
+    require(a.rows == order and a.columns == order
+            and b.rows == into.rows and b.columns == into.columns,
+            where: where)
+    if into.rows == 0 or into.columns == 0 then
+        return
+    end if
+    zero: item = item(0)
+    for i in 0..<into.rows do
+        for j in 0..<into.columns do
+            mut total := zero
+            if alpha <> zero then
+                for p in 0..<order do
+                    if on == left then
+                        total = total + symmetric_element(a, part, i, p)
+                                        * b.values[p * b.row_step + j * b.column_step]
+                    else
+                        total = total + b.values[i * b.row_step + p * b.column_step]
+                                        * symmetric_element(a, part, p, j)
+                    end if
+                end for
+            end if
+            at := i * into.row_step + j * into.column_step
+            if beta == zero then
+                into.values[at] = alpha * total
+            else
+                into.values[at] = alpha * total + beta * into.values[at]
+            end if
+        end for
+    end for
+end multiply_symmetric
+
+--- `C ← α·A·Aᵀ + β·C` on the triangle `part` of a symmetric `C`, the
+--- other triangle neither read nor written, the BLAS's `syrk`; `α·Aᵀ·A`
+--- is this with `dense.transposed(a)`.  When `beta` is 0 `into` is not
+--- read, and when `alpha` is 0 `a` is not.  Stops the program when `a`
+--- has not as many rows as `into`, or `into` is not square.
+public add_symmetric_product: (item: type is math.floating, into: matrix(item),
+                               part: triangle, alpha: item, a: matrix(item),
+                               beta: item, caller where: site) -> none =
+    n := into.rows
+    require(into.columns == n and a.rows == n, where: where)
+    zero: item = item(0)
+    for j in 0..<n do
+        first: usize = if part == upper then 0 else j end if
+        last := if part == upper then j + 1 else n end if
+        for i in first..<last do
+            mut total := zero
+            if alpha <> zero then
+                mut at_i: usize = i * a.row_step
+                mut at_j: usize = j * a.row_step
+                for p in 0..<a.columns do
+                    total = total + a.values[at_i] * a.values[at_j]
+                    at_i += a.column_step
+                    at_j += a.column_step
+                end for
+            end if
+            at := i * into.row_step + j * into.column_step
+            if beta == zero then
+                into.values[at] = alpha * total
+            else
+                into.values[at] = alpha * total + beta * into.values[at]
+            end if
+        end for
+    end for
+end add_symmetric_product
+
+--- `C ← α·A·Bᵀ + α·B·Aᵀ + β·C` on the triangle `part` of a symmetric
+--- `C`, the other triangle neither read nor written, the BLAS's
+--- `syr2k`; the transposed form is this with transposed views of `a`
+--- and `b`.  When `beta` is 0 `into` is not read, and when `alpha` is 0
+--- `a` and `b` are not.  Stops the program when `a` and `b` are not
+--- both as many rows as `into` by the same number of columns, or `into`
+--- is not square.
+public add_symmetric_products: (item: type is math.floating,
+                                into: matrix(item), part: triangle,
+                                alpha: item, a: matrix(item),
+                                b: matrix(item), beta: item,
+                                caller where: site) -> none =
+    n := into.rows
+    require(into.columns == n and a.rows == n and b.rows == n
+            and a.columns == b.columns, where: where)
+    zero: item = item(0)
+    for j in 0..<n do
+        first: usize = if part == upper then 0 else j end if
+        last := if part == upper then j + 1 else n end if
+        for i in first..<last do
+            mut total := zero
+            if alpha <> zero then
+                for p in 0..<a.columns do
+                    total = total
+                            + a.values[i * a.row_step + p * a.column_step]
+                              * b.values[j * b.row_step + p * b.column_step]
+                            + b.values[i * b.row_step + p * b.column_step]
+                              * a.values[j * a.row_step + p * a.column_step]
+                end for
+            end if
+            at := i * into.row_step + j * into.column_step
+            if beta == zero then
+                into.values[at] = alpha * total
+            else
+                into.values[at] = alpha * total + beta * into.values[at]
+            end if
+        end for
+    end for
+end add_symmetric_products
+
+--- `B ← α·A·B` when `on` is `left`, or `B ← α·B·A` when it is `right`,
+--- in place, for a triangular `A`, the triangle `part` and its diagonal
+--- as `diagonal` says, the BLAS's `trmm`; a transposed `A` is a
+--- transposed view with the other triangle.  When `alpha` is 0 `into`
+--- is set to zeros and `a` is not read.  Stops the program when `a` is
+--- not square of `into`'s rows on the left or its columns on the right.
+public multiply_triangular: (item: type is math.floating, into: matrix(item),
+                             on: side, alpha: item, a: matrix(item),
+                             part: triangle, diagonal: diagonal_kind,
+                             caller where: site) -> none =
+    order := if on == left then into.rows else into.columns end if
+    require(a.rows == order and a.columns == order, where: where)
+    if alpha == item(0) then
+        fill_matrix(into, item(0))
+        return
+    end if
+    if on == left then
+        for j in 0..<into.columns do
+            x := column(into, j)
+            multiply_triangular_vector(x, a, part, diagonal)
+            if alpha <> item(1) then
+                scale(x, alpha)
+            end if
+        end for
+    else
+        --  A row of `B·A` is `Aᵀ` times that row of `B`.
+        t := transposed(a)
+        for i in 0..<into.rows do
+            x := row(into, i)
+            multiply_triangular_vector(x, t, opposite(part), diagonal)
+            if alpha <> item(1) then
+                scale(x, alpha)
+            end if
+        end for
+    end if
+end multiply_triangular
+
+--- `B ← α·A⁻¹·B` when `on` is `left`, or `B ← α·B·A⁻¹` when it is
+--- `right`, in place, solving `A·X = α·B` or `X·A = α·B` for a
+--- triangular `A`, the triangle `part` and its diagonal as `diagonal`
+--- says, the BLAS's `trsm`; `A` is not checked for singularity.  When
+--- `alpha` is 0 `into` is set to zeros and `a` is not read.  Stops the
+--- program when `a` is not square of `into`'s rows on the left or its
+--- columns on the right.
+public solve_triangular: (item: type is math.floating, into: matrix(item),
+                          on: side, alpha: item, a: matrix(item),
+                          part: triangle, diagonal: diagonal_kind,
+                          caller where: site) -> none =
+    order := if on == left then into.rows else into.columns end if
+    require(a.rows == order and a.columns == order, where: where)
+    if alpha == item(0) then
+        fill_matrix(into, item(0))
+        return
+    end if
+    if on == left then
+        for j in 0..<into.columns do
+            x := column(into, j)
+            if alpha <> item(1) then
+                scale(x, alpha)
+            end if
+            solve_triangular_vector(x, a, part, diagonal)
+        end for
+    else
+        --  A row of `X` solves `Aᵀ·xᵀ = α·bᵀ`.
+        t := transposed(a)
+        for i in 0..<into.rows do
+            x := row(into, i)
+            if alpha <> item(1) then
+                scale(x, alpha)
+            end if
+            solve_triangular_vector(x, t, opposite(part), diagonal)
+        end for
+    end if
+end solve_triangular

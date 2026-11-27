@@ -560,11 +560,11 @@ run records and what the gate checks for each target.
   stackful fibres on every native target.
 - **The library:** `core` modules of allocators, containers, text, I/O,
   time, networking, random numbers, atomic cells, the elementary
-  mathematical functions, complex numbers, Unicode text and integers and
-  rationals of any size, each provider with a fake for testing, and
-  `hosted` providers over POSIX, among them threads started as a group a
-  function joins. A Linux executable links no C library unless
-  `--link=libc` asks for one.
+  mathematical functions, complex numbers, dense linear algebra's vectors
+  and matrices, Unicode text and integers and rationals of any size, each
+  provider with a fake for testing, and `hosted` providers over POSIX,
+  among them threads started as a group a function joins. A Linux
+  executable links no C library unless `--link=libc` asks for one.
 - **The C boundary:** each hosted target's C ABI, packed and flexible
   records, callbacks and variadic calls, Cortex-M's AAPCS32 with its float
   unit's variant, without variadic calls, and `refine bindings`, a binding

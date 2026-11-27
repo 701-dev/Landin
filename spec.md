@@ -46438,3 +46438,103 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** porting `catrig.c` and the others with their notices, which every program linking `core/complex` would then carry, against `LICENSE`'s promise; and porting musl's, MIT-licensed, with the same cost.
 
 **Pinned by** `core/complex/complex.ldn`'s opening comment, which says nothing is ported.
+
+### D2694 — `core/dense` is a vector and a matrix view over the caller's storage, generic over `math.floating`
+
+**The tour said** nothing about linear algebra; the roadmap asks for a vector or matrix as a view over caller storage, with rows, columns and strides in either order and transposed and sub-matrix views without copying, its elements real, with room left for complex ones.
+
+**Chosen:** `core/dense` declares `vector(item: type is math.floating)`, a slice, a `length` and a `step`, and `matrix(item)`, a slice, `rows`, `columns`, a `row_step` and a `column_step`: the element in row `i` and column `j` is `values[i * row_step + j * column_step]`. A matrix laid out by rows has `column_step` 1, one laid out by columns, the BLAS's order, `row_step` 1, and a leading dimension larger than the matrix is a larger step, so `rows_over`, `columns_over` and `matrix_over` make any of them and every routine reads them alike. `transposed` swaps the counts and the steps; `block`, `segment`, `row`, `column` and `diagonal` are further views of the same storage, made as `over` makes a view (D269). Every routine is generic over `math.floating` and written once, its arithmetic the element type's own [1290]. The routines are named for what they compute, `multiply_vector`, `add_outer`, `solve_triangular`, with the BLAS's name in each doc comment. Element type is the struct's one parameter, so a complex element type can later meet a concept beside `math.floating` without changing the views' shape.
+
+**The alternatives:** a matrix that owns its storage, which an allocator in every value would need and the library's conventions refuse (D269); one layout only, which makes every caller of the other layout copy; and the BLAS's names (`dgemm`, `dtrsm`), which a reader must already know.
+
+**Pinned by** `runtime/library-shared-dense` and the `dense-blas-*` runtime fixtures, which run every routine over views laid out by columns with a leading dimension and again laid out by rows.
+
+### D2695 — A view holds a writable slice, and a routine writes only the view it names `into`
+
+**The tour said** at [0790] that a reference's permission is part of its type; no overloading lets one routine take a readable and a writable view.
+
+**Chosen:** both views hold `[]mut item`. A routine's signature names the view it writes `into`, and reads the rest; storage that is only readable, a constant table, is copied into writable storage before it is viewed. Views a routine writes and reads must not overlap unless the routine says it works in place, as the BLAS asks.
+
+**The alternatives:** a readable and a writable type of each view, whose every constructor, transposition and block would come in two forms without overloading, and whose every result needs a conversion before it is the next routine's operand. Declined: it doubles the module's surface for the rarer case.
+
+**Pinned by** `core/dense/dense.ldn`'s opening comment and the `dense-blas-*` fixtures' checks that every operand but `into` is unchanged.
+
+### D2696 — A view's steps are unsigned, and the BLAS's negative increments have no counterpart
+
+**The tour said** nothing; the BLAS lets an increment be negative, which walks a vector from its last element.
+
+**Chosen:** `step`, `row_step` and `column_step` are `usize`, and a view's first element is its slice's first. A reversed vector is not a view. The translated BLAS tests run each case of a negative increment at its magnitude, which gives the routines the same logical operands; dblat1's expected values for negative increments, which differ, are left out and counted in its fixture.
+
+**The alternatives:** signed steps with a first index, so a view may run backwards, which puts a signed index computation and a checked conversion in every element access of every routine, the packed product's copying included, for a layout few programs use. Declined; a reversed view can be added as its own form if one is wanted.
+
+**Pinned by** the `dense-blas-*` fixtures' header comments, which name the departure.
+
+### D2697 — A transposed operand is a transposed view, and a triangle is the view's own
+
+**The tour said** nothing; the BLAS passes `TRANS`, `UPLO`, `DIAG` and `SIDE` as characters.
+
+**Chosen:** no routine takes a transposition flag: `multiply_vector(into, alpha, dense.transposed(a), x, beta)` is `gemv` with `'T'`. A triangle is `dense.upper` or `dense.lower` of the view as given, so a transposed view's upper triangle is its storage's lower one, and `trmv` with `UPLO 'U'` and `TRANS 'T'` is `multiply_triangular_vector` over the transposed view with `dense.lower`. The diagonal is `dense.stored` or `dense.unit`, and a square operand multiplies on the `dense.left` or `dense.right`: atom types of the module, `triangle`, `diagonal_kind` and `side`.
+
+**The alternatives:** the BLAS's flags beside the views, which give two spellings of one product and a triangle that refers to the storage rather than to the matrix the routine sees. Declined.
+
+**Pinned by** the `dense-blas-*` fixtures, which run each transposed case of the BLAS's tests as a transposed view.
+
+### D2698 — A mistaken call stops the program, reported at the call
+
+**The tour said** at [1560] that a check that stops the program gives its `caller` parameter to `compiler.unreachable`.
+
+**Chosen:** a view whose extent passes its storage, made by `strided_over`, `rows_over`, `columns_over`, `matrix_over`, `block` or `segment`, and operands whose shapes disagree stop the program, reported at the caller's call through a `caller` parameter. Nothing in `core/dense` fails: every condition a routine meets is the calling program's mistake, as an index out of range is. A singular triangular matrix is not checked; its solve gives infinities or NaNs, as the BLAS's does.
+
+**The alternatives:** a declared failure for a shape mismatch, which every call of every product would then handle though a correct program never meets it; and no check, as the BLAS's XERBLA reports and continues, which turns a mismatch into a read of the wrong elements. Declined.
+
+**Pinned by** `core/dense/dense.ldn`'s `require`; a trap given a `caller` parameter whose type `site` is declared nowhere is refused for the type alone, where checking once stopped on an internal defect, pinned by `negative/compiler-unreachable-undeclared-site`.
+
+### D2699 — `alpha` and `beta` are read as the BLAS reads them, and an empty product is zero
+
+**The tour said** nothing; the reference BLAS does not read the output when `beta` is 0 and does not read the operands when `alpha` is 0, and returns early when a dimension is 0.
+
+**Chosen:** when `beta` is 0 the output is set without being read, so a NaN there does not survive, and when `alpha` is 0 the operands are not read; `beta` 1 leaves the output's elements as they are. An empty product is the mathematics' zero: `multiply_vector` with an `x` of no elements gives `beta·y`, and `multiply` with no depth `beta·C`, where the reference BLAS leaves `y` and `C` as they were. The translated tests check such cases by the same reference computation and ratio as the others.
+
+**The alternatives:** the BLAS's early return, which makes `beta·y` depend on whether a dimension happens to be zero. Declined.
+
+**Pinned by** the empty-dimension cases of the `dense-blas-level-2` and `dense-blas-level-3` fixtures.
+
+### D2700 — The matrix product is packed into the caller's scratch and blocked for the cache
+
+**The tour said** nothing; the roadmap asks for the product blocked and packed for the cache from the start, the established strategy, and the library allocates only through a provider the caller passes.
+
+**Chosen:** `multiply(into, alpha, a, b, beta, scratch)` follows Goto and van de Geijn: a panel of `b`, up to 256 rows deep and 1024 columns wide, is copied into the scratch in slivers two columns wide, and for each block of `a`, up to 128 rows by the same depth, copied in slivers four rows high, a kernel multiplies one sliver of each with its eight sums in registers. `product_scratch(rows, columns, depth)` gives the length the largest blocks need, at most 294,912 elements; a shorter scratch cuts smaller blocks, and one that holds less than eight elements per row of the depth, an empty slice included, multiplies without packing, each element a dot product. The 4 by 2 kernel was measured against a 4 by 4 one, which spilled half its sums on x86-64's sixteen float registers: 4.9 GFLOP/s against 3.6 at n=1000. The other third-level routines are loops over the second level's and are not blocked.
+
+**The alternatives:** a packing buffer on the stack, which no fibre's or firmware's stack can hold at a useful size; thread storage, which every thread would pay for; an allocator in the signature, which makes every product fallible for a buffer the caller can as well give; and an unblocked product, which the roadmap rules out.
+
+**Pinned by** the `dense-blas-level-3` fixture, which runs every product with the full scratch and with a short one, and a 70 by 70 product across several blocks on hosted targets.
+
+### D2701 — The norm and the rotations are scaled as Blue and Anderson describe, and the modified rotation keeps its rescaled entries
+
+**The tour said** nothing; the reference BLAS's `nrm2` and `rotg` follow Anderson's "Algorithm 978: Safe scaling in the level 1 BLAS" (2017), and its `rotmg` follows Lawson, Hanson, Kincaid and Krogh (1979).
+
+**Chosen:** `norm_two` sums squares in three accumulators by Blue's thresholds, in Anderson's form and constants, so it neither overflows nor underflows unless the norm does, in one pass; `matrix_norm_frobenius` combines its rows' norms by a running scale. `rotation` scales its operands into range before the square root, as Anderson's `rotg` does, and returns `r` and `z` beside `c` and `s`. `modified_rotation` returns its matrix with every entry filled in and the BLAS's flag as a `rotation_form` atom; it rescales by 4096 while a scale lies outside [2^-24, 2^24], the bound exact where the reference writes 5.9604645D-8, and when the rescaling runs more than once it keeps the entries it has already scaled, where the reference sets `H21` and `H12` to -1 and 1 again on every pass.
+
+**The alternatives:** the reference's repeated reset, which discards the scaling of the passes before; and an unscaled norm, which overflows at a magnitude of 10^154 in `f64`.
+
+**Pinned by** `runtime/dense-blas-level-1`, whose DB1NRM2 cases hold special and extreme values, and its DROTG and DROTMG tables.
+
+### D2702 — `core/dense` is written from the mathematics, and its tests are translated from the reference BLAS's
+
+**The tour said** nothing; `LICENSE` promises that linking `core/*` places no condition on a program, and the reference BLAS is under LAPACK's modified BSD licence, whose second clause asks a binary's documentation to reproduce its notice.
+
+**Chosen:** nothing in `core/dense` is ported: each routine is written from the mathematics and the published methods its comment names, and `LICENSE` gains nothing for it. The test programs, BLAS/TESTING's `dblat1.f`, `dblat2.f` and `dblat3.f` of Reference-LAPACK 3.12.1, are translated into the `dense-blas-*` fixtures, with their generator, parameters, reference computation, test ratio and threshold, and each fixture's directory holds LAPACK's licence in its NOTICE, which `LICENSE` names among the third-party material. A fixture is test material and is linked into no program.
+
+**The alternatives:** porting the reference BLAS's routines, which would put LAPACK's notice on every program that links `core/dense`; and tests of the library's own design, which would not be the BLAS's cases the roadmap asks for.
+
+**Pinned by** `core/dense/dense.ldn`'s opening comment and the fixtures' NOTICE files.
+
+### D2703 — The `f64` product at n=1000 takes 8.2 times OpenBLAS's time on one core
+
+**The tour said** nothing; the roadmap asks for the `f64` matrix product at n=1000 timed against OpenBLAS on one core.
+
+**Chosen:** `scripts/dense_timing.py` builds `compiler/tests/dense/timing.ldn` at `--optimize speed` and `timing.c` against the pinned nixpkgs's OpenBLAS, runs them interleaved on one pinned core with OpenBLAS on one thread, checks that their products' checksums agree and reports the median of the product's own time. On an AMD EPYC 7302 core `core/dense` took 0.41 s, 4.9 GFLOP/s, and OpenBLAS 0.3.33 0.049 s, 41 GFLOP/s. The difference is mostly vector instructions, which refine does not emit, and partly the scalar kernel's code, which the register records.
+
+**The alternatives:** a kernel per target in assembly, as OpenBLAS's are, which would leave the language's own code generation unmeasured. Declined for now.
+
+**Pinned by** `compiler/tests/dense/README.md`, which records the measurement and how to repeat it.

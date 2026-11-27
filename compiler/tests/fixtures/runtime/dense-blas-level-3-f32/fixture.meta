@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: the cases of the reference BLAS's level 3 test program, dblat3, for core/dense's product, symmetric product, triangular product and solve and symmetric rank-k and rank-2k updates at f32, stored by columns and by rows, with a product of 70 on hosted targets, every DMMCH test ratio below 16 and the storage the routines must not write unchanged
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 0170, 0290

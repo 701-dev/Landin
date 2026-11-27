@@ -3464,7 +3464,7 @@ soft float recorded on Cortex-M0 on the rig.
 
 ### R22.15 — Dense vectors and matrices
 
-Status: planned
+Status: complete
 Depends on: R22.10
 
 The dense array as linear algebra sees it: a vector or matrix as a view
@@ -3486,6 +3486,51 @@ lazily fused expressions, which need templates Landin does not have.
 Exit evidence: the cases of BLAS's own test programs translated as a
 fixture, every test ratio under their threshold of 16, on every target;
 the `f64` matrix product at n=1000 timed against OpenBLAS on one core.
+
+Done: `core/dense` holds `vector(item)` and `matrix(item)` over
+`math.floating`, views over the caller's storage with a step for rows and
+one for columns, so either layout, a leading dimension, a transpose and a
+block are views of one storage (D2694); a view holds a writable slice and
+a routine writes only its `into` (D2695); steps are unsigned, so the
+BLAS's negative increments have no counterpart (D2696); a transposed
+operand is a transposed view and a triangle the view's own, with
+`upper`/`lower`, `stored`/`unit` and `left`/`right` atoms in place of the
+BLAS's flags (D2697). A shape mismatch or a view past its storage stops
+the program at the call (D2698); `beta` 0 reads no output, `alpha` 0 no
+operand, and an empty product is `beta` times the output where the
+reference BLAS returns early (D2699). The element-wise operations,
+reductions and norms, the rotations, the second level and the third are
+written from the mathematics (D2702); `norm_two` and `rotation` scale as
+Anderson's Algorithm 978 does, and `modified_rotation` keeps its rescaled
+entries where the reference resets them on a second pass (D2701). The
+product packs `b`'s panels and `a`'s blocks into a scratch the caller
+gives, `product_scratch` long, and multiplies with a 4 by 2 register
+kernel, which beat a 4 by 4 one that spilled its sums; a short scratch
+cuts smaller blocks and none multiplies unpacked (D2700). `dblat1`,
+`dblat2` and `dblat3` of Reference-LAPACK 3.12.1 are translated, their
+licence in each fixture's NOTICE and named in `LICENSE`, into
+`runtime/dense-blas-level-1`, `-level-2`, `-level-3-f64` and
+`-level-3-f32`: every case at both widths, laid out by columns with a
+leading dimension and again by rows, every test ratio under 16, the
+largest 2.3, on every hosted target; firmware runs every eighth case of
+level 2 and every sixth of level 3 in its 20 seconds, and the five large
+fixtures, past the 32 KiB of Cortex-M0 and the RV32 lanes, are image
+limits there and run on the Cortex-M7 and Xtensa lanes. `runtime/dense-views-and-norms` and `runtime/library-shared-dense`
+check the rest exactly. `scripts/dense_timing.py` times the `f64` product
+at n=1000 on one Zen 2 core: 0.41 s against OpenBLAS 0.3.33's 0.049 s,
+8.2 times, mostly vector instructions refine does not emit (D2703).
+Found and fixed: a trap given a `caller` parameter whose type `site` is
+declared nowhere stopped checking on an internal defect, pinned by
+`negative/compiler-unreachable-undeclared-site`; and `check.py`'s
+parameter-order control counted a `math.floating` operand as a
+capability. Level 2's own check on the Cortex-M7 lane met the Cortex-M
+backend freeing a deferred widening's operand home (D2120) while the
+widening was still read, `k * ((k + 1) * k)` giving 4 for 2 at size;
+R22.13 fixed the same on main first, and the merge keeps its fix with
+`runtime/widening-operand-outlives-product` beside its fixture. Filed: `SR-1978`, the scalar kernel's loop and the missing
+vector instructions, and `SR-1979`, an `if` expression's or a literal
+range's type taken from a literal or an atom with no note of the written
+type that fixes it.
 
 ### R22.16 — Linear systems and least squares
 

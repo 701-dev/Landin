@@ -2297,6 +2297,96 @@ how they are written.
 
 [Executable example](../compiler/tests/fixtures/runtime/big-limbs/main.ldn)
 
+## core/dense
+
+Dense vectors and matrices over `f32` and `f64`, as linear algebra sees
+them: a vector or a matrix is a view over the caller's storage, and every
+routine computes on views without allocating. On the views are the
+element-wise operations, reductions and norms, and the products of the
+BLAS's three levels.
+
+| Call | What it does |
+|---|---|
+| `dense.vector_over`, `dense.strided_over` | A vector of a whole slice, or of every `step`-th element of one. |
+| `dense.rows_over`, `dense.columns_over`, `dense.matrix_over` | A matrix laid out by rows, by columns as the BLAS lays it out, or with any steps, such as a leading dimension larger than its rows. |
+| `dense.transposed`, `dense.block`, `dense.segment` | The transpose, a block of a matrix and a stretch of a vector, over the same storage. |
+| `dense.row`, `dense.column`, `dense.diagonal`, `dense.as_row`, `dense.as_column` | A matrix's row, column or diagonal as a vector, and a vector as a matrix of one row or column. |
+| `dense.get`, `dense.set`, `dense.element`, `dense.set_element` | One element of a vector, or of a matrix by row and column. |
+| `dense.fill`, `dense.copy`, `dense.swap`, `dense.scale`, `dense.add_scaled` | Element-wise operations on vectors; `add_scaled` is the BLAS's `axpy`. |
+| `dense.add`, `dense.subtract`, `dense.multiply_elements`, `dense.divide_elements` | Element by element, into a third vector. |
+| `dense.fill_matrix`, `dense.set_identity`, `dense.copy_matrix`, `dense.scale_matrix`, `dense.add_matrices` | The same for matrices; `add_matrices` is `α·A + β·B`. |
+| `dense.sum`, `dense.sum_magnitudes`, `dense.dot`, `dense.largest_magnitude` | Reductions: `asum`, `dot` and `iamax`. |
+| `dense.norm_two`, `dense.norm_infinity` | A vector's Euclidean norm, which overflows only when the norm does, and its greatest magnitude. |
+| `dense.matrix_norm_one`, `dense.matrix_norm_infinity`, `dense.matrix_norm_frobenius`, `dense.matrix_norm_max` | A matrix's norms. |
+| `dense.rotation`, `dense.rotate`, `dense.modified_rotation`, `dense.rotate_modified` | Plane rotations: `rotg`, `rot`, `rotmg` and `rotm`. |
+| `dense.multiply_vector`, `dense.add_outer` | `y ← α·A·x + β·y`, `gemv`, and `A ← α·x·yᵀ + A`, `ger`. |
+| `dense.multiply_symmetric_vector`, `dense.add_symmetric_outer`, `dense.add_symmetric_outers` | `symv`, `syr` and `syr2`, on one triangle. |
+| `dense.multiply_triangular_vector`, `dense.solve_triangular_vector` | `x ← A·x` and `x ← A⁻¹·x` in place for a triangular `A`: `trmv` and `trsv`. |
+| `dense.multiply`, `dense.product_scratch` | `C ← α·A·B + β·C`, `gemm`, packed for the cache into a scratch `product_scratch` long. |
+| `dense.multiply_symmetric`, `dense.add_symmetric_product`, `dense.add_symmetric_products` | `symm`, `syrk` and `syr2k`. |
+| `dense.multiply_triangular`, `dense.solve_triangular` | `trmm` and `trsm`: a triangular product or solve with many right-hand sides, in place. |
+
+A `dense.vector(f64)` is a slice, a length and a step; a
+`dense.matrix(f64)` is a slice, its rows and columns, and a step for
+each, so the element in row `i` and column `j` is
+`values[i * row_step + j * column_step]`. A matrix laid out by rows and
+one laid out by columns are read alike, and a transposed operand is a
+transposed view: no routine takes the BLAS's `TRANS` flag. A triangle,
+`dense.upper` or `dense.lower`, is the view's own, so the upper triangle
+of a transposed view is the lower triangle of its storage. The diagonal
+of a triangular matrix is `dense.stored` or `dense.unit`, and a square
+operand multiplies on the `dense.left` or `dense.right`.
+
+```landin
+    --  A is 2 by 3 laid out by rows; Aᵀ·(1, 1) sums its columns.
+    mut a_values: [6]f32 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    a := dense.rows_over(a_values[0..<6], 2, 3)
+    mut ones_values: [2]f32 = [1.0, 1.0]
+    ones := dense.vector_over(ones_values[0..<2])
+    dense.multiply_vector(y, 1.0, dense.transposed(a), ones, 0.0)
+```
+
+A view holds a writable slice, so storage that is only readable, a
+constant table, is copied into writable storage first. A routine writes
+only the view its signature names `into`. Views that one routine writes
+and another reads must not overlap, as in the BLAS, unless the routine
+says it works in place. A view whose extent passes its storage, or
+operands whose shapes disagree, is a mistake in the program: it stops the
+program, and the report names the call. When `beta` is 0 the output is
+not read, so a NaN there does not survive, and when `alpha` is 0 the
+operands are not read. An empty product is the mathematics' zero: a
+product with no columns gives `β·y`, where the reference BLAS returns
+early and leaves `y` as it was. A step is never negative, so the BLAS's
+negative increments have no counterpart.
+
+`dense.multiply` packs its operands into `scratch`, storage the caller
+gives, as Goto and van de Geijn describe: a panel of `B` in slivers two
+columns wide, kept in the outer cache, and blocks of `A` in slivers four
+rows high, kept in the inner one, multiplied by a kernel that holds its
+eight sums in registers. `dense.product_scratch(rows, columns, depth)` is
+the length it is fastest with, at most 294,912 elements. A shorter scratch
+cuts smaller blocks, and one that holds less than eight elements per row
+of the depth, an empty slice included, multiplies without packing. On one
+core of an AMD EPYC 7302 the `f64` product of two 1000 by 1000 matrices
+takes 0.41 seconds, 4.9 GFLOP/s at `--optimize speed`. OpenBLAS 0.3.33
+takes 0.049 seconds, an eighth of that, with the vector instructions
+refine does not emit yet. [The timing](../compiler/tests/dense/README.md) says how it is
+measured.
+
+The other third-level routines are loops over the second level's and the
+vectors', not blocked. Every routine is written from the mathematics:
+`norm_two` and `rotation` by Blue's scaling in Anderson's form, which
+neither overflows nor underflows unless the result does. The `dense-blas-*`
+fixtures translate the reference BLAS's own test programs and hold every
+test ratio under their threshold of 16 at both widths, on every hosted
+target and on the Cortex-M7 and Xtensa emulators. They are past the
+32 KiB of Cortex-M0 and of the RV32 lanes, which run the small consumer
+and record the rest as image limits.
+Banded and packed storage, complex elements, extended-precision
+accumulation and arrays of more than two dimensions are not here.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-dense/main.ldn)
+
 ## core/line
 
 Serial line settings: a UART's rate and frame, the divisor its baud-rate generator is set to, and the refusals every driver shares.

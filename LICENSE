@@ -33,6 +33,11 @@ notices when copying the corresponding material:
   * The tables of core/unicode, generated from the Unicode Character
     Database: Unicode License V3; notice in core/unicode/LICENSE.unicode,
     named in the header of core/unicode/tables.ldn.
+  * The test programs of the dense-blas-* runtime fixtures, translated
+    from the reference BLAS's BLAS/TESTING of Reference-LAPACK 3.12.1:
+    LAPACK's modified BSD licence; notice in each fixture's NOTICE under
+    compiler/tests/fixtures/runtime/. They are tests, linked into no
+    program; core/dense ports nothing.
   * Tree-sitter support headers (alloc.h, array.h and parser.h): MIT;
     notice in highlight/tree-sitter/src/tree_sitter/LICENSE.
     highlight/tree-sitter/README.md records their pinned upstream sources.

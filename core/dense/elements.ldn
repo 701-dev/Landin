@@ -1,0 +1,219 @@
+--  Element-wise operations on vectors and matrices: filling, copying,
+--  swapping, scaling and scaled sums.
+import core/math
+
+--- Set every element of `into` to `value`.
+public fill: (item: type is math.floating, into: vector(item), value: item)
+             -> none =
+    mut at: usize = 0
+    for i in 0..<into.length do
+        into.values[at] = value
+        at += into.step
+    end for
+end fill
+
+--- Copy `source` into `into`, element by element.  Stops the program when
+--- their lengths differ.
+public copy: (item: type is math.floating, into: vector(item),
+              source: vector(item), caller where: site) -> none =
+    require(into.length == source.length, where: where)
+    mut to: usize = 0
+    mut at: usize = 0
+    for i in 0..<into.length do
+        into.values[to] = source.values[at]
+        to += into.step
+        at += source.step
+    end for
+end copy
+
+--- Exchange the elements of `x` and `y`.  Stops the program when their
+--- lengths differ.
+public swap: (item: type is math.floating, x: vector(item), y: vector(item),
+              caller where: site) -> none =
+    require(x.length == y.length, where: where)
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<x.length do
+        kept := x.values[at_x]
+        x.values[at_x] = y.values[at_y]
+        y.values[at_y] = kept
+        at_x += x.step
+        at_y += y.step
+    end for
+end swap
+
+--- Multiply every element of `into` by `alpha`: `x ← α·x`, the BLAS's
+--- `scal`.
+public scale: (item: type is math.floating, into: vector(item), alpha: item)
+              -> none =
+    mut at: usize = 0
+    for i in 0..<into.length do
+        into.values[at] = alpha * into.values[at]
+        at += into.step
+    end for
+end scale
+
+--- Add `alpha` times `x` to `into`: `y ← α·x + y`, the BLAS's `axpy`.
+--- When `alpha` is zero `into` is left as it is and `x` is not read.
+--- Stops the program when their lengths differ.
+public add_scaled: (item: type is math.floating, into: vector(item),
+                    alpha: item, x: vector(item), caller where: site)
+                   -> none =
+    require(into.length == x.length, where: where)
+    if alpha <> item(0) then
+        mut to: usize = 0
+        mut at: usize = 0
+        for i in 0..<into.length do
+            into.values[to] = into.values[to] + alpha * x.values[at]
+            to += into.step
+            at += x.step
+        end for
+    end if
+end add_scaled
+
+--- Set `into` to `x + y`, element by element.  `into` may be `x` or `y`.
+--- Stops the program when their lengths differ.
+public add: (item: type is math.floating, into: vector(item),
+             x: vector(item), y: vector(item), caller where: site) -> none =
+    require(into.length == x.length and into.length == y.length, where: where)
+    mut to: usize = 0
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<into.length do
+        into.values[to] = x.values[at_x] + y.values[at_y]
+        to += into.step
+        at_x += x.step
+        at_y += y.step
+    end for
+end add
+
+--- Set `into` to `x - y`, element by element.  `into` may be `x` or `y`.
+--- Stops the program when their lengths differ.
+public subtract: (item: type is math.floating, into: vector(item),
+                  x: vector(item), y: vector(item), caller where: site)
+                 -> none =
+    require(into.length == x.length and into.length == y.length, where: where)
+    mut to: usize = 0
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<into.length do
+        into.values[to] = x.values[at_x] - y.values[at_y]
+        to += into.step
+        at_x += x.step
+        at_y += y.step
+    end for
+end subtract
+
+--- Set `into` to the products of `x`'s and `y`'s elements, one by one:
+--- the Hadamard product.  `into` may be `x` or `y`.  Stops the program
+--- when their lengths differ.
+public multiply_elements: (item: type is math.floating, into: vector(item),
+                           x: vector(item), y: vector(item),
+                           caller where: site) -> none =
+    require(into.length == x.length and into.length == y.length, where: where)
+    mut to: usize = 0
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<into.length do
+        into.values[to] = x.values[at_x] * y.values[at_y]
+        to += into.step
+        at_x += x.step
+        at_y += y.step
+    end for
+end multiply_elements
+
+--- Set `into` to the quotients of `x`'s elements by `y`'s, one by one.
+--- `into` may be `x` or `y`.  Stops the program when their lengths
+--- differ.
+public divide_elements: (item: type is math.floating, into: vector(item),
+                         x: vector(item), y: vector(item),
+                         caller where: site) -> none =
+    require(into.length == x.length and into.length == y.length, where: where)
+    mut to: usize = 0
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<into.length do
+        into.values[to] = x.values[at_x] / y.values[at_y]
+        to += into.step
+        at_x += x.step
+        at_y += y.step
+    end for
+end divide_elements
+
+--- Set every element of `into` to `value`.
+public fill_matrix: (item: type is math.floating, into: matrix(item),
+                     value: item) -> none =
+    for i in 0..<into.rows do
+        mut at: usize = i * into.row_step
+        for j in 0..<into.columns do
+            into.values[at] = value
+            at += into.column_step
+        end for
+    end for
+end fill_matrix
+
+--- Set `into` to the identity: ones on the diagonal, zeros elsewhere.
+--- It need not be square.
+public set_identity: (item: type is math.floating, into: matrix(item))
+                     -> none =
+    fill_matrix(into, item(0))
+    fill(diagonal(into), item(1))
+end set_identity
+
+--- Copy `source` into `into`, element by element; a transposed view
+--- copies a transpose.  Stops the program when their shapes differ.
+public copy_matrix: (item: type is math.floating, into: matrix(item),
+                     source: matrix(item), caller where: site) -> none =
+    require(into.rows == source.rows and into.columns == source.columns,
+            where: where)
+    for i in 0..<into.rows do
+        mut to: usize = i * into.row_step
+        mut at: usize = i * source.row_step
+        for j in 0..<into.columns do
+            into.values[to] = source.values[at]
+            to += into.column_step
+            at += source.column_step
+        end for
+    end for
+end copy_matrix
+
+--- Multiply every element of `into` by `alpha`.
+public scale_matrix: (item: type is math.floating, into: matrix(item),
+                      alpha: item) -> none =
+    for i in 0..<into.rows do
+        mut at: usize = i * into.row_step
+        for j in 0..<into.columns do
+            into.values[at] = alpha * into.values[at]
+            at += into.column_step
+        end for
+    end for
+end scale_matrix
+
+--- Set `into` to `α·a + β·b`, element by element.  `into` may be `a`
+--- or `b` itself, not another view of their storage; a transposed view
+--- adds a transpose.  When `beta` is zero `b` is not read.  Stops the
+--- program when their shapes differ.
+public add_matrices: (item: type is math.floating, into: matrix(item),
+                      alpha: item, a: matrix(item),
+                      beta: item, b: matrix(item), caller where: site)
+                     -> none =
+    require(into.rows == a.rows and into.columns == a.columns
+            and into.rows == b.rows and into.columns == b.columns,
+            where: where)
+    zero: item = item(0)
+    for i in 0..<into.rows do
+        mut to: usize = i * into.row_step
+        mut at_a: usize = i * a.row_step
+        mut at_b: usize = i * b.row_step
+        for j in 0..<into.columns do
+            if beta == zero then
+                into.values[to] = alpha * a.values[at_a]
+            else
+                into.values[to] = alpha * a.values[at_a] + beta * b.values[at_b]
+            end if
+            to += into.column_step
+            at_a += a.column_step
+            at_b += b.column_step
+        end for
+    end for
+end add_matrices

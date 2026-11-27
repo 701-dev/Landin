@@ -1,0 +1,7 @@
+class: runtime
+profiles: standard
+summary: a word widened to i64 and read again after a product that takes a home keeps its value: the widening's operand outlives every read of it, which on Cortex-M at size and speed once gave 4 for 2
+program: main.ldn
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0170, 0310

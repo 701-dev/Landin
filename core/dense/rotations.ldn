@@ -1,0 +1,235 @@
+--  Plane rotations: the Givens rotation that zeros one of two numbers,
+--  its application to two vectors, and the modified form that rotates
+--  scaled vectors without square roots.
+import core/math
+
+--- A plane rotation `[c s; -s c]` and what it makes of the two numbers
+--- it was made from: `r`, the one that remains, and `z`, from which
+--- `c` and `s` are recovered, as the BLAS's `rotg` returns them.
+public givens: type (item: type is math.floating) = struct
+    c: item
+    s: item
+    r: item
+    z: item
+end givens
+
+--- The rotation that takes `(a, b)` to `(r, 0)`: `c·a + s·b = r` and
+--- `-s·a + c·b = 0`, with `c² + s² = 1`, the BLAS's `rotg`.  `r` takes
+--- the sign of the larger magnitude of the two; `z` is `s` when `|a|`
+--- is the larger, `1/c` otherwise, and 1 when `c` is 0.  Scaled so that
+--- no intermediate overflows or underflows unless `r` does, as
+--- Anderson's "Algorithm 978: Safe scaling in the level 1 BLAS", ACM
+--- TOMS 44 (2017), describes.
+public rotation: (item: type is math.floating, a: item, b: item)
+                 -> (g: givens(item)) =
+    zero: item = item(0)
+    one: item = item(1)
+    magnitude_a := math.abs(a)
+    magnitude_b := math.abs(b)
+    if magnitude_b == zero then
+        g = (c: one, s: zero, r: a, z: zero)
+    elsif magnitude_a == zero then
+        g = (c: zero, s: one, r: b, z: one)
+    else
+        --  The least normal and the greatest power of 2 the format holds.
+        least := if sizeof item == 8 then math.scale(one, -1022)
+                 else math.scale(one, -126) end if
+        greatest := if sizeof item == 8 then math.scale(one, 1023)
+                    else math.scale(one, 127) end if
+        scale_by := math.min(greatest, math.max(least, math.max(magnitude_a, magnitude_b)))
+        sign := if magnitude_a > magnitude_b then math.copy_sign(one, a)
+                else math.copy_sign(one, b) end if
+        scaled_a := a / scale_by
+        scaled_b := b / scale_by
+        r := sign * (scale_by * math.sqrt(scaled_a * scaled_a + scaled_b * scaled_b))
+        c := a / r
+        s := b / r
+        mut z := one
+        if magnitude_a > magnitude_b then
+            z = s
+        elsif c <> zero then
+            z = one / c
+        end if
+        g = (c: c, s: s, r: r, z: z)
+    end if
+end rotation
+
+--- Rotate the pairs `(xᵢ, yᵢ)` by `[c s; -s c]`: `xᵢ ← c·xᵢ + s·yᵢ`
+--- and `yᵢ ← c·yᵢ - s·xᵢ`, the BLAS's `rot`.  Stops the program when
+--- their lengths differ.
+public rotate: (item: type is math.floating, x: vector(item),
+                y: vector(item), c: item, s: item, caller where: site)
+               -> none =
+    require(x.length == y.length, where: where)
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<x.length do
+        u := x.values[at_x]
+        v := y.values[at_y]
+        x.values[at_x] = c * u + s * v
+        y.values[at_y] = c * v - s * u
+        at_x += x.step
+        at_y += y.step
+    end for
+end rotate
+
+--- Which entries of a modified rotation's matrix `H` are its own and
+--- which are implied, as the BLAS's flag says: `identity`, `H = I`
+--- (flag -2); `general`, all four its own (flag -1); `unit_diagonal`,
+--- `[1 h12; h21 1]` (flag 0); `unit_antidiagonal`, `[h11 1; -1 h22]`
+--- (flag 1).
+public rotation_form: type = identity | general | unit_diagonal | unit_antidiagonal
+--- `H` is the identity.
+public identity: atom
+--- All four entries of `H` are its own.
+public general: atom
+--- `H`'s diagonal is ones.
+public unit_diagonal: atom
+--- `H`'s off-diagonal entries are 1 and -1.
+public unit_antidiagonal: atom
+
+--- A modified plane rotation: its matrix `H`, every entry filled in,
+--- the implied ones included, and the form that says which entries the
+--- BLAS would store.
+public modified: type (item: type is math.floating) = struct
+    form: rotation_form
+    h11: item
+    h21: item
+    h12: item
+    h22: item
+end modified
+
+--  The modified rotation's rescaling factor, γ = 2¹².
+gamma: (item: type is math.floating) -> (value: item) =
+    value = item(4096)
+end gamma
+
+--- The modified rotation, the BLAS's `rotmg`, that zeros the second
+--- component of `(√d1·x1, √d2·y1)`: with `D = diag(d1, d2)` it gives `H`
+--- such that `H·(x1, y1)ᵀ` has second component 0, and replaces `d1`,
+--- `d2` and `x1` by the scales and first component after it, so that
+--- `D'^½·H·D^-½` is orthogonal.  The scales are kept between 2⁻²⁴ and
+--- 2²⁴ by powers of γ = 2¹², and a rescaled rotation becomes `general`
+--- with its implied entries made its own.  A negative `d1`, or a
+--- rotation that would make a scale negative, gives the zero rotation
+--- with `d1`, `d2` and `x1` all 0.  As Lawson, Hanson, Kincaid and
+--- Krogh, "Basic Linear Algebra Subprograms for Fortran usage", ACM
+--- TOMS 5 (1979), define it.
+public modified_rotation: (item: type is math.floating, inout d1: item,
+                           inout d2: item, inout x1: item, y1: item)
+                          -> (h: modified(item)) =
+    zero: item = item(0)
+    one: item = item(1)
+    g := gamma(item: item)
+    g_squared := g * g
+    g_least := one / g_squared
+    nothing: modified(item) = (form: general, h11: zero, h21: zero, h12: zero, h22: zero)
+    h = (form: identity, h11: one, h21: zero, h12: zero, h22: one)
+    if d1 < zero then
+        h = nothing
+        d1 = zero
+        d2 = zero
+        x1 = zero
+        return
+    end if
+    p2 := d2 * y1
+    if p2 == zero then
+        return
+    end if
+    p1 := d1 * x1
+    q2 := p2 * y1
+    q1 := p1 * x1
+    if math.abs(q1) > math.abs(q2) then
+        h21 := -y1 / x1
+        h12 := p2 / p1
+        u := one - h12 * h21
+        if u > zero then
+            h = (form: unit_diagonal, h11: one, h21: h21, h12: h12, h22: one)
+            d1 = d1 / u
+            d2 = d2 / u
+            x1 = x1 * u
+        else
+            h = nothing
+            d1 = zero
+            d2 = zero
+            x1 = zero
+            return
+        end if
+    elsif q2 < zero then
+        h = nothing
+        d1 = zero
+        d2 = zero
+        x1 = zero
+        return
+    else
+        h11 := p1 / p2
+        h22 := x1 / y1
+        u := one + h11 * h22
+        kept := d2 / u
+        d2 = d1 / u
+        d1 = kept
+        x1 = y1 * u
+        h = (form: unit_antidiagonal, h11: h11, h21: -one, h12: one, h22: h22)
+    end if
+    if d1 <> zero then
+        while d1 <= g_least or d1 >= g_squared do
+            h.form = general
+            if d1 <= g_least then
+                d1 = d1 * g_squared
+                x1 = x1 / g
+                h.h11 = h.h11 / g
+                h.h12 = h.h12 / g
+            else
+                d1 = d1 / g_squared
+                x1 = x1 * g
+                h.h11 = h.h11 * g
+                h.h12 = h.h12 * g
+            end if
+        end while
+    end if
+    if d2 <> zero then
+        while math.abs(d2) <= g_least or math.abs(d2) >= g_squared do
+            h.form = general
+            if math.abs(d2) <= g_least then
+                d2 = d2 * g_squared
+                h.h21 = h.h21 / g
+                h.h22 = h.h22 / g
+            else
+                d2 = d2 / g_squared
+                h.h21 = h.h21 * g
+                h.h22 = h.h22 * g
+            end if
+        end while
+    end if
+end modified_rotation
+
+--- Apply the modified rotation `h` to the pairs `(xᵢ, yᵢ)`:
+--- `(xᵢ, yᵢ)ᵀ ← H·(xᵢ, yᵢ)ᵀ`, the BLAS's `rotm`, with the
+--- multiplications the form leaves out left out.  Stops the program when
+--- their lengths differ.
+public rotate_modified: (item: type is math.floating, x: vector(item),
+                         y: vector(item), h: modified(item),
+                         caller where: site) -> none =
+    require(x.length == y.length, where: where)
+    if h.form == identity then
+        return
+    end if
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<x.length do
+        u := x.values[at_x]
+        v := y.values[at_y]
+        if h.form == unit_diagonal then
+            x.values[at_x] = u + v * h.h12
+            y.values[at_y] = u * h.h21 + v
+        elsif h.form == unit_antidiagonal then
+            x.values[at_x] = u * h.h11 + v
+            y.values[at_y] = -u + h.h22 * v
+        else
+            x.values[at_x] = u * h.h11 + v * h.h12
+            y.values[at_y] = u * h.h21 + v * h.h22
+        end if
+        at_x += x.step
+        at_y += y.step
+    end for
+end rotate_modified

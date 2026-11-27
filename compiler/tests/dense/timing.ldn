@@ -1,0 +1,60 @@
+--  The program scripts/dense_timing.py times: one f64 product of two
+--  1000 by 1000 matrices laid out by columns, as the BLAS lays them out,
+--  with dense.multiply and the scratch it is fastest with, and the
+--  nanoseconds the product alone took on the monotonic clock.  Every
+--  element is a small integer, so each sum is exact and the checksum it
+--  prints, the sum of the product's elements, is the same whatever order
+--  the sums are taken in; timing.c computes the same product with the
+--  BLAS and prints the same line.
+import core/dense
+import core/io
+import core/text
+import core/time
+import hosted/blocking
+
+size: usize = 1000
+elements: usize = 1000000
+
+mut left_values: [1000000]f64 = zeroed
+mut right_values: [1000000]f64 = zeroed
+mut product_values: [1000000]f64 = zeroed
+mut scratch: [294912]f64 = zeroed
+
+--  Element (i, j) of the two operands: integers from -8 to 8.
+fill_operands: (a: dense.matrix(f64), b: dense.matrix(f64)) -> none =
+    for j in 0..<size do
+        for i in 0..<size do
+            dense.set_element(a, i, j, f64(i64((i * 7 + j * 13) % 17)) - 8.0)
+            dense.set_element(b, i, j, f64(i64((i * 11 + j * 5) % 17)) - 8.0)
+        end for
+    end for
+end fill_operands
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    a := dense.columns_over(left_values[0..<elements], size, size)
+    b := dense.columns_over(right_values[0..<elements], size, size)
+    c := dense.columns_over(product_values[0..<elements], size, size)
+    fill_operands(a, b)
+    room := dense.product_scratch(size, size, size)
+    start := time.now(host)
+    dense.multiply(c, 1.0, a, b, 0.0, scratch[0..<room])
+    nanoseconds: u64 = u64(time.elapsed(start, time.now(host)))
+    mut checksum: i64 = 0
+    for j in 0..<size do
+        for i in 0..<size do
+            checksum += i64(dense.element(c, i, j))
+        end for
+    end for
+    mut line_space: [64]u8 = zeroed
+    mut line := text.over(line_space[0..<64])
+    text.format(line, "checksum {} nanoseconds {}\n",
+                [any(addr checksum), any(addr nanoseconds)]) else begin
+                    return
+                end
+    io.write(host, io.out(host), text.used(line)) else begin
+        return
+    end
+    code = 0
+end main

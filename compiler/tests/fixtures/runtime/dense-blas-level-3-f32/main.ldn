@@ -1,0 +1,1063 @@
+--  The reference BLAS's test of its third level, BLAS/TESTING/dblat3.f
+--  of Reference-LAPACK v3.12.1, translated for core/dense at f32; the
+--  NOTICE in this directory carries LAPACK's licence.  Its cases are
+--  dblat3.in's: N in 0 1 2 3 5 9, ALPHA in 0.0 1.0 0.7, BETA in 0.0 1.0
+--  1.3, and a test ratio below 16, the threshold, for every result.
+--  DCHK1 tests the product (DGEMM), DCHK2 the symmetric product
+--  (DSYMM), DCHK3 the triangular product and solve (DTRMM, DTRSM),
+--  DCHK4 the symmetric rank-k update (DSYRK) and DCHK5 the rank-2k
+--  update (DSYR2K), each with DMAKE's data from DBEG's generator,
+--  DMMCH's reference product and ratio, and the checks that the
+--  operands are unchanged and that the elements of the result the
+--  routine must not write are as they were (LDE, LDERES).  The main
+--  program's check of DMMCH on exact data, N of 32, runs first.
+--
+--  It departs from dblat3 in these ways:
+--  1. There are no increments in the third level, and no
+--     empty-dimension departure is needed: core/dense, like the BLAS,
+--     leaves a result with no rows or columns alone, and a product over
+--     no depth is `β·C`, which DMMCH's empty sum checks.
+--  2. No error exits (DCHKE, CHKXER): a misused routine stops the
+--     program in core/dense.
+--  3. DGEMMTR (DCHK6) is not translated: core/dense leaves it out.
+--  4. The checks are written once, generic over the element type.  This
+--     program runs them at f32 with sblat3's EPS, 2^-23;
+--     runtime/dense-blas-level-3-f64 is the same text run at f64 with
+--     dblat3's, 2^-52, the threshold 16 at both.  They are two programs
+--     because the storage of both passes the RAM a Cortex-M0 image
+--     leaves beside its stack.
+--  5. Every case runs twice with the same data: first stored by columns
+--     with a leading dimension one more than the rows, as dblat3 does,
+--     and then by rows with a row step one more than the columns, the
+--     gap filled with DMAKE's rogue value in both.  An operand's
+--     storage must be unchanged, and the result's outside the elements
+--     the routine writes, in both orders.
+--  6. TRANSA, TRANSB and TRANS 'C' are left out: for real matrices they
+--     are 'T', which runs.  A transposed operand is `dense.transposed` of
+--     the stored matrix, and a transposed triangular one also takes the
+--     opposite triangle.
+--  7. The scalar arguments are passed by value and cannot change, so
+--     ISAME's checks of them are left out.
+--  8. DMMCH's ratio is the largest over every column, where dblat3's
+--     keeps only the last column's; its check that a result is at least
+--     half accurate, `ERR*SQRT(EPS) >= 1`, also fails a ratio that is
+--     not a number.
+--  9. The product's cases cycle through three lengths of scratch: the
+--     one `dense.product_scratch` names, 8 elements per row of depth,
+--     which cuts the smallest blocks, and none, which multiplies without
+--     packing.
+--  10. Firmware runs every 6th case of each routine, its first and
+--     last among them, with the data of every case generated as on a
+--     hosted target, and the check of DMMCH whole: the firmware corpora
+--     give a run 20 seconds of an emulator, which all of them pass at
+--     f64 without optimization.
+--  11. dblat3 has no case larger than its NMAX, 65, so a product of 70
+--     by 70 by 70 is added, on hosted targets only, since its storage
+--     passes a microcontroller's memory.  It runs in both orders with
+--     four lengths of scratch, each with another transpose of the
+--     operands: the full one, 8 * 70 + 3 elements, which cuts the
+--     product into blocks 4 by 4, 200, which also cuts the depth into
+--     blocks of 33, and none.
+--
+--  The program exits 42 when every check passes.  Otherwise it exits
+--  with 5 * routine + kind: routine 0 the check of DMMCH, 1 DGEMM, 2
+--  DSYMM, 3 DTRMM, 4 DTRSM, 5 DSYRK, 6 DSYR2K, 7 the product of 70;
+--  kind 1 the first operand changed, 2 the second operand changed, 3 an
+--  element of the result's storage the routine must not write changed,
+--  4 a result less than half accurate, 5 a test ratio of 16 or more.
+import core/dense
+import core/math
+
+--  dblat3.in's values of N, ALPHA and BETA.
+sizes: [6]usize = [0, 1, 2, 3, 5, 9]
+nmax: usize = 9
+
+alpha_of: (item: type is math.floating, index: usize) -> (value: item) =
+    value = if index == 0 then item(0.0) elsif index == 1 then item(1.0) else item(0.7) end if
+end alpha_of
+
+beta_of: (item: type is math.floating, index: usize) -> (value: item) =
+    value = if index == 0 then item(0.0) elsif index == 1 then item(1.0) else item(1.3) end if
+end beta_of
+
+--  The routines and the kinds of failure the exit code names.
+of_check: i32 = 0
+of_multiply: i32 = 1
+of_symmetric: i32 = 2
+of_triangular: i32 = 3
+of_solve: i32 = 4
+of_rank_k: i32 = 5
+of_rank_2k: i32 = 6
+of_large: i32 = 7
+
+first_changed: i32 = 1
+second_changed: i32 = 2
+outside_changed: i32 = 3
+inaccurate: i32 = 4
+ratio_too_large: i32 = 5
+
+failure: (routine: i32, kind: i32) -> (code: i32) =
+    code = 5 * routine + kind
+end failure
+
+--  The largest test ratio each routine met: read by a measuring copy
+--  of this program, not by the verdict.
+mut worst: [8]f64 = zeroed
+
+note: (item: type is math.floating, routine: i32, ratio: item) -> none =
+    at := usize(routine)
+    if f64(ratio) > worst[at] then
+        worst[at] = f64(ratio)
+    end if
+end note
+
+--  DBEG: numbers spread between -0.5 and 0.5, the same sequence each
+--  time the generator is reset.
+mut beg_i: i32 = 7
+mut beg_count: i32 = 0
+
+reset: () -> none =
+    beg_i = 7
+    beg_count = 0
+end reset
+
+beg: (item: type is math.floating) -> (value: item) =
+    beg_count += 1
+    beg_i = beg_i * 891 % 1000
+    if beg_count >= 5 then
+        beg_count = 0
+        beg_i = beg_i * 891 % 1000
+    end if
+    value = item(beg_i - 500) / item(1001)
+end beg
+
+--  What DMAKE makes: a general, a symmetric or a triangular matrix.
+general: atom
+symmetric: atom
+triangular: atom
+shape: type = general | symmetric | triangular
+
+--  The storage the checks share, carved from one pool: the full
+--  matrices DMAKE generates, `ld` rows apart by columns, the storage the
+--  routines see and a copy of it taken before the call, and the
+--  reference's own.
+work: type (item: type is math.floating) = struct
+    ld: usize
+    full_a: []mut item
+    full_b: []mut item
+    full_c: []mut item
+    pair: []mut item
+    w: []mut item
+    ct: []mut item
+    g: []mut item
+    stored_a: []mut item
+    kept_a: []mut item
+    stored_b: []mut item
+    kept_b: []mut item
+    stored_c: []mut item
+    kept_c: []mut item
+    scratch: []mut item
+end work
+
+carve: (item: type is math.floating, pool: []mut item, ld: usize, scratch: usize)
+       -> (w: work(item) from pool) =
+    full := ld * ld
+    frame := (ld + 1) * ld
+    mut at: usize = 0
+    w.ld = ld
+    w.full_a = pool[at..<at + full]
+    at += full
+    w.full_b = pool[at..<at + full]
+    at += full
+    --  As in dblat3, DCHK5's AB, 2 * NMAX columns, is where the others'
+    --  A and B are.
+    w.pair = pool[0..<at]
+    w.full_c = pool[at..<at + full]
+    at += full
+    w.w = pool[at..<at + 2 * ld]
+    at += 2 * ld
+    w.ct = pool[at..<at + ld]
+    at += ld
+    w.g = pool[at..<at + ld]
+    at += ld
+    w.stored_a = pool[at..<at + frame]
+    at += frame
+    w.kept_a = pool[at..<at + frame]
+    at += frame
+    w.stored_b = pool[at..<at + frame]
+    at += frame
+    w.kept_b = pool[at..<at + frame]
+    at += frame
+    w.stored_c = pool[at..<at + frame]
+    at += frame
+    w.kept_c = pool[at..<at + frame]
+    at += frame
+    w.scratch = pool[at..<at + scratch]
+end carve
+
+--  A view, read and written here by its own indices, so that the check
+--  does not lean on the library it checks.
+at: (item: type is math.floating, v: dense.matrix(item), i: usize, j: usize)
+    -> (value: item) =
+    value = v.values[i * v.row_step + j * v.column_step]
+end at
+
+put: (item: type is math.floating, v: dense.matrix(item), i: usize, j: usize,
+      value: item) -> none =
+    v.values[i * v.row_step + j * v.column_step] = value
+end put
+
+--  The `rows` by `columns` matrix of `values` from `first` on, by
+--  columns `ld` apart: Fortran's `A(I, J)` passed as an argument.
+grid: (item: type is math.floating, values: []mut item, first: usize,
+       rows: usize, columns: usize, ld: usize)
+      -> (v: dense.matrix(item) from values) =
+    v = (values: values[first..<lenof values], rows: rows, columns: columns,
+         row_step: 1, column_step: ld)
+end grid
+
+flip: (item: type is math.floating, v: dense.matrix(item))
+      -> (t: dense.matrix(item) from v) =
+    t = (values: v.values, rows: v.columns, columns: v.rows,
+         row_step: v.column_step, column_step: v.row_step)
+end flip
+
+--  The block of `v` from (`i`, `j`), `rows` by `columns`.
+part_of: (item: type is math.floating, v: dense.matrix(item), i: usize, j: usize,
+          rows: usize, columns: usize)
+         -> (b: dense.matrix(item) from v) =
+    first := i * v.row_step + j * v.column_step
+    b = (values: v.values[first..<lenof v.values], rows: rows, columns: columns,
+         row_step: v.row_step, column_step: v.column_step)
+end part_of
+
+--  DMAKE's first half: generate the `m` by `n` matrix into `full`, `ld`
+--  rows apart by columns.  A symmetric matrix is mirrored, a triangular
+--  one has zeros in its other triangle and one added to its diagonal,
+--  or a diagonal of ones.
+generate: (item: type is math.floating, kind: shape, part: dense.triangle,
+           unit_diagonal: bool, m: usize, n: usize, full: []mut item, ld: usize)
+          -> none =
+    upper := kind <> general and part == dense.upper
+    lower := kind <> general and part == dense.lower
+    for j in 0..<n do
+        for i in 0..<m do
+            if kind == general or (upper and i <= j) or (lower and i >= j) then
+                mut value := beg(item: item)
+                if i <> j then
+                    if n > 3 and j + 1 == n / 2 then
+                        value = item(0)
+                    end if
+                    if kind == symmetric then
+                        full[j + i * ld] = value
+                    elsif kind == triangular then
+                        full[j + i * ld] = item(0)
+                    end if
+                end if
+                full[i + j * ld] = value
+            end if
+        end for
+        if kind == triangular then
+            full[j + j * ld] = full[j + j * ld] + item(1)
+            if unit_diagonal then
+                full[j + j * ld] = item(1)
+            end if
+        end if
+    end for
+end generate
+
+--  Whether element (i, j) is one the routine reads: all of a general
+--  matrix, the triangle `part` of the others, a unit diagonal left out.
+wanted: (kind: shape, part: dense.triangle, unit_diagonal: bool, m: usize,
+         n: usize, i: usize, j: usize) -> (yes: bool) =
+    yes = i < m and j < n
+    if yes and kind <> general then
+        if i == j then
+            yes = not unit_diagonal
+        elsif part == dense.upper then
+            yes = i < j
+        else
+            yes = i > j
+        end if
+    end if
+end wanted
+
+--  The storage of an `m` by `n` matrix in the order `by_rows` names:
+--  its leading dimension and its length.
+lead_of: (m: usize, n: usize, by_rows: bool) -> (lead: usize) =
+    lead = if by_rows then n + 1 else m + 1 end if
+end lead_of
+
+frame_of: (m: usize, n: usize, by_rows: bool) -> (length: usize) =
+    lead := lead_of(m, n, by_rows)
+    length = if by_rows then m * lead else n * lead end if
+end frame_of
+
+--  DMAKE's second half: store what the routine reads of the full matrix
+--  into `into`, every other element of the storage the rogue value.
+store: (item: type is math.floating, kind: shape, part: dense.triangle,
+        unit_diagonal: bool, m: usize, n: usize, full: []mut item, ld: usize,
+        into: []mut item, by_rows: bool)
+       -> (v: dense.matrix(item) from into) =
+    rogue: item = item(-1.0e10)
+    lead := lead_of(m, n, by_rows)
+    across := if by_rows then m else lead end if
+    down := if by_rows then lead else n end if
+    for j in 0..<down do
+        for i in 0..<across do
+            spot := if by_rows then i * lead + j else i + j * lead end if
+            into[spot] = if wanted(kind, part, unit_diagonal, m, n, i, j) then full[i + j * ld]
+                         else rogue end if
+        end for
+    end for
+    length := frame_of(m, n, by_rows)
+    row_step: usize = if by_rows then lead else 1 end if
+    column_step: usize = if by_rows then 1 else lead end if
+    v = (values: into[0..<length], rows: m, columns: n,
+         row_step: row_step, column_step: column_step)
+end store
+
+keep: (item: type is math.floating, source: []mut item, into: []mut item) -> none =
+    for i in 0..<lenof source do
+        into[i] = source[i]
+    end for
+end keep
+
+--  LDE: whether the storage is as it was.
+same: (item: type is math.floating, now: []mut item, kept: []mut item)
+      -> (yes: bool) =
+    yes = true
+    for i in 0..<lenof now do
+        if now[i] <> kept[i] then
+            yes = false
+            return
+        end if
+    end for
+end same
+
+--  LDERES: whether every element of the result's storage outside the
+--  elements the routine writes, all of a general matrix and the
+--  triangle `part` of a symmetric one, is as it was.
+untouched: (item: type is math.floating, now: []mut item, kept: []mut item,
+            kind: shape, part: dense.triangle, m: usize, n: usize, by_rows: bool)
+           -> (yes: bool) =
+    yes = true
+    lead := lead_of(m, n, by_rows)
+    across := if by_rows then m else lead end if
+    down := if by_rows then lead else n end if
+    for j in 0..<down do
+        for i in 0..<across do
+            spot := if by_rows then i * lead + j else i + j * lead end if
+            if not wanted(kind, part, false, m, n, i, j) and now[spot] <> kept[spot] then
+                yes = false
+                return
+            end if
+        end for
+    end for
+end untouched
+
+magnitude: (item: type is math.floating, x: item) -> (result: item) =
+    result = if x < item(0) then -x else x end if
+end magnitude
+
+--  DMMCH: the product `α·a·b + β·c` worked out column by column, with
+--  its gauge, `|α|·|a|·|b| + |β|·|c|`, and the test ratio of the
+--  routine's result `cc` against it: the largest error in units of
+--  `eps` of the gauge.  `fatal` when a result is less than half
+--  accurate.
+reference: (item: type is math.floating, alpha: item, a: dense.matrix(item),
+            b: dense.matrix(item), beta: item, c: dense.matrix(item),
+            cc: dense.matrix(item), ct: []mut item, g: []mut item, eps: item)
+           -> (err: item, fatal: bool) =
+    zero: item = item(0)
+    one: item = item(1)
+    err = zero
+    fatal = false
+    m := cc.rows
+    for j in 0..<cc.columns do
+        for i in 0..<m do
+            ct[i] = zero
+            g[i] = zero
+        end for
+        for k in 0..<a.columns do
+            y := at(b, k, j)
+            for i in 0..<m do
+                x := at(a, i, k)
+                ct[i] = ct[i] + x * y
+                g[i] = g[i] + magnitude(x) * magnitude(y)
+            end for
+        end for
+        for i in 0..<m do
+            z := at(c, i, j)
+            ct[i] = alpha * ct[i] + beta * z
+            g[i] = magnitude(alpha) * g[i] + magnitude(beta) * magnitude(z)
+        end for
+        for i in 0..<m do
+            mut erri := magnitude(ct[i] - at(cc, i, j)) / eps
+            if g[i] <> zero then
+                erri = erri / g[i]
+            end if
+            if not (erri <= err) then
+                err = erri
+            end if
+            if not (err * err * eps < one) then
+                fatal = true
+                return
+            end if
+        end for
+    end for
+end reference
+
+--  The verdict on one result: its ratio is noted, and the run stops at
+--  a result less than half accurate.
+judge: (item: type is math.floating, routine: i32, err: item, fatal: bool,
+        inout worst_ratio: item) -> (code: i32) =
+    code = 0
+    note(routine, err)
+    if not (err <= worst_ratio) then
+        worst_ratio = err
+    end if
+    if fatal then
+        code = failure(routine, inaccurate)
+    end if
+end judge
+
+verdict: (item: type is math.floating, routine: i32, worst_ratio: item)
+         -> (code: i32) =
+    code = if worst_ratio < item(16) then 0 else failure(routine, ratio_too_large) end if
+end verdict
+
+--  The scratch a product's case takes: the full length, eight elements
+--  per row of depth, or none.
+scratch_for: (item: type is math.floating, w: work(item), choice: usize,
+              m: usize, n: usize, k: usize)
+             -> (s: []mut item from w) =
+    length := if choice == 0 then dense.product_scratch(m, n, k)
+              elsif choice == 1 then 8 * k else 0 end if
+    s = w.scratch[0..<length]
+end scratch_for
+
+--  The main program's check of DMMCH on exact data: `A` of N by N with
+--  `A(I, J) = MAX(I - J + 1, 0)` times the vector 1..N, and its
+--  transpose times N..1, have whole results.
+check_reference: (item: type is math.floating, pool: []mut item, eps: item)
+                 -> (code: i32) =
+    code = 0
+    n: usize = 32
+    zero: item = item(0)
+    one: item = item(1)
+    a_values := pool[0..<n * n]
+    column_values := pool[n * n..<n * n + n]
+    row_values := pool[n * n + n..<n * n + 2 * n]
+    c_values := pool[n * n + 2 * n..<n * n + 3 * n]
+    cc_values := pool[n * n + 3 * n..<n * n + 4 * n]
+    ct := pool[n * n + 4 * n..<n * n + 5 * n]
+    g := pool[n * n + 5 * n..<n * n + 6 * n]
+    for j in 0..<n do
+        for i in 0..<n do
+            a_values[i + j * n] = if i + 1 >= j then item(i32(i + 1 - j)) else zero end if
+        end for
+        column_values[j] = item(i32(j + 1))
+        row_values[j] = item(i32(j + 1))
+        c_values[j] = zero
+    end for
+    for j in 0..<n do
+        jj := i32(j + 1)
+        cc_values[j] = item(jj * ((jj + 1) * jj) / 2 - ((jj + 1) * jj * (jj - 1)) / 3)
+    end for
+    a := grid(a_values, 0, n, n, n)
+    c := grid(c_values, 0, n, 1, n)
+    cc := grid(cc_values, 0, n, 1, n)
+    as_column := grid(column_values, 0, n, 1, n)
+    --  B(J, K) of the 1 by N matrix at AB(1, NMAX + 1), transposed.
+    as_row := flip(grid(row_values, 0, 1, n, 1))
+    for transposed_b in 0..<2 do
+        b := if transposed_b == 0 then as_column else as_row end if
+        result := reference(one, a, b, zero, c, cc, ct, g, eps)
+        if not same(cc_values, ct) or result.err <> zero then
+            code = failure(of_check, inaccurate)
+            return
+        end if
+    end for
+    for j in 0..<n do
+        column_values[j] = item(i32(n - j))
+        row_values[j] = item(i32(n - j))
+    end for
+    for j in 0..<n do
+        jj := i32(j + 1)
+        cc_values[n - 1 - j] = item(jj * ((jj + 1) * jj) / 2 - ((jj + 1) * jj * (jj - 1)) / 3)
+    end for
+    for transposed_b in 0..<2 do
+        b := if transposed_b == 0 then as_column else as_row end if
+        result := reference(one, flip(a), b, zero, c, cc, ct, g, eps)
+        if not same(cc_values, ct) or result.err <> zero then
+            code = failure(of_check, inaccurate)
+            return
+        end if
+    end for
+end check_reference
+
+--  DCHK1: `C ← α·op(A)·op(B) + β·C`.
+check_multiply: (item: type is math.floating, w: work(item), eps: item)
+                -> (code: i32) =
+    code = 0
+    reset()
+    mut worst_ratio := item(0)
+    mut count: usize = 0
+    ld := w.ld
+    for im in usize(0)..<6 do
+        m := sizes[im]
+        for in_ in usize(0)..<6 do
+            n := sizes[in_]
+            null := m == 0 or n == 0
+            for ik in usize(0)..<6 do
+                k := sizes[ik]
+                for ica in 0..<2 do
+                    trans_a := ica == 1
+                    ma := if trans_a then k else m end if
+                    na := if trans_a then m else k end if
+                    generate(general, dense.upper, false, ma, na, w.full_a, ld)
+                    for icb in 0..<2 do
+                        trans_b := icb == 1
+                        mb := if trans_b then n else k end if
+                        nb := if trans_b then k else n end if
+                        generate(general, dense.upper, false, mb, nb, w.full_b, ld)
+                        for ia in usize(0)..<3 do
+                            alpha := alpha_of(ia, item: item)
+                            for ib in usize(0)..<3 do
+                                beta := beta_of(ib, item: item)
+                                generate(general, dense.upper, false, m, n, w.full_c, ld)
+                                inc count
+                                for layout in usize(0)..<layouts(count, 7776) do
+                                    by_rows := layout == 1
+                                    a := store(general, dense.upper, false, ma, na, w.full_a, ld,
+                                               w.stored_a, by_rows)
+                                    b := store(general, dense.upper, false, mb, nb, w.full_b, ld,
+                                               w.stored_b, by_rows)
+                                    c := store(general, dense.upper, false, m, n, w.full_c, ld,
+                                               w.stored_c, by_rows)
+                                    keep(a.values, w.kept_a)
+                                    keep(b.values, w.kept_b)
+                                    keep(c.values, w.kept_c)
+                                    op_a := if trans_a then dense.transposed(a) else a end if
+                                    op_b := if trans_b then dense.transposed(b) else b end if
+                                    scratch := scratch_for(w, (count + layout) % 3, m, n, k)
+                                    dense.multiply(c, alpha, op_a, op_b, beta, scratch)
+                                    if not same(a.values, w.kept_a) then
+                                        code = failure(of_multiply, first_changed)
+                                        return
+                                    end if
+                                    if not same(b.values, w.kept_b) then
+                                        code = failure(of_multiply, second_changed)
+                                        return
+                                    end if
+                                    if not untouched(c.values, w.kept_c, general, dense.upper, m, n,
+                                                     by_rows) then
+                                        code = failure(of_multiply, outside_changed)
+                                        return
+                                    end if
+                                    if not null then
+                                        full_a := grid(w.full_a, 0, ma, na, ld)
+                                        full_b := grid(w.full_b, 0, mb, nb, ld)
+                                        result := reference(alpha,
+                                                            if trans_a then flip(full_a) else full_a end if,
+                                                            if trans_b then flip(full_b) else full_b end if,
+                                                            beta, grid(w.full_c, 0, m, n, ld), c,
+                                                            w.ct, w.g, eps)
+                                        code = judge(of_multiply, result.err, result.fatal,
+                                                     worst_ratio)
+                                        if code <> 0 then
+                                            return
+                                        end if
+                                    end if
+                                end for
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+    code = verdict(of_multiply, worst_ratio)
+end check_multiply
+
+--  DCHK2: `C ← α·A·B + β·C` or `C ← α·B·A + β·C` for a symmetric `A`.
+check_symmetric: (item: type is math.floating, w: work(item), eps: item)
+                 -> (code: i32) =
+    code = 0
+    reset()
+    mut count: usize = 0
+    mut worst_ratio := item(0)
+    ld := w.ld
+    for im in usize(0)..<6 do
+        m := sizes[im]
+        for in_ in usize(0)..<6 do
+            n := sizes[in_]
+            null := m == 0 or n == 0
+            generate(general, dense.upper, false, m, n, w.full_b, ld)
+            for ics in 0..<2 do
+                on_left := ics == 0
+                on: dense.side = if on_left then dense.left else dense.right end if
+                na := if on_left then m else n end if
+                for icu in 0..<2 do
+                    part: dense.triangle = if icu == 0 then dense.upper else dense.lower end if
+                    generate(symmetric, part, false, na, na, w.full_a, ld)
+                    for ia in usize(0)..<3 do
+                        alpha := alpha_of(ia, item: item)
+                        for ib in usize(0)..<3 do
+                            beta := beta_of(ib, item: item)
+                            generate(general, dense.upper, false, m, n, w.full_c, ld)
+                            inc count
+                            for layout in usize(0)..<layouts(count, 1296) do
+                                by_rows := layout == 1
+                                a := store(symmetric, part, false, na, na, w.full_a, ld,
+                                           w.stored_a, by_rows)
+                                b := store(general, dense.upper, false, m, n, w.full_b, ld,
+                                           w.stored_b, by_rows)
+                                c := store(general, dense.upper, false, m, n, w.full_c, ld,
+                                           w.stored_c, by_rows)
+                                keep(a.values, w.kept_a)
+                                keep(b.values, w.kept_b)
+                                keep(c.values, w.kept_c)
+                                dense.multiply_symmetric(c, on, alpha, a, part, b, beta)
+                                if not same(a.values, w.kept_a) then
+                                    code = failure(of_symmetric, first_changed)
+                                    return
+                                end if
+                                if not same(b.values, w.kept_b) then
+                                    code = failure(of_symmetric, second_changed)
+                                    return
+                                end if
+                                if not untouched(c.values, w.kept_c, general, dense.upper, m, n,
+                                                 by_rows) then
+                                    code = failure(of_symmetric, outside_changed)
+                                    return
+                                end if
+                                if not null then
+                                    full_a := grid(w.full_a, 0, na, na, ld)
+                                    full_b := grid(w.full_b, 0, m, n, ld)
+                                    full_c := grid(w.full_c, 0, m, n, ld)
+                                    left_factor := if on_left then full_a else full_b end if
+                                    right_factor := if on_left then full_b else full_a end if
+                                    result := reference(alpha, left_factor, right_factor, beta, full_c,
+                                                        c, w.ct, w.g, eps)
+                                    code = judge(of_symmetric, result.err, result.fatal, worst_ratio)
+                                    if code <> 0 then
+                                        return
+                                    end if
+                                end if
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+    code = verdict(of_symmetric, worst_ratio)
+end check_symmetric
+
+--  DCHK3: `B ← α·op(A)·B` or `B ← α·B·op(A)` for a triangular `A`, or
+--  with `solving` the solutions `B ← α·op(A)⁻¹·B`, `B ← α·B·op(A)⁻¹`,
+--  checked by multiplying them back.
+check_triangular: (item: type is math.floating, w: work(item), solving: bool,
+                   eps: item)
+                  -> (code: i32) =
+    code = 0
+    reset()
+    mut count: usize = 0
+    routine := if solving then of_solve else of_triangular end if
+    mut worst_ratio := item(0)
+    zero: item = item(0)
+    one: item = item(1)
+    ld := w.ld
+    for i in 0..<lenof w.full_c do
+        w.full_c[i] = zero
+    end for
+    for im in usize(0)..<6 do
+        m := sizes[im]
+        for in_ in usize(0)..<6 do
+            n := sizes[in_]
+            null := m == 0 or n == 0
+            for ics in 0..<2 do
+                on_left := ics == 0
+                on: dense.side = if on_left then dense.left else dense.right end if
+                na := if on_left then m else n end if
+                for icu in 0..<2 do
+                    part: dense.triangle = if icu == 0 then dense.upper else dense.lower end if
+                    for ict in 0..<2 do
+                        trans_a := ict == 1
+                        for icd in 0..<2 do
+                            unit_diagonal := icd == 0
+                            diagonal: dense.diagonal_kind = if unit_diagonal then dense.unit else dense.stored end if
+                            for ia in usize(0)..<3 do
+                                alpha := alpha_of(ia, item: item)
+                                generate(triangular, part, unit_diagonal, na, na, w.full_a, ld)
+                                generate(general, dense.upper, false, m, n, w.full_b, ld)
+                                inc count
+                                for layout in usize(0)..<layouts(count, 1728) do
+                                    by_rows := layout == 1
+                                    a := store(triangular, part, unit_diagonal, na, na, w.full_a,
+                                               ld, w.stored_a, by_rows)
+                                    b := store(general, dense.upper, false, m, n, w.full_b, ld,
+                                               w.stored_b, by_rows)
+                                    keep(a.values, w.kept_a)
+                                    keep(b.values, w.kept_b)
+                                    op_a := if trans_a then dense.transposed(a) else a end if
+                                    other: dense.triangle = if part == dense.upper then dense.lower else dense.upper end if
+                                    op_part: dense.triangle = if trans_a then other else part end if
+                                    if solving then
+                                        dense.solve_triangular(b, on, alpha, op_a, op_part, diagonal)
+                                    else
+                                        dense.multiply_triangular(b, on, alpha, op_a, op_part,
+                                                                  diagonal)
+                                    end if
+                                    if not same(a.values, w.kept_a) then
+                                        code = failure(routine, first_changed)
+                                        return
+                                    end if
+                                    if not untouched(b.values, w.kept_b, general, dense.upper, m, n,
+                                                     by_rows) then
+                                        code = failure(routine, outside_changed)
+                                        return
+                                    end if
+                                    if not null then
+                                        full := grid(w.full_a, 0, na, na, ld)
+                                        op_full := if trans_a then flip(full) else full end if
+                                        full_b := grid(w.full_b, 0, m, n, ld)
+                                        full_c := grid(w.full_c, 0, m, n, ld)
+                                        --  A solution goes into C and α·B where it was,
+                                        --  and op(A) times it must give α·B back.
+                                        if solving then
+                                            for j in 0..<n do
+                                                for i in 0..<m do
+                                                    put(full_c, i, j, at(b, i, j))
+                                                    put(b, i, j, alpha * at(full_b, i, j))
+                                                end for
+                                            end for
+                                        end if
+                                        x := if solving then full_c else full_b end if
+                                        rest := if solving then full_b else full_c end if
+                                        factor := if solving then one else alpha end if
+                                        left_factor := if on_left then op_full else x end if
+                                        right_factor := if on_left then x else op_full end if
+                                        result := reference(factor, left_factor, right_factor, zero,
+                                                            rest, b, w.ct, w.g, eps)
+                                        code = judge(routine, result.err, result.fatal, worst_ratio)
+                                        if code <> 0 then
+                                            return
+                                        end if
+                                    end if
+                                end for
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+    code = verdict(routine, worst_ratio)
+end check_triangular
+
+--  The first row and the number of rows of column `j` of the triangle
+--  `part` of an `n` by `n` matrix.
+column_part: (part: dense.triangle, n: usize, j: usize)
+             -> (first: usize, count: usize) =
+    if part == dense.upper then
+        first = 0
+        count = j + 1
+    else
+        first = j
+        count = n - j
+    end if
+end column_part
+
+--  DCHK4: `C ← α·A·Aᵀ + β·C`, or `C ← α·Aᵀ·A + β·C`, on a triangle.
+check_rank_k: (item: type is math.floating, w: work(item), eps: item)
+              -> (code: i32) =
+    code = 0
+    reset()
+    mut count: usize = 0
+    mut worst_ratio := item(0)
+    ld := w.ld
+    for in_ in usize(0)..<6 do
+        n := sizes[in_]
+        null := n == 0
+        for ik in usize(0)..<6 do
+            k := sizes[ik]
+            for ict in 0..<2 do
+                trans := ict == 1
+                ma := if trans then k else n end if
+                na := if trans then n else k end if
+                generate(general, dense.upper, false, ma, na, w.full_a, ld)
+                for icu in 0..<2 do
+                    part: dense.triangle = if icu == 0 then dense.upper else dense.lower end if
+                    for ia in usize(0)..<3 do
+                        alpha := alpha_of(ia, item: item)
+                        for ib in usize(0)..<3 do
+                            beta := beta_of(ib, item: item)
+                            generate(symmetric, part, false, n, n, w.full_c, ld)
+                            inc count
+                            for layout in usize(0)..<layouts(count, 1296) do
+                                by_rows := layout == 1
+                                a := store(general, dense.upper, false, ma, na, w.full_a, ld,
+                                           w.stored_a, by_rows)
+                                c := store(symmetric, part, false, n, n, w.full_c, ld,
+                                           w.stored_c, by_rows)
+                                keep(a.values, w.kept_a)
+                                keep(c.values, w.kept_c)
+                                op_a := if trans then dense.transposed(a) else a end if
+                                dense.add_symmetric_product(c, part, alpha, op_a, beta)
+                                if not same(a.values, w.kept_a) then
+                                    code = failure(of_rank_k, first_changed)
+                                    return
+                                end if
+                                if not untouched(c.values, w.kept_c, symmetric, part, n, n,
+                                                 by_rows) then
+                                    code = failure(of_rank_k, outside_changed)
+                                    return
+                                end if
+                                if not null then
+                                    for j in 0..<n do
+                                        rows := column_part(part, n, j)
+                                        jj := rows.first
+                                        lj := rows.count
+                                        left_factor := if trans then flip(grid(w.full_a, jj * ld, k, lj, ld))
+                                                       else grid(w.full_a, jj, lj, k, ld) end if
+                                        right_factor := if trans then grid(w.full_a, j * ld, k, 1, ld)
+                                                        else flip(grid(w.full_a, j, 1, k, ld)) end if
+                                        result := reference(alpha, left_factor, right_factor, beta,
+                                                            grid(w.full_c, jj + j * ld, lj, 1, ld),
+                                                            part_of(c, jj, j, lj, 1), w.ct, w.g, eps)
+                                        code = judge(of_rank_k, result.err, result.fatal,
+                                                     worst_ratio)
+                                        if code <> 0 then
+                                            return
+                                        end if
+                                    end for
+                                end if
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+    code = verdict(of_rank_k, worst_ratio)
+end check_rank_k
+
+--  DCHK5: `C ← α·A·Bᵀ + α·B·Aᵀ + β·C`, or with `Aᵀ·B` and `Bᵀ·A`, on a
+--  triangle.  As dblat3 does, `A` and `B` are generated side by side,
+--  or one above the other, so that the reference multiplies them as
+--  one matrix with each column of `[Bᵀ; Aᵀ]`.
+check_rank_2k: (item: type is math.floating, w: work(item), eps: item)
+               -> (code: i32) =
+    code = 0
+    reset()
+    mut count: usize = 0
+    mut worst_ratio := item(0)
+    ld := w.ld
+    for in_ in usize(0)..<6 do
+        n := sizes[in_]
+        null := n == 0
+        for ik in usize(0)..<6 do
+            k := sizes[ik]
+            for ict in 0..<2 do
+                trans := ict == 1
+                ma := if trans then k else n end if
+                na := if trans then n else k end if
+                pair_ld := if trans then 2 * ld else ld end if
+                second := if trans then k else k * ld end if
+                generate(general, dense.upper, false, ma, na, w.pair, pair_ld)
+                generate(general, dense.upper, false, ma, na, w.pair[second..<lenof w.pair], pair_ld)
+                for icu in 0..<2 do
+                    part: dense.triangle = if icu == 0 then dense.upper else dense.lower end if
+                    for ia in usize(0)..<3 do
+                        alpha := alpha_of(ia, item: item)
+                        for ib in usize(0)..<3 do
+                            beta := beta_of(ib, item: item)
+                            generate(symmetric, part, false, n, n, w.full_c, ld)
+                            inc count
+                            for layout in usize(0)..<layouts(count, 1296) do
+                                by_rows := layout == 1
+                                a := store(general, dense.upper, false, ma, na, w.pair, pair_ld,
+                                           w.stored_a, by_rows)
+                                b := store(general, dense.upper, false, ma, na,
+                                           w.pair[second..<lenof w.pair], pair_ld, w.stored_b, by_rows)
+                                c := store(symmetric, part, false, n, n, w.full_c, ld,
+                                           w.stored_c, by_rows)
+                                keep(a.values, w.kept_a)
+                                keep(b.values, w.kept_b)
+                                keep(c.values, w.kept_c)
+                                op_a := if trans then dense.transposed(a) else a end if
+                                op_b := if trans then dense.transposed(b) else b end if
+                                dense.add_symmetric_products(c, part, alpha, op_a, op_b, beta)
+                                if not same(a.values, w.kept_a) then
+                                    code = failure(of_rank_2k, first_changed)
+                                    return
+                                end if
+                                if not same(b.values, w.kept_b) then
+                                    code = failure(of_rank_2k, second_changed)
+                                    return
+                                end if
+                                if not untouched(c.values, w.kept_c, symmetric, part, n, n,
+                                                 by_rows) then
+                                    code = failure(of_rank_2k, outside_changed)
+                                    return
+                                end if
+                                if not null then
+                                    for j in 0..<n do
+                                        rows := column_part(part, n, j)
+                                        jj := rows.first
+                                        lj := rows.count
+                                        for i in 0..<k do
+                                            if trans then
+                                                w.w[i] = w.pair[j * 2 * ld + k + i]
+                                                w.w[k + i] = w.pair[j * 2 * ld + i]
+                                            else
+                                                w.w[i] = w.pair[(k + i) * ld + j]
+                                                w.w[k + i] = w.pair[i * ld + j]
+                                            end if
+                                        end for
+                                        both := if trans then flip(grid(w.pair, jj * 2 * ld, 2 * k, lj, 2 * ld))
+                                                else grid(w.pair, jj, lj, 2 * k, ld) end if
+                                        result := reference(alpha, both, grid(w.w, 0, 2 * k, 1, 2 * ld),
+                                                            beta, grid(w.full_c, jj + j * ld, lj, 1, ld),
+                                                            part_of(c, jj, j, lj, 1), w.ct, w.g, eps)
+                                        code = judge(of_rank_2k, result.err, result.fatal,
+                                                     worst_ratio)
+                                        if code <> 0 then
+                                            return
+                                        end if
+                                    end for
+                                end if
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+    code = verdict(of_rank_2k, worst_ratio)
+end check_rank_2k
+
+--  The product of 70 by 70 by 70, past dblat3's NMAX, in both orders,
+--  with four lengths of scratch, the full one, 8 * 70 + 3, 200 and
+--  none, each with another transpose of the operands.
+check_large: (item: type is math.floating, w: work(item), eps: item)
+             -> (code: i32) =
+    code = 0
+    reset()
+    mut worst_ratio := item(0)
+    ld := w.ld
+    n := ld
+    alpha := item(0.7)
+    beta := item(1.3)
+    generate(general, dense.upper, false, n, n, w.full_a, ld)
+    generate(general, dense.upper, false, n, n, w.full_b, ld)
+    generate(general, dense.upper, false, n, n, w.full_c, ld)
+    full_a := grid(w.full_a, 0, n, n, ld)
+    full_b := grid(w.full_b, 0, n, n, ld)
+    full_c := grid(w.full_c, 0, n, n, ld)
+    for layout in usize(0)..<2 do
+        by_rows := layout == 1
+        for choice in usize(0)..<4 do
+            trans_a := choice % 2 == 1
+            trans_b := choice / 2 == 1
+            length := if choice == 0 then dense.product_scratch(n, n, n)
+                      elsif choice == 1 then 8 * n + 3
+                      elsif choice == 2 then 200 else 0 end if
+            a := store(general, dense.upper, false, n, n, w.full_a, ld, w.stored_a, by_rows)
+            b := store(general, dense.upper, false, n, n, w.full_b, ld, w.stored_b, by_rows)
+            c := store(general, dense.upper, false, n, n, w.full_c, ld, w.stored_c, by_rows)
+            keep(a.values, w.kept_a)
+            keep(b.values, w.kept_b)
+            keep(c.values, w.kept_c)
+            op_a := if trans_a then dense.transposed(a) else a end if
+            op_b := if trans_b then dense.transposed(b) else b end if
+            dense.multiply(c, alpha, op_a, op_b, beta, w.scratch[0..<length])
+            if not same(a.values, w.kept_a) then
+                code = failure(of_large, first_changed)
+                return
+            end if
+            if not same(b.values, w.kept_b) then
+                code = failure(of_large, second_changed)
+                return
+            end if
+            if not untouched(c.values, w.kept_c, general, dense.upper, n, n, by_rows) then
+                code = failure(of_large, outside_changed)
+                return
+            end if
+            result := reference(alpha, if trans_a then flip(full_a) else full_a end if,
+                                if trans_b then flip(full_b) else full_b end if, beta,
+                                full_c, c, w.ct, w.g, eps)
+            code = judge(of_large, result.err, result.fatal, worst_ratio)
+            if code <> 0 then
+                return
+            end if
+        end for
+    end for
+    code = verdict(of_large, worst_ratio)
+end check_large
+
+large: usize = 70
+hosted: bool = compiler.os <> freestanding
+
+--  Whether the case numbered `count`, from 1, of `total` runs, and so
+--  in how many orders: every `stride`-th case, the first and the last.
+layouts: (count: usize, total: usize) -> (orders: usize) =
+    orders = if (count - 1) % stride == 0 or count == total then 2 else 0 end if
+end layouts
+
+--  The storage: firmware holds the cases up to N of 9 and the check of
+--  DMMCH, 32 by 32, a hosted target also the product of 70.
+fixed if compiler.os == freestanding then
+    stride: usize = 6
+    mut pool: [1216]f32 = zeroed
+else
+    stride: usize = 1
+    mut pool: [54740]f32 = zeroed
+end if
+
+--  Every check, stopping at the first that fails.
+run: (item: type is math.floating, pool: []mut item, eps: item) -> (code: i32) =
+    code = check_reference(pool, eps)
+    if code <> 0 then
+        return
+    end if
+    w := carve(pool, nmax, dense.product_scratch(nmax, nmax, nmax))
+    code = check_multiply(w, eps)
+    if code <> 0 then
+        return
+    end if
+    code = check_symmetric(w, eps)
+    if code <> 0 then
+        return
+    end if
+    code = check_triangular(w, false, eps)
+    if code <> 0 then
+        return
+    end if
+    code = check_triangular(w, true, eps)
+    if code <> 0 then
+        return
+    end if
+    code = check_rank_k(w, eps)
+    if code <> 0 then
+        return
+    end if
+    code = check_rank_2k(w, eps)
+    if code <> 0 then
+        return
+    end if
+    if hosted then
+        big := carve(pool, large, dense.product_scratch(large, large, large))
+        code = check_large(big, eps)
+    end if
+end run
+
+public main: () -> (code: i32) =
+    code = run(pool[0..<lenof pool], f32(0x1.0p-23))
+    if code == 0 then
+        code = 42
+    end if
+end main
