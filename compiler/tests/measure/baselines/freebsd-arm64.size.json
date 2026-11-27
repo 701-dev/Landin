@@ -14,7 +14,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22249,
+    ".rodata": 22923,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 163280,
@@ -27,10 +27,10 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 72,
-    ".data": 728,
+    ".relro_padding": 3496,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-all/fannkuch-redux": {
@@ -45,7 +45,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 19203,
+    ".rodata": 19746,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 128752,
@@ -58,10 +58,10 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1208,
-    ".data": 600,
+    ".relro_padding": 664,
+    ".data": 72,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8-a/none-all/fasta": {
@@ -76,7 +76,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 8539,
+    ".rodata": 9174,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 64264,
@@ -89,10 +89,10 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2728,
-    ".data": 712,
+    ".relro_padding": 2088,
+    ".data": 88,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8-a/none-all/fibre": {
@@ -107,7 +107,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 26871,
+    ".rodata": 27453,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 160496,
@@ -120,8 +120,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2664,
-    ".data": 640,
+    ".relro_padding": 2072,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -138,7 +138,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22440,
+    ".rodata": 23094,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 166604,
@@ -151,10 +151,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 696,
-    ".data": 704,
+    ".relro_padding": 40,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-all/pidigits": {
@@ -170,7 +170,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 49662,
+    ".rodata": 50328,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 406564,
@@ -183,10 +183,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3800,
-    ".data": 720,
+    ".relro_padding": 3144,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-all/reverse-complement": {
@@ -201,7 +201,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 14779,
+    ".rodata": 15447,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 126240,
@@ -214,10 +214,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3592,
-    ".data": 720,
+    ".relro_padding": 2920,
+    ".data": 72,
     ".got.plt": 112,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-all/thread": {
@@ -232,7 +232,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 32861,
+    ".rodata": 33518,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 197612,
@@ -245,10 +245,10 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 3704,
-    ".data": 720,
+    ".relro_padding": 3048,
+    ".data": 72,
     ".got.plt": 136,
-    ".bss": 147524
+    ".bss": 147508
    }
   },
   "armv8-a/none-auto/binary-trees": {
@@ -263,7 +263,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22249,
+    ".rodata": 22923,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 163280,
@@ -276,10 +276,10 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 72,
-    ".data": 728,
+    ".relro_padding": 3496,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-auto/fannkuch-redux": {
@@ -294,7 +294,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 19203,
+    ".rodata": 19746,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 128752,
@@ -307,10 +307,10 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1208,
-    ".data": 600,
+    ".relro_padding": 664,
+    ".data": 72,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8-a/none-auto/fasta": {
@@ -325,7 +325,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 8539,
+    ".rodata": 9174,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 64264,
@@ -338,10 +338,10 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2728,
-    ".data": 712,
+    ".relro_padding": 2088,
+    ".data": 88,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8-a/none-auto/fibre": {
@@ -356,7 +356,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 26871,
+    ".rodata": 27453,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 160496,
@@ -369,8 +369,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2664,
-    ".data": 640,
+    ".relro_padding": 2072,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -387,7 +387,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22440,
+    ".rodata": 23094,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 166604,
@@ -400,10 +400,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 696,
-    ".data": 704,
+    ".relro_padding": 40,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-auto/pidigits": {
@@ -419,7 +419,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 49662,
+    ".rodata": 50328,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 406564,
@@ -432,10 +432,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3800,
-    ".data": 720,
+    ".relro_padding": 3144,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-auto/reverse-complement": {
@@ -450,7 +450,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 14779,
+    ".rodata": 15447,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 126240,
@@ -463,10 +463,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3592,
-    ".data": 720,
+    ".relro_padding": 2920,
+    ".data": 72,
     ".got.plt": 112,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-auto/thread": {
@@ -481,7 +481,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 32861,
+    ".rodata": 33518,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 197612,
@@ -494,10 +494,10 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 3704,
-    ".data": 720,
+    ".relro_padding": 3048,
+    ".data": 72,
     ".got.plt": 136,
-    ".bss": 147524
+    ".bss": 147508
    }
   },
   "armv8-a/none-off/binary-trees": {
@@ -512,7 +512,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22249,
+    ".rodata": 22923,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 163352,
@@ -525,10 +525,10 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 8,
-    ".data": 728,
+    ".relro_padding": 3432,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-off/fannkuch-redux": {
@@ -543,7 +543,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 19203,
+    ".rodata": 19746,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 128784,
@@ -556,10 +556,10 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1176,
-    ".data": 600,
+    ".relro_padding": 632,
+    ".data": 72,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8-a/none-off/fasta": {
@@ -574,7 +574,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 8539,
+    ".rodata": 9174,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 64344,
@@ -587,10 +587,10 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2648,
-    ".data": 712,
+    ".relro_padding": 2008,
+    ".data": 88,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8-a/none-off/fibre": {
@@ -605,7 +605,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 26871,
+    ".rodata": 27453,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 160528,
@@ -618,8 +618,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2632,
-    ".data": 640,
+    ".relro_padding": 2040,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -636,7 +636,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22440,
+    ".rodata": 23094,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 166772,
@@ -649,10 +649,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 536,
-    ".data": 704,
+    ".relro_padding": 3976,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-off/pidigits": {
@@ -668,7 +668,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 49662,
+    ".rodata": 50328,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 406724,
@@ -681,10 +681,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3640,
-    ".data": 720,
+    ".relro_padding": 2984,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-off/reverse-complement": {
@@ -699,7 +699,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 14779,
+    ".rodata": 15447,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 126384,
@@ -712,10 +712,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3448,
-    ".data": 720,
+    ".relro_padding": 2776,
+    ".data": 72,
     ".got.plt": 112,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8-a/none-off/thread": {
@@ -730,7 +730,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 32861,
+    ".rodata": 33518,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 197676,
@@ -743,10 +743,10 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 3640,
-    ".data": 720,
+    ".relro_padding": 2984,
+    ".data": 72,
     ".got.plt": 136,
-    ".bss": 147524
+    ".bss": 147508
    }
   },
   "armv8-a/size-all/binary-trees": {
@@ -761,7 +761,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17017,
+    ".rodata": 17467,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51584,
@@ -774,8 +774,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2312,
-    ".data": 528,
+    ".relro_padding": 1864,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -792,7 +792,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13686,
+    ".rodata": 14138,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 38496,
@@ -805,8 +805,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2776,
-    ".data": 528,
+    ".relro_padding": 2328,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -823,7 +823,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7396,
+    ".rodata": 7950,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 24004,
@@ -836,8 +836,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3176,
-    ".data": 640,
+    ".relro_padding": 2616,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -854,7 +854,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 20385,
+    ".rodata": 20837,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 52736,
@@ -867,8 +867,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2216,
-    ".data": 528,
+    ".relro_padding": 1768,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -885,7 +885,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17196,
+    ".rodata": 17646,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51824,
@@ -898,8 +898,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1944,
-    ".data": 528,
+    ".relro_padding": 1496,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -917,7 +917,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36662,
+    ".rodata": 37112,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 106364,
@@ -930,8 +930,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1608,
-    ".data": 528,
+    ".relro_padding": 1160,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -948,7 +948,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13246,
+    ".rodata": 13699,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 44824,
@@ -961,8 +961,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 520,
-    ".data": 536,
+    ".relro_padding": 72,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -979,7 +979,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 25286,
+    ".rodata": 25766,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 67092,
@@ -992,8 +992,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2536,
-    ".data": 552,
+    ".relro_padding": 2056,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -1010,7 +1010,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17017,
+    ".rodata": 17467,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51584,
@@ -1023,8 +1023,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2312,
-    ".data": 528,
+    ".relro_padding": 1864,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1041,7 +1041,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13686,
+    ".rodata": 14138,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 38496,
@@ -1054,8 +1054,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2776,
-    ".data": 528,
+    ".relro_padding": 2328,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1072,7 +1072,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7396,
+    ".rodata": 7950,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 24004,
@@ -1085,8 +1085,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3176,
-    ".data": 640,
+    ".relro_padding": 2616,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1103,7 +1103,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 20385,
+    ".rodata": 20837,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 52736,
@@ -1116,8 +1116,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2216,
-    ".data": 528,
+    ".relro_padding": 1768,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -1134,7 +1134,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17196,
+    ".rodata": 17646,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51824,
@@ -1147,8 +1147,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1944,
-    ".data": 528,
+    ".relro_padding": 1496,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1166,7 +1166,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36662,
+    ".rodata": 37112,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 106364,
@@ -1179,8 +1179,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1608,
-    ".data": 528,
+    ".relro_padding": 1160,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1197,7 +1197,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13246,
+    ".rodata": 13699,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 44824,
@@ -1210,8 +1210,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 520,
-    ".data": 536,
+    ".relro_padding": 72,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -1228,7 +1228,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 25286,
+    ".rodata": 25766,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 67092,
@@ -1241,8 +1241,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2536,
-    ".data": 552,
+    ".relro_padding": 2056,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -1259,7 +1259,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17017,
+    ".rodata": 17467,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51608,
@@ -1272,8 +1272,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2296,
-    ".data": 528,
+    ".relro_padding": 1848,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1290,7 +1290,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13686,
+    ".rodata": 14138,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 38520,
@@ -1303,8 +1303,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2744,
-    ".data": 528,
+    ".relro_padding": 2296,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1321,7 +1321,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7396,
+    ".rodata": 7950,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 24052,
@@ -1334,8 +1334,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3128,
-    ".data": 640,
+    ".relro_padding": 2568,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1352,7 +1352,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 20385,
+    ".rodata": 20837,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 52760,
@@ -1365,8 +1365,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2200,
-    ".data": 528,
+    ".relro_padding": 1736,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -1383,7 +1383,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17196,
+    ".rodata": 17646,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51884,
@@ -1396,8 +1396,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1880,
-    ".data": 528,
+    ".relro_padding": 1432,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1415,7 +1415,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36662,
+    ".rodata": 37112,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 106432,
@@ -1428,8 +1428,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1544,
-    ".data": 528,
+    ".relro_padding": 1096,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1446,7 +1446,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13246,
+    ".rodata": 13699,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 44896,
@@ -1459,8 +1459,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 456,
-    ".data": 536,
+    ".relro_padding": 8,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -1477,7 +1477,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 25286,
+    ".rodata": 25766,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 67092,
@@ -1490,8 +1490,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2536,
-    ".data": 552,
+    ".relro_padding": 2056,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -1508,7 +1508,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16687,
+    ".rodata": 17139,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48040,
@@ -1521,8 +1521,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2088,
-    ".data": 528,
+    ".relro_padding": 1640,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1539,7 +1539,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13304,
+    ".rodata": 13754,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 35196,
@@ -1552,8 +1552,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2360,
-    ".data": 528,
+    ".relro_padding": 1912,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1570,7 +1570,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7374,
+    ".rodata": 7926,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 20804,
@@ -1583,8 +1583,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2296,
-    ".data": 640,
+    ".relro_padding": 1736,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1601,7 +1601,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 18894,
+    ".rodata": 19349,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 46820,
@@ -1614,8 +1614,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1432,
-    ".data": 528,
+    ".relro_padding": 968,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -1632,7 +1632,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16869,
+    ".rodata": 17318,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48040,
@@ -1645,8 +1645,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1960,
-    ".data": 528,
+    ".relro_padding": 1512,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1664,7 +1664,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36304,
+    ".rodata": 36760,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 115352,
@@ -1677,8 +1677,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1176,
-    ".data": 528,
+    ".relro_padding": 728,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1695,7 +1695,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13057,
+    ".rodata": 13515,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 43068,
@@ -1708,8 +1708,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2472,
-    ".data": 536,
+    ".relro_padding": 2008,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -1726,7 +1726,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 23314,
+    ".rodata": 23790,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 61404,
@@ -1739,8 +1739,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2008,
-    ".data": 552,
+    ".relro_padding": 1528,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -1757,7 +1757,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16687,
+    ".rodata": 17139,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48040,
@@ -1770,8 +1770,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2088,
-    ".data": 528,
+    ".relro_padding": 1640,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1788,7 +1788,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13304,
+    ".rodata": 13754,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 35196,
@@ -1801,8 +1801,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2360,
-    ".data": 528,
+    ".relro_padding": 1912,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1819,7 +1819,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7374,
+    ".rodata": 7926,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 20804,
@@ -1832,8 +1832,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2296,
-    ".data": 640,
+    ".relro_padding": 1736,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -1850,7 +1850,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 18894,
+    ".rodata": 19349,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 46820,
@@ -1863,8 +1863,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1432,
-    ".data": 528,
+    ".relro_padding": 968,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -1881,7 +1881,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16869,
+    ".rodata": 17318,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48040,
@@ -1894,8 +1894,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1960,
-    ".data": 528,
+    ".relro_padding": 1512,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1913,7 +1913,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36304,
+    ".rodata": 36760,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 115352,
@@ -1926,8 +1926,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1176,
-    ".data": 528,
+    ".relro_padding": 728,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -1944,7 +1944,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13057,
+    ".rodata": 13515,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 43068,
@@ -1957,8 +1957,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2472,
-    ".data": 536,
+    ".relro_padding": 2008,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -1975,7 +1975,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 23314,
+    ".rodata": 23790,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 61404,
@@ -1988,8 +1988,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2008,
-    ".data": 552,
+    ".relro_padding": 1528,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -2006,7 +2006,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16687,
+    ".rodata": 17139,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48192,
@@ -2019,8 +2019,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1944,
-    ".data": 528,
+    ".relro_padding": 1496,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -2037,7 +2037,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13304,
+    ".rodata": 13754,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 35236,
@@ -2050,8 +2050,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2312,
-    ".data": 528,
+    ".relro_padding": 1864,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -2068,7 +2068,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7374,
+    ".rodata": 7926,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 20820,
@@ -2081,8 +2081,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2280,
-    ".data": 640,
+    ".relro_padding": 1720,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -2099,7 +2099,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 18894,
+    ".rodata": 19349,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 46860,
@@ -2112,8 +2112,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1384,
-    ".data": 528,
+    ".relro_padding": 936,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -2130,7 +2130,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16869,
+    ".rodata": 17318,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48140,
@@ -2143,8 +2143,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1848,
-    ".data": 528,
+    ".relro_padding": 1400,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -2162,7 +2162,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36304,
+    ".rodata": 36760,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 115804,
@@ -2175,8 +2175,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 728,
-    ".data": 528,
+    ".relro_padding": 264,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -2193,7 +2193,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13057,
+    ".rodata": 13515,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 43400,
@@ -2206,8 +2206,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2136,
-    ".data": 536,
+    ".relro_padding": 1688,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -2224,7 +2224,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 23314,
+    ".rodata": 23790,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 61492,
@@ -2237,8 +2237,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 1912,
-    ".data": 552,
+    ".relro_padding": 1432,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -2255,7 +2255,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22249,
+    ".rodata": 22923,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 163248,
@@ -2268,10 +2268,10 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 104,
-    ".data": 728,
+    ".relro_padding": 3528,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-all/fannkuch-redux": {
@@ -2286,7 +2286,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 19203,
+    ".rodata": 19746,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 128752,
@@ -2299,10 +2299,10 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1208,
-    ".data": 600,
+    ".relro_padding": 664,
+    ".data": 72,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8.1-a/none-all/fasta": {
@@ -2317,7 +2317,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 8539,
+    ".rodata": 9174,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 64264,
@@ -2330,10 +2330,10 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2728,
-    ".data": 712,
+    ".relro_padding": 2088,
+    ".data": 88,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8.1-a/none-all/fibre": {
@@ -2348,7 +2348,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 26871,
+    ".rodata": 27453,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 160496,
@@ -2361,8 +2361,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2664,
-    ".data": 640,
+    ".relro_padding": 2072,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -2379,7 +2379,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22440,
+    ".rodata": 23094,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 166572,
@@ -2392,10 +2392,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 728,
-    ".data": 704,
+    ".relro_padding": 72,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-all/pidigits": {
@@ -2411,7 +2411,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 49662,
+    ".rodata": 50328,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 406532,
@@ -2424,10 +2424,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3832,
-    ".data": 720,
+    ".relro_padding": 3176,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-all/reverse-complement": {
@@ -2442,7 +2442,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 14779,
+    ".rodata": 15447,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 126208,
@@ -2455,10 +2455,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3624,
-    ".data": 720,
+    ".relro_padding": 2952,
+    ".data": 72,
     ".got.plt": 112,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-all/thread": {
@@ -2473,7 +2473,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 32861,
+    ".rodata": 33518,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 197592,
@@ -2486,10 +2486,10 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 3720,
-    ".data": 720,
+    ".relro_padding": 3064,
+    ".data": 72,
     ".got.plt": 136,
-    ".bss": 147524
+    ".bss": 147508
    }
   },
   "armv8.1-a/none-auto/binary-trees": {
@@ -2504,7 +2504,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22249,
+    ".rodata": 22923,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 163248,
@@ -2517,10 +2517,10 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 104,
-    ".data": 728,
+    ".relro_padding": 3528,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-auto/fannkuch-redux": {
@@ -2535,7 +2535,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 19203,
+    ".rodata": 19746,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 128752,
@@ -2548,10 +2548,10 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1208,
-    ".data": 600,
+    ".relro_padding": 664,
+    ".data": 72,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8.1-a/none-auto/fasta": {
@@ -2566,7 +2566,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 8539,
+    ".rodata": 9174,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 64264,
@@ -2579,10 +2579,10 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2728,
-    ".data": 712,
+    ".relro_padding": 2088,
+    ".data": 88,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8.1-a/none-auto/fibre": {
@@ -2597,7 +2597,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 26871,
+    ".rodata": 27453,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 160496,
@@ -2610,8 +2610,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2664,
-    ".data": 640,
+    ".relro_padding": 2072,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -2628,7 +2628,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22440,
+    ".rodata": 23094,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 166572,
@@ -2641,10 +2641,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 728,
-    ".data": 704,
+    ".relro_padding": 72,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-auto/pidigits": {
@@ -2660,7 +2660,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 49662,
+    ".rodata": 50328,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 406532,
@@ -2673,10 +2673,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3832,
-    ".data": 720,
+    ".relro_padding": 3176,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-auto/reverse-complement": {
@@ -2691,7 +2691,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 14779,
+    ".rodata": 15447,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 126208,
@@ -2704,10 +2704,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3624,
-    ".data": 720,
+    ".relro_padding": 2952,
+    ".data": 72,
     ".got.plt": 112,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-auto/thread": {
@@ -2722,7 +2722,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 32861,
+    ".rodata": 33518,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 197592,
@@ -2735,10 +2735,10 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 3720,
-    ".data": 720,
+    ".relro_padding": 3064,
+    ".data": 72,
     ".got.plt": 136,
-    ".bss": 147524
+    ".bss": 147508
    }
   },
   "armv8.1-a/none-off/binary-trees": {
@@ -2753,7 +2753,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22249,
+    ".rodata": 22923,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 163320,
@@ -2766,10 +2766,10 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 40,
-    ".data": 728,
+    ".relro_padding": 3464,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-off/fannkuch-redux": {
@@ -2784,7 +2784,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 19203,
+    ".rodata": 19746,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 128784,
@@ -2797,10 +2797,10 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1176,
-    ".data": 600,
+    ".relro_padding": 632,
+    ".data": 72,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8.1-a/none-off/fasta": {
@@ -2815,7 +2815,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 8539,
+    ".rodata": 9174,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 64344,
@@ -2828,10 +2828,10 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2648,
-    ".data": 712,
+    ".relro_padding": 2008,
+    ".data": 88,
     ".got.plt": 72,
-    ".bss": 40
+    ".bss": 32
    }
   },
   "armv8.1-a/none-off/fibre": {
@@ -2846,7 +2846,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 26871,
+    ".rodata": 27453,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 160528,
@@ -2859,8 +2859,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2632,
-    ".data": 640,
+    ".relro_padding": 2040,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -2877,7 +2877,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 22440,
+    ".rodata": 23094,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 166740,
@@ -2890,10 +2890,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 568,
-    ".data": 704,
+    ".relro_padding": 4008,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-off/pidigits": {
@@ -2909,7 +2909,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 49662,
+    ".rodata": 50328,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 406692,
@@ -2922,10 +2922,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3672,
-    ".data": 720,
+    ".relro_padding": 3016,
+    ".data": 72,
     ".got.plt": 104,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-off/reverse-complement": {
@@ -2940,7 +2940,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 14779,
+    ".rodata": 15447,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 126352,
@@ -2953,10 +2953,10 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3480,
-    ".data": 720,
+    ".relro_padding": 2808,
+    ".data": 72,
     ".got.plt": 112,
-    ".bss": 136
+    ".bss": 124
    }
   },
   "armv8.1-a/none-off/thread": {
@@ -2971,7 +2971,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 32861,
+    ".rodata": 33518,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 197656,
@@ -2984,10 +2984,10 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 3656,
-    ".data": 720,
+    ".relro_padding": 3000,
+    ".data": 72,
     ".got.plt": 136,
-    ".bss": 147524
+    ".bss": 147508
    }
   },
   "armv8.1-a/size-all/binary-trees": {
@@ -3002,7 +3002,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17017,
+    ".rodata": 17467,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51552,
@@ -3015,8 +3015,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2344,
-    ".data": 528,
+    ".relro_padding": 1896,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3033,7 +3033,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13686,
+    ".rodata": 14138,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 38496,
@@ -3046,8 +3046,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2776,
-    ".data": 528,
+    ".relro_padding": 2328,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3064,7 +3064,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7396,
+    ".rodata": 7950,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 24004,
@@ -3077,8 +3077,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3176,
-    ".data": 640,
+    ".relro_padding": 2616,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3095,7 +3095,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 20385,
+    ".rodata": 20837,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 52736,
@@ -3108,8 +3108,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2216,
-    ".data": 528,
+    ".relro_padding": 1768,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -3126,7 +3126,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17196,
+    ".rodata": 17646,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51792,
@@ -3139,8 +3139,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1976,
-    ".data": 528,
+    ".relro_padding": 1528,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3158,7 +3158,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36662,
+    ".rodata": 37112,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 106332,
@@ -3171,8 +3171,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1640,
-    ".data": 528,
+    ".relro_padding": 1192,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3189,7 +3189,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13246,
+    ".rodata": 13699,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 44792,
@@ -3202,8 +3202,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 552,
-    ".data": 536,
+    ".relro_padding": 104,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -3220,7 +3220,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 25286,
+    ".rodata": 25766,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 67072,
@@ -3233,8 +3233,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2552,
-    ".data": 552,
+    ".relro_padding": 2072,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -3251,7 +3251,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17017,
+    ".rodata": 17467,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51552,
@@ -3264,8 +3264,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2344,
-    ".data": 528,
+    ".relro_padding": 1896,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3282,7 +3282,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13686,
+    ".rodata": 14138,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 38496,
@@ -3295,8 +3295,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2776,
-    ".data": 528,
+    ".relro_padding": 2328,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3313,7 +3313,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7396,
+    ".rodata": 7950,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 24004,
@@ -3326,8 +3326,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3176,
-    ".data": 640,
+    ".relro_padding": 2616,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3344,7 +3344,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 20385,
+    ".rodata": 20837,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 52736,
@@ -3357,8 +3357,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2216,
-    ".data": 528,
+    ".relro_padding": 1768,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -3375,7 +3375,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17196,
+    ".rodata": 17646,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51792,
@@ -3388,8 +3388,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1976,
-    ".data": 528,
+    ".relro_padding": 1528,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3407,7 +3407,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36662,
+    ".rodata": 37112,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 106332,
@@ -3420,8 +3420,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1640,
-    ".data": 528,
+    ".relro_padding": 1192,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3438,7 +3438,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13246,
+    ".rodata": 13699,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 44792,
@@ -3451,8 +3451,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 552,
-    ".data": 536,
+    ".relro_padding": 104,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -3469,7 +3469,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 25286,
+    ".rodata": 25766,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 67072,
@@ -3482,8 +3482,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2552,
-    ".data": 552,
+    ".relro_padding": 2072,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -3500,7 +3500,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17017,
+    ".rodata": 17467,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51576,
@@ -3513,8 +3513,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2328,
-    ".data": 528,
+    ".relro_padding": 1880,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3531,7 +3531,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13686,
+    ".rodata": 14138,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 38520,
@@ -3544,8 +3544,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2744,
-    ".data": 528,
+    ".relro_padding": 2296,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3562,7 +3562,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7396,
+    ".rodata": 7950,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 24052,
@@ -3575,8 +3575,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 3128,
-    ".data": 640,
+    ".relro_padding": 2568,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3593,7 +3593,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 20385,
+    ".rodata": 20837,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 52760,
@@ -3606,8 +3606,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2200,
-    ".data": 528,
+    ".relro_padding": 1736,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -3624,7 +3624,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 17196,
+    ".rodata": 17646,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 51852,
@@ -3637,8 +3637,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1912,
-    ".data": 528,
+    ".relro_padding": 1464,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3656,7 +3656,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36662,
+    ".rodata": 37112,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 106400,
@@ -3669,8 +3669,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1576,
-    ".data": 528,
+    ".relro_padding": 1128,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3687,7 +3687,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13246,
+    ".rodata": 13699,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 44864,
@@ -3700,8 +3700,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 488,
-    ".data": 536,
+    ".relro_padding": 40,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -3718,7 +3718,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 25286,
+    ".rodata": 25766,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 67072,
@@ -3731,8 +3731,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2552,
-    ".data": 552,
+    ".relro_padding": 2072,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -3749,7 +3749,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16687,
+    ".rodata": 17139,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48008,
@@ -3762,8 +3762,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2120,
-    ".data": 528,
+    ".relro_padding": 1672,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3780,7 +3780,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13304,
+    ".rodata": 13754,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 35196,
@@ -3793,8 +3793,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2360,
-    ".data": 528,
+    ".relro_padding": 1912,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3811,7 +3811,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7374,
+    ".rodata": 7926,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 20804,
@@ -3824,8 +3824,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2296,
-    ".data": 640,
+    ".relro_padding": 1736,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -3842,7 +3842,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 18894,
+    ".rodata": 19349,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 46820,
@@ -3855,8 +3855,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1432,
-    ".data": 528,
+    ".relro_padding": 968,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -3873,7 +3873,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16869,
+    ".rodata": 17318,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48008,
@@ -3886,8 +3886,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1992,
-    ".data": 528,
+    ".relro_padding": 1544,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3905,7 +3905,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36304,
+    ".rodata": 36760,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 115320,
@@ -3918,8 +3918,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1208,
-    ".data": 528,
+    ".relro_padding": 760,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -3936,7 +3936,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13057,
+    ".rodata": 13515,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 43036,
@@ -3949,8 +3949,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2504,
-    ".data": 536,
+    ".relro_padding": 2040,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -3967,7 +3967,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 23314,
+    ".rodata": 23790,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 61384,
@@ -3980,8 +3980,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2024,
-    ".data": 552,
+    ".relro_padding": 1544,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -3998,7 +3998,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16687,
+    ".rodata": 17139,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48008,
@@ -4011,8 +4011,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2120,
-    ".data": 528,
+    ".relro_padding": 1672,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -4029,7 +4029,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13304,
+    ".rodata": 13754,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 35196,
@@ -4042,8 +4042,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2360,
-    ".data": 528,
+    ".relro_padding": 1912,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -4060,7 +4060,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7374,
+    ".rodata": 7926,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 20804,
@@ -4073,8 +4073,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2296,
-    ".data": 640,
+    ".relro_padding": 1736,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -4091,7 +4091,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 18894,
+    ".rodata": 19349,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 46820,
@@ -4104,8 +4104,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1432,
-    ".data": 528,
+    ".relro_padding": 968,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -4122,7 +4122,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16869,
+    ".rodata": 17318,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48008,
@@ -4135,8 +4135,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1992,
-    ".data": 528,
+    ".relro_padding": 1544,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -4154,7 +4154,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36304,
+    ".rodata": 36760,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 115320,
@@ -4167,8 +4167,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1208,
-    ".data": 528,
+    ".relro_padding": 760,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -4185,7 +4185,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13057,
+    ".rodata": 13515,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 43036,
@@ -4198,8 +4198,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2504,
-    ".data": 536,
+    ".relro_padding": 2040,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -4216,7 +4216,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 23314,
+    ".rodata": 23790,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 61384,
@@ -4229,8 +4229,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 2024,
-    ".data": 552,
+    ".relro_padding": 1544,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
@@ -4247,7 +4247,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16687,
+    ".rodata": 17139,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48160,
@@ -4260,8 +4260,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1976,
-    ".data": 528,
+    ".relro_padding": 1528,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -4278,7 +4278,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 13304,
+    ".rodata": 13754,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 35236,
@@ -4291,8 +4291,8 @@
     ".data.rel.ro": 192,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2312,
-    ".data": 528,
+    ".relro_padding": 1864,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -4309,7 +4309,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 7374,
+    ".rodata": 7926,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 20820,
@@ -4322,8 +4322,8 @@
     ".data.rel.ro": 96,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2280,
-    ".data": 640,
+    ".relro_padding": 1720,
+    ".data": 88,
     ".got.plt": 72,
     ".bss": 32
    }
@@ -4340,7 +4340,7 @@
     ".dynstr": 111,
     ".rela.dyn": 24,
     ".rela.plt": 144,
-    ".rodata": 18894,
+    ".rodata": 19349,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 46860,
@@ -4353,8 +4353,8 @@
     ".data.rel.ro": 288,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1384,
-    ".data": 528,
+    ".relro_padding": 936,
+    ".data": 72,
     ".got.plt": 72,
     ".bss": 16436
    }
@@ -4371,7 +4371,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 16869,
+    ".rodata": 17318,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 48108,
@@ -4384,8 +4384,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 1880,
-    ".data": 528,
+    ".relro_padding": 1432,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -4403,7 +4403,7 @@
     ".dynstr": 144,
     ".rela.dyn": 24,
     ".rela.plt": 240,
-    ".rodata": 36304,
+    ".rodata": 36760,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 115772,
@@ -4416,8 +4416,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 760,
-    ".data": 528,
+    ".relro_padding": 296,
+    ".data": 72,
     ".got.plt": 104,
     ".bss": 124
    }
@@ -4434,7 +4434,7 @@
     ".dynstr": 149,
     ".rela.dyn": 24,
     ".rela.plt": 264,
-    ".rodata": 13057,
+    ".rodata": 13515,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 43368,
@@ -4447,8 +4447,8 @@
     ".data.rel.ro": 240,
     ".dynamic": 368,
     ".got": 8,
-    ".relro_padding": 2168,
-    ".data": 536,
+    ".relro_padding": 1720,
+    ".data": 72,
     ".got.plt": 112,
     ".bss": 124
    }
@@ -4465,7 +4465,7 @@
     ".dynstr": 249,
     ".rela.dyn": 24,
     ".rela.plt": 336,
-    ".rodata": 23314,
+    ".rodata": 23790,
     ".eh_frame_hdr": 28,
     ".eh_frame": 88,
     ".text": 61472,
@@ -4478,8 +4478,8 @@
     ".data.rel.ro": 416,
     ".dynamic": 384,
     ".got": 8,
-    ".relro_padding": 1944,
-    ".data": 552,
+    ".relro_padding": 1464,
+    ".data": 72,
     ".got.plt": 136,
     ".bss": 147508
    }
