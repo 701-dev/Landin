@@ -1457,13 +1457,13 @@ through the stack switch, and its
 
 ### R16.44 — An increment proved by the check before it
 
-Status: active
+Status: complete
 Depends on: R16.10
 
-Two increments keep an overflow check that cannot fail. SR-1959's index,
+Two increments keep an overflow check that cannot fail. `SR-1959`'s index,
 checked below a constant bound by the bounds check just before it in the
 same block, then incremented: reverse-complement's `write_reversed`,
-4.0% of its x86-64 instructions at speed by a hand patch. SR-1918's
+4.0% of its x86-64 instructions at speed by a hand patch. `SR-1918`'s
 count, incremented at most once a step of a counted loop from zero:
 fasta's `select_symbol`, 5.0% on x86-64 and 5.4% on arm64 by its step
 count. The first needs only the fact the block's own check leaves; the
@@ -1472,6 +1472,27 @@ simplifier does not keep. Scheduled by the register sweep of 2026-11-26.
 Exit evidence: each check proved and removed on every target, the two
 programs' instructions measured against the item's base, and no other
 combination over its own.
+
+Done: an index a block's bounds check has passed is at most the
+length less one for the rest of that block, so `write_reversed`'s `inc
+width` after `line[width]` keeps no check (D2816); and of two slots
+counted up from one block, one is at most the other before its own step
+when it starts no higher, steps no further and cannot step again before
+the other has, so fasta's `inc index` inside its `for` keeps none either
+and on arm64 is one `cinc` (D2817). Both are proved in the target-neutral
+IR, and the checks are gone on x86-64, arm64, rv64, rv32, Cortex-M and
+Xtensa. Against the item's base under QEMU at speed fasta executes 5.0%
+fewer x86-64 instructions and 11.0% fewer arm64 ones, reverse-complement
+4.4% and 4.3%, the switch measurements about 0.5%, the others the same,
+every output the same. Counted in user cycles, fasta takes 6.4% fewer on
+an EPYC 7302 and 22.2% fewer on a big arm64 core, reverse-complement
+1.9% fewer on the EPYC and 1.6% more on the arm64 core, where the one
+instruction removed moved its loop's head (`SR-2042`). Sizes are 24 to
+152 bytes smaller a configuration on every hosted target; FreeBSD's
+relro padding grows only as far as its text shrank. `SR-1918` and
+`SR-1959` are completed and deleted; the flag-add tests that pinned the
+count's check now pin its absence. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45953123499).
 
 ### R16.45 — A call's failure tested once
 
