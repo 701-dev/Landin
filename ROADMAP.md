@@ -1451,7 +1451,7 @@ through the stack switch, and its
 
 ### R16.44 — An increment proved by the check before it
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 Two increments keep an overflow check that cannot fail. SR-1959's index,
