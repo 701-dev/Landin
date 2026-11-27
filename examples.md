@@ -237,9 +237,16 @@ prints the count. It is like `wc -l` for one file, except that a last line
 without its newline counts too. When something fails, the program says
 what in words on standard error and returns 1.
 
-- `io.argument(host, 0)` lends the first argument as a host string, the
-  bytes the system gave [1660]. With no argument it fails, and the program
-  prints how to use it.
+- `core/args` reads the command line against a table the program
+  declares, here one positional argument, `FILE`. `args.parse_process`
+  takes the process's arguments into `parsed`, allocating from the heap,
+  and `defer args.release` gives that back [1100].
+- When the arguments are not what the table says, `args.reply` writes what
+  was wrong and the usage line on standard error and gives the status to
+  exit with, 2; asked for `--help`, it writes the help and gives 0.
+- `args.value_of` gives `FILE`'s value, which a required argument always
+  has once parsing succeeded. Its `bytes` are the host string the system
+  gave, unconverted [1660].
 - `count_lines` declares its failures as `! ...`, which lets the compiler
   infer the set from every `fail` and `try` in the body. Only a function
   that is not `public` may leave its set to the compiler [0960].
@@ -259,11 +266,13 @@ Fixture source: `compiler/tests/fixtures/runtime/line-count/main.ldn`.
 --  Count the lines of the file named by the first argument, as `wc -l`
 --  does, and a last line without a newline too.  A failure is said in words on standard error, and the program
 --  then returns 1.
+import core/args
 import core/failure
 import core/io
 import core/mem
 import core/text
 import hosted/blocking
+import hosted/heap
 
 --- How many lines the file at `path` holds.  A last line without its
 --- newline counts, and so does a line too long for the buffer.
@@ -296,13 +305,20 @@ end complain
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    path := io.argument(host, 0) else begin
-        io.write(host, io.err(host), "usage: count FILE\n") else none
+    memory := heap.new()
+    table: [1]args.argument = [args.positional("FILE", "the file to count")]
+    program := args.command_of("count", "Count the lines of a file.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
-    lines := count_lines(host, path) else (problem)
-        complain(host, text.os_string_bytes(path), problem)
+    code = 1
+    file := args.value_of(parsed, "FILE")
+    lines := count_lines(host, file.bytes) else (problem)
+        complain(host, text.os_string_bytes(file.bytes), problem)
         return
     end
     io.write_format(host, io.out(host), "{} lines\n", [any(addr lines)])
@@ -322,23 +338,26 @@ refine compile main.ldn -o count
 ```
 
 it prints `4 lines`. Named a file that is not there, it prints
-`count: missing.log: not found` on standard error and returns 1.
+`count: missing.log: not found` on standard error and returns 1. Named
+two files, it prints `count: unexpected argument "b"` and its usage line,
+`usage: count [options] FILE`, and returns 2.
 
 ## Adding up the arguments
 
 The program adds up the numbers you give it as arguments, however many
 there are, and prints the sum. When an argument is not a number, the
-program names it on standard error and returns 1.
+program names it on standard error and returns 2.
 
-- `io.arguments_length(host)` is how many arguments the program was given,
-  not counting its own name [1650]. The loop asks the host for each one by
-  its index, `io.argument(host, at)`, from 0 up to the count [1150].
-- With no argument at all, `main` prints how to use the program.
-- `text.parse_u64` reads an argument's bytes as decimal digits. Anything
-  else is the failure `text.invalid_number`, and digits too large for a
-  `u64` are `text.number_overflow`; `try` passes either on [0960].
-- `sum_arguments` keeps the index it is working on in `at_fault`, an
-  `inout` parameter, so that `main` can say which argument failed [1030].
+- The table declares one positional argument, `NUMBER`, made `repeated`
+  so that it takes every word left, and `typed` as `args.as_unsigned`, so
+  that `core/args` reads each as `text.parse_u64` reads decimal digits.
+  It is required, so at least one must be given.
+- `args.parse_process` refuses a word that is no number, or digits too
+  large for a `u64`, before the program sees it; `args.reply` then says
+  which on standard error, with the usage line, and gives the status 2.
+- `args.count(parsed, "NUMBER")` is how many were given, and
+  `args.get_at` reads each by its index, its `unsigned` field the number
+  read [1150].
 - A sum too large for a `u64` traps, as overflow does [0300].
 
 Fixture source: `compiler/tests/fixtures/runtime/example-sum-arguments/main.ldn`.
@@ -346,40 +365,33 @@ Fixture source: `compiler/tests/fixtures/runtime/example-sum-arguments/main.ldn`
 ```landin
 --  Add up the numbers given as arguments, however many there are, and
 --  print the sum.  An argument that is no number is named on standard
---  error, and the program then returns 1.
-import core/failure
+--  error with what was expected, and the program then returns 2.
+import core/args
 import core/io
-import core/text
 import hosted/blocking
-
---- The sum of every argument, each read as decimal digits.  `at_fault` is
---- the index of the argument being read, which the caller names when the
---- sum fails.
-sum_arguments: (host: blocking.host, inout at_fault: usize)
-               -> (sum: u64) ! ... =
-    sum = 0
-    for at in usize(0)..<io.arguments_length(host) do
-        at_fault = at
-        argument: text.os_string = try io.argument(host, at)
-        sum += try text.parse_u64(text.os_string_bytes(argument))
-    end for
-end sum_arguments
+import hosted/heap
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    if io.arguments_length(host) == 0 then
-        io.write(host, io.err(host), "usage: sum NUMBER...\n") else none
-        return
-    end if
-    mut at_fault: usize = 0
-    sum := sum_arguments(host, at_fault) else (problem)
-        number: usize = at_fault + 1
-        words: []u8 = failure.words(problem)
-        io.write_format(host, io.err(host), "sum: argument {}: {}\n",
-                        [any(addr number), any(addr words)]) else none
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.repeated(args.typed(args.positional("NUMBER", "a number to add"),
+                                 args.as_unsigned))
+    ]
+    program := args.command_of("sum", "Add up numbers.", table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
+    mut sum: u64 = 0
+    for at in usize(0)..<args.count(parsed, "NUMBER") do
+        number := args.get_at(parsed, "NUMBER", at) else begin
+            break
+        end
+        sum += number.unsigned
+    end for
     io.write_format(host, io.out(host), "{}\n", [any(addr sum)]) else none
     code = 0
 end main
@@ -393,7 +405,8 @@ refine compile main.ldn -o sum
 ```
 
 it prints `543`. Given `./sum 3 x 5`, it prints
-`sum: argument 2: not a number` on standard error and returns 1.
+`sum: argument NUMBER expects an unsigned number, given "x"` on standard
+error, then `usage: sum [options] NUMBER...`, and returns 2.
 
 ## FizzBuzz
 
@@ -1165,10 +1178,13 @@ With no argument the seed comes from the system's entropy.
   sequence on every target, so `./dice 2026` prints the same report
   wherever it runs. The generator is not cryptographic: bytes for a key
   come from `io.fill_random`.
-- `seeded` reads the seed from the first argument [1650], and `try` passes
-  on a failure to read or parse it [0960]. `random.from_entropy(host)`
-  asks the host for a seed instead, since entropy is a capability like any
-  other [1660].
+- The table declares one optional positional argument, `SEED`, read as
+  an unsigned number; `args.parse_process` refuses one that is not, and
+  `args.reply` says so on standard error and gives the status 2.
+- `seeded` takes `SEED` when `args.count` says it was given [1650].
+  Otherwise `random.from_entropy(host)` asks the host for a seed, since
+  entropy is a capability like any other [1660], and `try` passes on a
+  failure to read it [0960].
 - `random.below(source, 6)` draws a number from 0 to 5 without bias, each
   as likely as the others. The generator is an `inout` parameter, because
   every draw changes it.
@@ -1177,8 +1193,8 @@ With no argument the seed comes from the system's entropy.
 - A template has no field widths, so `roll_dice` pads its columns by hand,
   writing a space before a short number. A `while` loop draws each bar
   [1140], and `for` walks the totals and the first five cards [1150].
-- When the seed cannot be read, `main` says why on standard error and
-  returns 1 [1030].
+- When the system's entropy cannot be read, `main` says why on standard
+  error and returns 1 [1030].
 
 Fixture source: `compiler/tests/fixtures/runtime/example-dice-and-cards/main.ldn`.
 
@@ -1188,25 +1204,27 @@ Fixture source: `compiler/tests/fixtures/runtime/example-dice-and-cards/main.ldn
 --  seeded with the number given as the argument, so a seed prints the same
 --  report on every target; with no argument the seed comes from the
 --  system's entropy, and every run differs.
+import core/args
 import core/failure
 import core/io
 import core/random
-import core/text
 import hosted/blocking
+import hosted/heap
 
 --- How many times the two dice are rolled.
 rolls: u32 = 600
 
---- The generator the report draws from: seeded with the first argument
---- when there is one, so a run can be repeated, and from the system's
---- entropy when there is none.
-seeded: (host: blocking.host) -> (source: random.generator) ! ... =
-    if io.arguments_length(host) == 0 then
+--- The generator the report draws from: seeded with the argument `SEED`
+--- when it was given, so a run can be repeated, and from the system's
+--- entropy when it was not.
+seeded: (host: blocking.host, parsed: args.found)
+        -> (source: random.generator) ! ... =
+    if args.count(parsed, "SEED") == 0 then
         source = try random.from_entropy(host)
         return
     end if
-    argument: text.os_string = try io.argument(host, 0)
-    source = random.new(try text.parse_u64(text.os_string_bytes(argument)))
+    seed := try args.get(parsed, "SEED")
+    source = random.new(seed.unsigned)
 end seeded
 
 --- Roll two dice `rolls` times and print how often each total came up, with
@@ -1258,16 +1276,30 @@ deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
 end deal
 
 --- Seed a generator, roll the dice and deal a hand from it.
-report: (host: blocking.host) -> none ! ... =
-    mut source: random.generator = try seeded(host)
+report: (host: blocking.host, parsed: args.found) -> none ! ... =
+    mut source: random.generator = try seeded(host, parsed)
     try roll_dice(host, source)
     try deal(host, source)
 end report
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.optional(args.typed(args.positional("SEED",
+                                                 "the number to draw from"),
+                                 args.as_unsigned))
+    ]
+    program := args.command_of("dice", "Roll dice and deal a hand of cards.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
     code = 1
-    report(host) else (problem)
+    report(host, parsed) else (problem)
         words: []u8 = failure.words(problem)
         io.write_format(host, io.err(host), "dice: {}\n",
                         [any(addr words)]) else none
@@ -1767,6 +1799,9 @@ C functions in it by name and calls them, handing one a function of its
 own to call back. Read `main`, which loads and looks up, and then
 `report`, which calls.
 
+- The library's path is the one positional argument, `LIBRARY`, which
+  `core/args` reads as [the line count](#counting-lines-in-a-named-file)
+  reads its file's, a host string the system gave.
 - `posix.open_library` loads with the system's own loader. A program has
   that loader only when C's runtime started it, so on Linux this program
   is compiled with `--link=libc`. Without the flag, `refine` refuses the
@@ -1790,10 +1825,12 @@ Fixture source: `compiler/tests/fixtures/runtime/plugin-loading/main.ldn`.
 --  in it by name and call them, one with a function of the program's
 --  own, then ask for one it does not define.  When the loader refuses,
 --  say why in its own words.
+import core/args
 import core/failure
 import core/io
 import core/text
 import hosted/blocking
+import hosted/heap
 import platform/posix
 
 --  The C types of the functions the program looks for: nothing can check
@@ -1836,12 +1873,21 @@ end report
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    path := io.argument(host, 0) else (problem)
-        _ = problem
-        io.write(host, io.err(host), "usage: plugin LIBRARY\n") else none
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.positional("LIBRARY", "the shared object to load")
+    ]
+    program := args.command_of("plugin", "Call two functions of a library.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
+    code = 1
+    library := args.value_of(parsed, "LIBRARY")
+    path: text.os_string = library.bytes
     plugin := posix.open_library(path, posix.local_symbols) else (problem)
         if problem == posix.no_library then
             refused(host)
@@ -2374,6 +2420,9 @@ cleanup failure with the directory to remove.
 
 In the code:
 
+- `DIRECTORY` is an optional positional argument, which `core/args` reads
+  as [the line count](#counting-lines-in-a-named-file) reads its file's;
+  `args.count` says whether it was given.
 - `io.read_entry` lends each name from the directory's buffer until the
   next read [0790] [0800], so the program copies each name it keeps with
   `mem.copy`.
@@ -2396,6 +2445,7 @@ Fixture source: `compiler/tests/fixtures/runtime/directory-listing/main.ldn`.
 --  validates each one, and a name that is not prints with its other bytes
 --  escaped.  The code after the comment `Everything below` only builds a
 --  directory to list and checks the result.
+import core/args
 import core/cmp
 import core/failure
 import core/io
@@ -2403,6 +2453,7 @@ import core/mem
 import core/sort
 import core/text
 import hosted/blocking
+import hosted/heap
 
 --- Read every entry of the directory at `path` into `into`, with each
 --- file's size; `count` is how many there are.
@@ -2523,10 +2574,11 @@ escaped: (name: []u8, inout into: text.builder) -> none ! mem.out_of_memory =
     end for
 end escaped
 
---- List the directory the first argument names, up to 256 entries.
-list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
-            -> none ! ... =
-    path: []u8 = text.os_string_bytes(try io.argument(host, 0))
+--- List the directory the argument `DIRECTORY` names, up to 256 entries.
+list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host),
+             parsed: args.found) -> none ! ... =
+    directory := try args.get(parsed, "DIRECTORY")
+    path: []u8 = text.os_string_bytes(directory.bytes)
     blank: kept = (name: [255 of 0], length: 0, kind: io.special, size: 0)
     mut entries: [256]kept = [256 of blank]
     count: usize = try list(host, path, entries)
@@ -2667,12 +2719,23 @@ end demonstrate
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.optional(args.positional("DIRECTORY", "the directory to list"))
+    ]
+    program := args.command_of("listing", "List a directory.", table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
     mut storage: [512]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.arguments_length(host) > 0 then
-        list_named(host, out) else (problem)
+    if args.count(parsed, "DIRECTORY") > 0 then
+        list_named(host, out, parsed) else (problem)
             complain(host, problem)
             return
         end
@@ -2720,7 +2783,11 @@ of the file, and then `copy_file`, `filled` and `copy_link`, which it calls.
 The program runs in two ways:
 
 - Given two paths, `./tree-copy FROM TO` copies the directory FROM to TO
-  and says how many files, links and directories it copied.
+  and says how many files, links and directories it copied. `FROM` and
+  `TO` are optional positional arguments, which `core/args` reads as
+  [the line count](#counting-lines-in-a-named-file) reads its file's; a
+  table cannot say that two come together, so `main` refuses `FROM`
+  alone itself.
 - With no arguments, so that it has something known to copy, the program
   builds a small tree where it runs, copies it twice, checks the copy,
   prints a listing of it and removes both. That code comes after the
@@ -2786,12 +2853,14 @@ Fixture source: `compiler/tests/fixtures/runtime/tree-copy/main.ldn`.
 --  entry in one step.  `copy_directory` is the copy; read it and the three
 --  routines after it first.  The code after the comment `Everything below`
 --  only builds a tree to copy, checks the copy and removes both.
+import core/args
 import core/cmp
 import core/io
 import core/mem
 import core/sort
 import core/text
 import hosted/blocking
+import hosted/heap
 import hosted/system
 import platform/posix
 
@@ -3111,12 +3180,14 @@ outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
     end loop
 end outside_source
 
---- Copy the directory the first argument names to the path the second
---- names, and say what the copy did.
-copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
-            -> none ! ... =
-    from_path: []u8 = text.os_string_bytes(try io.argument(host, 0))
-    to_path: []u8 = text.os_string_bytes(try io.argument(host, 1))
+--- Copy the directory the argument `FROM` names to the path `TO` names,
+--- and say what the copy did.
+copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host),
+             parsed: args.found) -> none ! ... =
+    source := try args.get(parsed, "FROM")
+    target := try args.get(parsed, "TO")
+    from_path: []u8 = text.os_string_bytes(source.bytes)
+    to_path: []u8 = text.os_string_bytes(target.bytes)
     try outside_source(from_path, to_path)
     mut done: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                        replaced: 0)
@@ -3636,12 +3707,36 @@ end demonstrate
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [2]args.argument = [
+        args.optional(args.positional("FROM", "the directory to copy")),
+        args.optional(args.positional("TO", "where to copy it"))
+    ]
+    program := args.command_of("tree-copy", "Copy a directory tree.",
+                               table[0..<2])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
+    --  A table cannot say that two arguments come together, so one path
+    --  alone is refused here.
+    if args.count(parsed, "FROM") > args.count(parsed, "TO") then
+        mut refusal: [256]u8 = zeroed
+        mut line := text.over(refusal)
+        text.append(line, "tree-copy: missing argument TO\n") else none
+        args.usage(line, program) else none
+        io.write(host, io.err(host), text.used(line)) else none
+        code = 2
+        return
+    end if
     mut storage: [512]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.arguments_length(host) == 2 then
-        copy_named(host, out) else (problem)
+    if args.count(parsed, "TO") > 0 then
+        copy_named(host, out, parsed) else (problem)
             complain(host, problem)
             return
         end

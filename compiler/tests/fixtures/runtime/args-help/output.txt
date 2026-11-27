@@ -1,0 +1,91 @@
+--- usage
+usage: kinds [options] --output PATH FILE [SECOND] [MORE...]
+--- help
+usage: kinds [options] --output PATH FILE [SECOND] [MORE...]
+
+Read files and write their lines.
+
+arguments:
+  FILE               the file to read
+  SECOND             a file to compare it with
+  MORE...            more files
+
+options:
+  -v, --verbose      say more each time it is given
+      --dry-run      change nothing
+  -o, --output PATH  where to write
+  -n, --lines N      how many lines (default: 10)
+  -I, --include DIR  look in DIR too
+      --colour WHEN  colour the output (default: auto)
+  -h, --help         print this help
+--- help for -o x a --help
+usage: kinds [options] --output PATH FILE [SECOND] [MORE...]
+
+Read files and write their lines.
+
+arguments:
+  FILE               the file to read
+  SECOND             a file to compare it with
+  MORE...            more files
+
+options:
+  -v, --verbose      say more each time it is given
+      --dry-run      change nothing
+  -o, --output PATH  where to write
+  -n, --lines N      how many lines (default: 10)
+  -I, --include DIR  look in DIR too
+      --colour WHEN  colour the output (default: auto)
+  -h, --help         print this help
+--- help for --help
+usage: sizes [options] [PATH...]
+
+arguments:
+  PATH...      what to measure
+
+options:
+  -h, --human  print sizes for people
+      --help   print this help
+--- help for -h
+no help asked
+--- help for -h
+usage: vc [options] COMMAND
+
+Keep versions.
+
+options:
+  -q, --quiet  say less
+  -h, --help   print this help
+
+commands:
+  remote       Manage remotes.
+  status       Say what changed.
+--- help for remote --help
+usage: vc remote [options] COMMAND
+
+Manage remotes.
+
+options:
+  -h, --help  print this help
+
+commands:
+  add         Add a remote.
+  remove      Remove a remote.
+--- help for -q remote add -h
+usage: vc remote add [options] NAME URL
+
+Add a remote.
+
+arguments:
+  NAME         what to call it
+  URL          where it is
+
+options:
+  -f, --force  replace a remote of that name
+  -h, --help   print this help
+--- help for status --help
+usage: vc status [options]
+
+Say what changed.
+
+options:
+  -h, --help  print this help

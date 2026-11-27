@@ -4425,7 +4425,7 @@ resolver's row, and its dates row pointing at no missing record, SR-2112.
 
 ### R22.44 — Command-line arguments parsed
 
-Status: planned
+Status: complete
 Depends on: R20
 
 A parser over the program's arguments, `io.argument`'s OS strings, with
@@ -4447,6 +4447,31 @@ and shell completions.
 Exit evidence: a fixture for each form and each refusal; the help text
 pinned byte for byte; the example programs that read their arguments by
 hand moved to it; image size on Cortex-M0 measured.
+Done: `core/args` (D3094) reads a command line against a table the
+program makes as values: flags, counted flags, options and positional
+arguments changed by `required`, `optional`, `repeated`, `typed` and
+`with_default`, and commands that nest, parsed from any `[][]u8` or the
+process's arguments into a record the caller makes, allocating only
+from the caller's allocator. An option's value is the next word even
+one that begins with `-`, `-h` and `--help` fail `parse` with
+`help_asked`, and a command's options come before the word that chooses
+the next (D3095). Each refusal is an atom of the module's own;
+`explain` names the argument and what was expected, `args.reply`
+answers as a hosted program does, exiting 2, and a table `parse` cannot
+follow says what is wrong with it. `runtime/args-forms` reads each form,
+`runtime/args-refusals` makes each refusal, `runtime/args-help` pins the
+help byte for byte and `runtime/args-commands` reads commands from the
+process's arguments. A value type is a reader, so an image links only
+the readers its table names (D3096). On Cortex-M0 at `size/auto` a
+counted flag, an option and a positional argument parse in a 21,840-byte
+image, `explain` and the usage line take it to 36,360, past the profile,
+and at `none/off` the parser is 35,708 bytes, so `core/args` is outsized
+as `core/regex` is (D3097). The examples page's line count, sum, dice,
+plugin loader, directory listing and tree copy read their arguments
+through it, and the Benchmark Game programs keep reading their number as
+the programs they are measured against do (D3098). A table cannot say
+that two arguments come together, which the tree copy checks by hand,
+`SR-2183`. Gate run 45993916766 and boards run 45993929218 passed on 1714f568b.
 
 ### R22.45 — Text's everyday calls
 

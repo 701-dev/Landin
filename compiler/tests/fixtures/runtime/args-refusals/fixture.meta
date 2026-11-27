@@ -1,0 +1,10 @@
+class: runtime
+profiles: standard
+summary: core/args refuses each argument it cannot take, naming it and what was expected, with args.words' phrase and the usage line: unknown long and short options, a missing value, a flag given one, a value each type does not read, a missing option and argument, an extra argument, an option given twice, help asked, an allocator that runs out, unknown and missing commands at two depths, and each table it cannot follow
+program: main.ldn
+root: ../../../../..
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0570, 0960, 1000, 1150
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

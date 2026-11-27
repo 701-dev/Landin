@@ -1485,6 +1485,30 @@
     "runtime/arena-is-an-ordinary-name": {
       "mode": "execute"
     },
+    "runtime/args-commands": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/args-forms": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/args-help": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/args-refusals": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/array-arguments-cross-calls": {
       "mode": "execute"
     },
@@ -3735,6 +3759,11 @@
     },
     "runtime/library-shared-arena": {
       "mode": "execute"
+    },
+    "runtime/library-shared-args": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/args's parser takes the image to 35,708 bytes of flash, over the 32 KiB profile by 2,940: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit, about 21.9 KB, and execute the whole fixture, its results checked; the freestanding lane runs it on the M7's map (D3097); this image limit is not runtime evidence."
     },
     "runtime/library-shared-atomic": {
       "mode": "execute"

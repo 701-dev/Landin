@@ -1,0 +1,10 @@
+class: runtime
+profiles: standard
+summary: core/args reads each form of a list of words: short and long options with a separate or joined value and an empty one, clustered and counted flags, a value after a cluster, a value that begins with -, each value type, a default, a repeated option, the trailing positional list, -- ending the options and a lone -
+program: main.ldn
+root: ../../../../..
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0570, 0960, 1000, 1150
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

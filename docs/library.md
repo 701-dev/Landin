@@ -38,7 +38,8 @@ several of the tasks together.
 | Get the handle every hosted call takes | `host := blocking.new()` | [hosted/blocking](../hosted/blocking) |
 | Print a formatted line | `io.write_format(host, io.out(host), "{} lines\n", [any(addr count)])` | [core/io](../core/io) |
 | Print many lines | `io.buffered_over(host, io.out(host), storage)` once, then `io.format(out, "{} lines\n", [any(addr count)])` for each line, and `io.flush(out)`, checked, before reporting success | [core/io](../core/io) |
-| Get a command-line argument | `io.argument(host, 0)`, and `io.arguments_length(host)` | [core/io](../core/io) |
+| Read the command line's options and arguments | a table of `args.flag`, `args.option` and `args.positional` rows, `args.parse_process(memory, host, program, parsed)`, `args.reply(memory, host, parsed)` when it refuses, then `args.value_of(parsed, "name")` | [core/args](../core/args) |
+| Get a command-line argument as the system gave it | `io.argument(host, 0)`, and `io.arguments_length(host)` | [core/io](../core/io) |
 | Get the name the program was run by, `argv[0]` | `io.program_name(host)` | [core/io](../core/io) |
 | Find a program on the search path, as a shell does | `io.variable_named(host, text.os_string_over("PATH"))`, then `io.find_program(host, name, search, buffer)` | [core/io](../core/io) |
 | Run a program in another directory | `io.spawn_in(host, directory, path, arguments, variables, io.inheriting)`, then `io.wait(host, child)` | [core/io](../core/io) |
@@ -243,6 +244,8 @@ The library covers:
   of characters, words and sentences, `core/unicode`;
 - regular expressions over `utf8`, matched in linear time,
   `core/regex`;
+- a command line parsed against the program's table of options and
+  arguments, with its usage and help, `core/args`;
 - complex numbers over `f32` and `f64`, `core/complex`;
 - blocking TCP and UDP sockets over IPv4 and IPv6;
 - threads started as a group the function joins, `hosted/thread`;
@@ -1378,6 +1381,95 @@ The program runs over a hosted heap. It shows a pattern for each failure
 of `compile`, the forms of a replacement template and what a missing
 group gives, a walk's empty matches, a search from a position, an
 anchored walk, and Unicode classes and case.
+
+## core/args
+
+A program's command line read against a table the program declares, as
+Rust's `clap`, Go's `flag` and Swift's argument parser read one: short and
+long options, `--name=value` and `--name value`, clustered short flags,
+`--` ending the options, counted flags, values read as numbers or text or
+kept as the host string a path wants, required arguments and defaults,
+positional arguments with one trailing list, and commands that nest. It
+writes the usage line and the help, and says of a refused argument which
+it was and what was expected.
+
+| Call | What it does |
+|---|---|
+| `args.flag`, `args.counted`, `args.option`, `args.positional` | Make a row of a table: a flag given at most once, one given any number of times, an option that takes a value, a positional argument. |
+| `args.required`, `args.optional`, `args.repeated`, `args.typed`, `args.with_default` | Change a row: whether it must be given, whether it may be given again, what its value reads as, its value when it is not given. |
+| `args.as_host_string`, `args.as_text`, `args.as_unsigned`, `args.as_signed`, `args.as_float` | What a value reads as, for `typed`. |
+| `args.command_of`, `args.with_commands` | Make the program, or a command, from its name, a line about it and its table, and give it commands. |
+| `args.new`, `args.parse`, `args.parse_process`, `args.release` | Parse a list of words, or the process's arguments, into a record `new` makes, and give its storage back. |
+| `args.count`, `args.get`, `args.get_at`, `args.value_of`, `args.text_of`, `args.chosen` | Read what was found: how many times an argument was given, its value, its value each time, the command chosen at each depth. |
+| `args.reply` | Answer a refusal as a hosted program does: help on standard output, or the refusal and the usage line on standard error, and the status to exit with. |
+| `args.explain`, `args.usage`, `args.usage_for`, `args.help`, `args.help_for`, `args.words`, `args.problem` | Write a refusal, the usage line or the help into a builder, and put a failure in a phrase. |
+
+There is no compile-time execution, so a table is an array of rows the
+program makes when it runs, and the program names each argument by its
+long name or a positional argument's name when it reads it back:
+
+```text
+table: [3]args.argument = [
+    args.counted('v', "verbose", "say more"),
+    args.with_default(args.typed(args.option('n', "lines", "N",
+                                             "how many lines"),
+                                 args.as_unsigned), "10"),
+    args.positional("FILE", "the file to read")
+]
+program := args.command_of("head", "Print a file's first lines.",
+                           table[0..<3])
+mut parsed := args.new()
+defer args.release(parsed, memory)
+args.parse_process(memory, host, program, parsed) else begin
+    code = args.reply(memory, host, parsed)
+    return
+end
+lines := args.value_of(parsed, "lines")
+```
+
+`lines.unsigned` is then 10 or the number given, and `--lines=x` was
+refused as `option --lines expects an unsigned number, given "x"`.
+
+- An option's value is always the next word, even one that begins with
+  `-`, as `-n -5` gives `-5`. A positional argument that begins with `-`
+  follows `--`; a `-` alone is positional.
+- A flag or an option that is not `repeated` or `counted` given twice is
+  refused. `get` gives the last value, `get_at` each.
+- `-h` and `--help` ask for help, unless the table takes the letter or
+  the name for itself. `parse` then fails with `args.help_asked`, which is
+  no mistake: `reply` writes the help and gives 0, as Go's `flag.ErrHelp`
+  is answered.
+- A command that has commands takes options only: its first positional
+  word names the command below it, whose arguments follow, and the
+  options before that word are the parent's. A name is looked up from
+  the innermost command chosen outwards.
+- A table `parse` cannot follow, a row with no long name, two rows with
+  one name, a default its type does not read, is `args.invalid_table`, and
+  `explain` says what is wrong with it. A name the commands followed do
+  not declare, given to `count` or `get`, stops the program as a failed
+  check does: both are the program's defects, not its user's.
+- `parse` reads any list of byte slices, so a test, or a firmware console
+  that splits its line into words, uses it as a process does. What it
+  records is allocated from the caller's allocator and nothing else is.
+- A value type is a reader, so an image links only the readers its table
+  names: a table with no `as_float` links no float parsing.
+
+On Cortex-M0, parsing a counted flag, an option and a positional argument
+into an arena is a 21.9 KB image at `size/auto`. Putting a refusal in
+words with `explain` and writing the usage line take it to 36.4 KB, past
+the 32 KiB profile, so a firmware program says a refusal with
+`args.words(problem)`, which costs 328 bytes. At `none/off` the parser
+alone is 35.7 KB, so the freestanding lane runs the module's probe on the
+Cortex-M7's map (D3097).
+
+Values from environment variables or configuration files, and shell
+completions, are not covered.
+
+[Executable example](../compiler/tests/fixtures/runtime/args-forms/main.ldn)
+
+`runtime/args-refusals` shows each refusal, `runtime/args-help` the help
+pinned byte for byte, and `runtime/args-commands` commands read from the
+process's arguments.
 
 ## core/io
 

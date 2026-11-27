@@ -1,0 +1,11 @@
+class: runtime
+profiles: standard
+summary: a program with commands parses its own process arguments with args.parse_process, finds the command chosen at each depth with args.chosen and reads the flags and arguments of the commands it followed
+program: main.ldn
+root: ../../../../..
+run_args: -q remote add -f origin https://example.org/vc
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0570, 0960, 1000, 1150
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

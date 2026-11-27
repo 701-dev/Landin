@@ -47046,3 +47046,53 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** a second entry taking the spec, which every existing conformance would have to add; a concept of its own for values that read a spec, which an `any formattable` cannot be asked for; and refusing a part a value does not read, which needs the value's type when the template is checked, before any value is looked at.
 
 **Pinned by** `runtime/core-text-format-spec`'s program types, one reading `x` through `text.placeholder` and one formatting a pair inside its own conformance, padded by the outer placeholder.
+
+### D3094 — A command line is read by `core/args`, against a table the program makes as values
+
+**The tour said** at [1650] and [1660] that a program's arguments are host strings `io.argument` lends, and nothing about options; R20 left where a parser lives and what its failures are called to this item, and RP3 rules out deriving a parser from a declaration at compile time.
+
+**Chosen:** a module of its own, `core/args`, freestanding, beside `core/io`. A program makes its table when it runs, an array of `args.argument` rows that `flag`, `counted`, `option` and `positional` make and `required`, `optional`, `repeated`, `typed` and `with_default` change, and a command from a name, a line of help and the table, `command_of`, with `with_commands` for the commands below it. A row is named by its long name, or a positional argument's name, which is also what the program reads it back by, `count`, `get`, `get_at` and `value_of`; an option has to have one. `parse` reads any `[][]u8` and `parse_process` a process's arguments through `io.process`, into an `args.found` that `new` makes and the caller holds: the table and the words escape into it (`escaping into`), and nothing is returned `from` them, since a writable result that holds the caller's allocation and lends the table is the independent storage D222 refuses. The refusal is kept in the same record, so `explain`, `usage_for` and `help_for` take the record, and an allocator's failure is recorded there too. The failures are atoms of the module's own, one per refusal (D2028's naming): `unknown_option`, `missing_value`, `unexpected_value`, `invalid_value`, `missing_argument`, `extra_argument`, `unknown_command`, `missing_command`, `repeated_option`, `help_asked`, `invalid_table` and `mem.out_of_memory`, with `args.words` their phrases, as `core/regex` keeps its own (D2683).
+
+**The alternatives:** a parse returning its record `from` the table and the words, which D222 refuses once the record holds allocated storage; a refusal the caller passes beside the record, which made every internal routine retain into two parameters, which `escaping into` cannot name; a builder of options by chained calls on a parser value, which is the table with more calls; and the parser in `core/io`, which would make every program that reads a file check it. All were declined.
+
+**Pinned by** `runtime/args-forms`, `runtime/args-refusals`, `runtime/args-help` and `runtime/args-commands`.
+
+### D3095 — An option's value is the next word, `-h` and `--help` ask for help, and a command's options come before its command's word
+
+**The tour said** nothing.
+
+**Chosen:** an option's value is what follows its letter or its `=` in the same word, `-n5` and `--lines=5`, or else the next word whatever it begins with, so `-n -5` gives `-5`, as getopt and Go's `flag` take it; a positional argument that begins with `-` follows `--`, and a `-` alone is positional. A flag in a cluster leaves the letters after it to be read as flags, and an option in a cluster takes the rest of the word. A flag or option given twice is refused unless the row is `counted` or `repeated`, as clap refuses one; `get` gives the last value given or the default. Required positional arguments come before optional ones and the repeated one is last, which a table that breaks it is refused for as `invalid_table`, and so is a row with no name, two rows with one name or letter, a default its type does not read, a command with both positional arguments and commands, and commands nested deeper than `args.deepest`. A command that has commands takes options only: its first positional word names the command below, and the options of each command are given before the word that chooses the next; a name read back is looked up from the innermost command chosen outwards. `-h` and `--help` are answered unless the table takes the letter or the name, and fail `parse` with `help_asked`, which `args.reply` answers with the help on standard output and the status 0, as Go's `flag.ErrHelp` is answered; any other refusal is written on standard error with the usage line, and the status is 2, as both Go's `flag` and clap exit. A name read back that no command followed declares stops the program as a failed check does, and so does `value_of` for an argument with no value: both are the program's defects.
+
+**The alternatives:** refusing a value that begins with `-`, as clap does by default, which makes every negative number need `=`; allowing an option after its command's word, global options, which a table of its own per command expresses; abbreviations of long names, which change meaning when an option is added; and `help` as an ordinary flag the program tests, which every program would write the same way. All were declined.
+
+**Pinned by** `runtime/args-forms`'s `-s -3`, `-vn5`, `-qn 7` and `-- -a`, and `runtime/args-refusals`' second `--verbose` and its tables.
+
+### D3096 — A value type is a reader and the phrase a refusal says it expects, so an image links only the readers its table names
+
+**The tour said** nothing; [1000] makes a function a value a field may hold, and D2617 chose the same for `core/unicode`'s walks.
+
+**Chosen:** `args.value_type` is a record of a reader, a function that reads a value's bytes into the number fields of an `args.value`, and the phrase `explain` says it expected; `as_host_string`, `as_text`, `as_unsigned`, `as_signed` and `as_float` are module values of it. A row holds the one `typed` gave it, and `parse` calls it through the field, so a program links a reader only where its table names one. On Cortex-M0 the probe's image was 61 KB at `size/auto` while the type was an atom the parser matched on, which linked `text.parse_f64` and the soft float into every image, and 39 KB once it was a reader. A text value keeps its bytes, checked as UTF-8 when it was read, and `text_of` lends them as `utf8`.
+
+**The alternatives:** an atom per type matched in the parser, which links every reader into every program; a reader the program writes for itself as a function value, which is the same record with no phrase for the refusal; and a field of `utf8` in every value, which a program that reads paths carries for nothing. All were declined.
+
+**Pinned by** `runtime/args-forms`, which reads each type, and `runtime/library-shared-args`, whose table reads no number.
+
+### D3097 — On Cortex-M0 the parser fits at the optimised profiles, and its probe runs on the M7's map
+
+**The tour said** nothing; D2680 sent `core/regex`'s probe to the Cortex-M7 lane for the same reason.
+
+**Chosen:** `runtime/library-shared-args` parses a counted flag, an option and a positional argument into an arena and refuses an unknown option: 21,840 bytes of flash at `size/auto`, 21,852 at `size/off` and 21,868 at `speed/auto`, which execute on Cortex-M0, and 35,708 at `none/off`, which gives every IR slot a frame home of its own and is past the 32 KiB profile by 2,940. Its corpus row records that limit and the fixture names no `cortex-m0`; `core/args` is among the freestanding lane's outsized modules, which run their probe on the M7's map. Putting the refusal in words with `explain` and writing the usage line take the `size/auto` image to 36,360 bytes, so a firmware program says a refusal with `args.words`. The cuts that took the image from 39 KB to 21.9 KB are kept: the chain of commands is a fixed array of `args.deepest` rather than a second list, a long and a short option take their value through one routine, and each loop reads a row's fields where they are rather than copying the row.
+
+**The alternatives:** a smaller parser for firmware, a second module with a second table form; and the probe trimmed until `none/off` fits, which at 34.7 KB with one parse and one value read still did not. Both were declined.
+
+**Pinned by** `runtime/library-shared-args`' corpus row and `environments/cortex-m/freestanding.py`'s `OUTSIZED`.
+
+### D3098 — The examples read their arguments through `core/args`, and the Benchmark Game programs keep reading their one number by hand
+
+**The tour said** at [1650] how a program reads its arguments, which its own line counter still teaches with `io.argument`.
+
+**Chosen:** the examples page's line count, sum, dice, plugin loader, directory listing and tree copy declare their arguments to `core/args` and read them back from it, and a refused argument is answered by `args.reply`, with the status 2. The five Benchmark Game programs keep reading their one number with `io.argument`, as the reference programs they are measured against read `argv[1]`, so that what `docs/benchmarks.md` compares stays what the other languages' programs do. The tree copy takes two paths or none; a table cannot say that two arguments come together, so its `main` refuses one path alone itself.
+
+**The alternatives:** moving the Benchmark Game programs too, which adds the parser to images measured against programs that have none; and leaving the examples as they were, which the item's exit evidence declines.
+
+**Pinned by** `runtime/line-count`, `runtime/example-sum-arguments`, `runtime/example-dice-and-cards`, `runtime/plugin-loading`, `runtime/directory-listing` and `runtime/tree-copy`.

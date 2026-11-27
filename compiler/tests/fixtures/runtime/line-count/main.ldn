@@ -1,11 +1,13 @@
 --  Count the lines of the file named by the first argument, as `wc -l`
 --  does, and a last line without a newline too.  A failure is said in words on standard error, and the program
 --  then returns 1.
+import core/args
 import core/failure
 import core/io
 import core/mem
 import core/text
 import hosted/blocking
+import hosted/heap
 
 --- How many lines the file at `path` holds.  A last line without its
 --- newline counts, and so does a line too long for the buffer.
@@ -38,13 +40,20 @@ end complain
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    path := io.argument(host, 0) else begin
-        io.write(host, io.err(host), "usage: count FILE\n") else none
+    memory := heap.new()
+    table: [1]args.argument = [args.positional("FILE", "the file to count")]
+    program := args.command_of("count", "Count the lines of a file.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
-    lines := count_lines(host, path) else (problem)
-        complain(host, text.os_string_bytes(path), problem)
+    code = 1
+    file := args.value_of(parsed, "FILE")
+    lines := count_lines(host, file.bytes) else (problem)
+        complain(host, text.os_string_bytes(file.bytes), problem)
         return
     end
     io.write_format(host, io.out(host), "{} lines\n", [any(addr lines)])
