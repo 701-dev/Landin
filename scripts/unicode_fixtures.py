@@ -821,7 +821,17 @@ def caseless_sequences_fixture(database):
         "database's, by Unicode's D145 over its case folding and",
         "decompositions."])
     lines += ["", "import core/mem", "import core/text", "import core/unicode",
-              "", "expected: u32 = 0x%08x" % digest(1), ""]
+              "",
+              "--  Firmware checks every %s line, within the emulator's"
+              % ordinal(SEQUENCE_STRIDE),
+              "--  session; a hosted target checks them all.",
+              "fixed if compiler.os == freestanding then",
+              "    stride: usize = %d" % SEQUENCE_STRIDE,
+              "    expected: u32 = 0x%08x" % digest(SEQUENCE_STRIDE),
+              "else",
+              "    stride: usize = 1",
+              "    expected: u32 = 0x%08x" % digest(1),
+              "end if", ""]
     lines += byte_array("sources", data)
     lines += tables.array("ends", "u32", ends)
     lines += [""] + FEED
@@ -882,7 +892,7 @@ public main: () -> (code: i32) =
                     | bit(unicode.equal_canonical_caseless(upper, c3), 5)
                     | bit(unicode.equal_canonical_caseless(upper, c5), 6)
                     | bit(unicode.equal_caseless(c1, c3), 7))
-        inc line
+        line += stride
     end while
     if state == expected then
         code = 42

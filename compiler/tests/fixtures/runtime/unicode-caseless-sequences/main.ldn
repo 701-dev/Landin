@@ -14,7 +14,15 @@ import core/mem
 import core/text
 import core/unicode
 
-expected: u32 = 0x70c9934a
+--  Firmware checks every 97th line, within the emulator's
+--  session; a hosted target checks them all.
+fixed if compiler.os == freestanding then
+    stride: usize = 97
+    expected: u32 = 0xcf249425
+else
+    stride: usize = 1
+    expected: u32 = 0x70c9934a
+end if
 
 sources: [29449]u8 = [
     225, 184, 138, 225, 184, 140, 225, 184, 138, 204, 163, 225, 184, 140, 204,
@@ -2294,7 +2302,7 @@ public main: () -> (code: i32) =
                     | bit(unicode.equal_canonical_caseless(upper, c3), 5)
                     | bit(unicode.equal_canonical_caseless(upper, c5), 6)
                     | bit(unicode.equal_caseless(c1, c3), 7))
-        inc line
+        line += stride
     end while
     if state == expected then
         code = 42
