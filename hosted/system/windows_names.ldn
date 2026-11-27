@@ -26,6 +26,7 @@ fixed if compiler.os == windows then
         for at in usize(0)..<lenof name do
             room[at] = name[at]
         end for
+        --  `struct addrinfo`'s 48 bytes: AF_UNSPEC, either family, streams.
         mut hints: [48]u8 = zeroed
         hints[sockets.address_info_kind] = u8(sockets.sock_stream)
         mut list: usize = 0

@@ -30,8 +30,6 @@ fixed if compiler.os == windows then
     --- `AF_INET6`: IPv6.
     public af_inet6: i32 = 23
 
-    --- `AF_UNSPEC`: either family, as `resolve_name`'s hints ask.
-    public af_unspec: i32 = 0
     --- `AF_UNIX`: Unix-domain stream sockets, Windows 10 1803 and later.
     --- Windows has no Unix-domain datagram sockets.
     public af_unix: i32 = 1
@@ -330,10 +328,10 @@ fixed if compiler.os == windows then
     --- Free what `resolve_name` gave, `freeaddrinfo`.
     public extern(c) link(symbol: "freeaddrinfo") free_address_list:
         (list: usize) -> none
-    --- `struct addrinfo` on 64-bit Windows, 48 bytes: the offsets of its
-    --- `ai_family`, `ai_socktype`, `ai_addrlen`, `ai_addr` and `ai_next`.
-    --- Windows puts `ai_canonname` before `ai_addr`, as POSIX does not.
-    public address_info_room: usize = 48
+    --- `struct addrinfo` on 64-bit Windows is 48 bytes, and these are the
+    --- offsets of its `ai_family`, `ai_socktype`, `ai_addrlen`, `ai_addr`
+    --- and `ai_next`.  Windows puts `ai_canonname` before `ai_addr`, as
+    --- POSIX does not.  A zeroed record's family is `AF_UNSPEC`.
     --- `ai_family`.
     public address_info_family: usize = 4
     --- `ai_socktype`.
