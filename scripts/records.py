@@ -112,18 +112,39 @@ def names_in(line):
     return NAME.findall(STRING.sub('""', line))
 
 
+class Assembly:
+    """An assembly file parsed once: its preamble, its sections, the
+    section defining each label, and each trap message's length by its
+    label, for the closures of all the routines a record names."""
+
+    def __init__(self, text):
+        self.preamble, self.sections = chunks(text)
+        self.defines = {}
+        self.lengths = {}
+        for index, section in enumerate(self.sections):
+            labels = []
+            length = None
+            for line in section:
+                match = LABEL.match(line)
+                if match:
+                    labels.append(match.group(1))
+                    self.defines.setdefault(match.group(1), index)
+                elif length is None:
+                    message = ASCIZ.match(line)
+                    if message and TRAP_POSITION.search(message.group(1)):
+                        length = trap_length(message.group(1))
+            if length is not None:
+                for label in labels:
+                    self.lengths[label] = length
+
+
 def closure(text, symbol):
-    """The canonical text of SYMBOL's code in the assembly TEXT: the
-    preamble, then each section reached from the one defining SYMBOL, in
-    the order first reached, local names renumbered.  Raises KeyError when
-    no section defines SYMBOL."""
-    preamble, sections = chunks(text)
-    defines = {}
-    for index, section in enumerate(sections):
-        for line in section:
-            match = LABEL.match(line)
-            if match:
-                defines.setdefault(match.group(1), index)
+    """The canonical text of SYMBOL's code in the assembly TEXT, a string
+    or an Assembly: the preamble, then each section reached from the one
+    defining SYMBOL, in the order first reached, local names renumbered.
+    Raises KeyError when no section defines SYMBOL."""
+    parsed = text if isinstance(text, Assembly) else Assembly(text)
+    preamble, sections, defines = parsed.preamble, parsed.sections, parsed.defines
     start = defines[symbol]
     order = [start]
     seen = {start}
@@ -136,7 +157,7 @@ def closure(text, symbol):
                     seen.add(index)
                     order.append(index)
         at += 1
-    lengths = trap_lengths(sections, defines)
+    lengths = parsed.lengths
     local = {}
 
     def rename(match):
@@ -188,18 +209,9 @@ def outside_strings(line, change):
     return ''.join(pieces)
 
 
-def trap_lengths(sections, defines):
-    """The byte length of each trap message, by the label naming it: a
-    section holding a label and an `.asciz` that names a source position."""
-    found = {}
-    for name, index in defines.items():
-        for line in sections[index]:
-            match = ASCIZ.match(line)
-            if match and TRAP_POSITION.search(match.group(1)):
-                text = match.group(1).encode('utf-8').decode('unicode_escape')
-                found[name] = len(text.encode('latin-1'))
-                break
-    return found
+def trap_length(message):
+    """The bytes of a trap message as an `.asciz` operand spells it."""
+    return len(message.encode('utf-8').decode('unicode_escape').encode('latin-1'))
 
 
 def digest(text, symbol):
@@ -280,6 +292,7 @@ def measure(record, refine, library=None):
                                     record['options'], scratch, library),
                 record['targets'])))
     for target, text in texts.items():
+        text = Assembly(text)
         for symbol in record['routines']:
             try:
                 found[symbol][target] = digest(text, symbol)[0]
