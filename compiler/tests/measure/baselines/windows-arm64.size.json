@@ -49,9 +49,9 @@
   "armv8-a/none-all/k-nucleotide": {
    "sections": {
     ".text": 489208,
-    ".rdata": 65172,
+    ".rdata": 66220,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -72,9 +72,9 @@
   "armv8-a/none-all/n-body": {
    "sections": {
     ".text": 308124,
-    ".rdata": 47080,
+    ".rdata": 48032,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -83,11 +83,11 @@
   },
   "armv8-a/none-all/pidigits": {
    "sections": {
-    ".text": 438068,
-    ".rdata": 56952,
+    ".text": 438236,
+    ".rdata": 57016,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -96,12 +96,12 @@
   "armv8-a/none-all/regex-redux": {
    "sections": {
     ".text": 1285540,
-    ".rdata": 120228,
+    ".rdata": 150508,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8-a/none-all/reverse-complement": {
@@ -118,9 +118,9 @@
   "armv8-a/none-all/spectral-norm": {
    "sections": {
     ".text": 351712,
-    ".rdata": 53288,
+    ".rdata": 54312,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -185,9 +185,9 @@
   "armv8-a/none-auto/k-nucleotide": {
    "sections": {
     ".text": 489256,
-    ".rdata": 65172,
+    ".rdata": 66220,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -208,9 +208,9 @@
   "armv8-a/none-auto/n-body": {
    "sections": {
     ".text": 308124,
-    ".rdata": 47080,
+    ".rdata": 48032,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -219,11 +219,11 @@
   },
   "armv8-a/none-auto/pidigits": {
    "sections": {
-    ".text": 438068,
-    ".rdata": 56952,
+    ".text": 438236,
+    ".rdata": 57016,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -232,12 +232,12 @@
   "armv8-a/none-auto/regex-redux": {
    "sections": {
     ".text": 1286308,
-    ".rdata": 120228,
+    ".rdata": 150508,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8-a/none-auto/reverse-complement": {
@@ -254,9 +254,9 @@
   "armv8-a/none-auto/spectral-norm": {
    "sections": {
     ".text": 351712,
-    ".rdata": 53288,
+    ".rdata": 54312,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -321,9 +321,9 @@
   "armv8-a/none-off/k-nucleotide": {
    "sections": {
     ".text": 489576,
-    ".rdata": 65172,
+    ".rdata": 66220,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -344,9 +344,9 @@
   "armv8-a/none-off/n-body": {
    "sections": {
     ".text": 308188,
-    ".rdata": 47080,
+    ".rdata": 48032,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -355,25 +355,25 @@
   },
   "armv8-a/none-off/pidigits": {
    "sections": {
-    ".text": 438228,
-    ".rdata": 56952,
+    ".text": 438404,
+    ".rdata": 57016,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "armv8-a/none-off/regex-redux": {
    "sections": {
     ".text": 1286452,
-    ".rdata": 120228,
+    ".rdata": 150508,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 312
+    ".reloc": 304
    }
   },
   "armv8-a/none-off/reverse-complement": {
@@ -390,9 +390,9 @@
   "armv8-a/none-off/spectral-norm": {
    "sections": {
     ".text": 351896,
-    ".rdata": 53288,
+    ".rdata": 54312,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -412,8 +412,8 @@
   },
   "armv8-a/size-all/binary-trees": {
    "sections": {
-    ".text": 59124,
-    ".rdata": 25176,
+    ".text": 59076,
+    ".rdata": 25080,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1160,
@@ -423,8 +423,8 @@
   },
   "armv8-a/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 43332,
-    ".rdata": 20352,
+    ".text": 43284,
+    ".rdata": 20256,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 736,
@@ -434,8 +434,8 @@
   },
   "armv8-a/size-all/fasta": {
    "sections": {
-    ".text": 28624,
-    ".rdata": 13696,
+    ".text": 28524,
+    ".rdata": 13544,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 544,
@@ -445,8 +445,8 @@
   },
   "armv8-a/size-all/fibre": {
    "sections": {
-    ".text": 59224,
-    ".rdata": 27508,
+    ".text": 59152,
+    ".rdata": 27356,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 920,
@@ -456,10 +456,10 @@
   },
   "armv8-a/size-all/k-nucleotide": {
    "sections": {
-    ".text": 139028,
-    ".rdata": 51684,
+    ".text": 138908,
+    ".rdata": 52524,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -468,8 +468,8 @@
   },
   "armv8-a/size-all/mandelbrot": {
    "sections": {
-    ".text": 59148,
-    ".rdata": 25112,
+    ".text": 59100,
+    ".rdata": 25016,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1168,
@@ -479,10 +479,10 @@
   },
   "armv8-a/size-all/n-body": {
    "sections": {
-    ".text": 77136,
-    ".rdata": 35240,
+    ".text": 77064,
+    ".rdata": 36056,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -491,11 +491,11 @@
   },
   "armv8-a/size-all/pidigits": {
    "sections": {
-    ".text": 108204,
-    ".rdata": 43256,
+    ".text": 108240,
+    ".rdata": 43184,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -503,19 +503,19 @@
   },
   "armv8-a/size-all/regex-redux": {
    "sections": {
-    ".text": 368120,
-    ".rdata": 86572,
+    ".text": 368144,
+    ".rdata": 116900,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 46808,
-    ".rdata": 19228,
+    ".text": 46736,
+    ".rdata": 19116,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 896,
@@ -525,10 +525,10 @@
   },
   "armv8-a/size-all/spectral-norm": {
    "sections": {
-    ".text": 94416,
-    ".rdata": 41520,
+    ".text": 94344,
+    ".rdata": 42400,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -537,8 +537,8 @@
   },
   "armv8-a/size-all/thread": {
    "sections": {
-    ".text": 71156,
-    ".rdata": 31792,
+    ".text": 71084,
+    ".rdata": 31640,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1152,
@@ -548,8 +548,8 @@
   },
   "armv8-a/size-auto/binary-trees": {
    "sections": {
-    ".text": 59124,
-    ".rdata": 25176,
+    ".text": 59076,
+    ".rdata": 25080,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1160,
@@ -559,8 +559,8 @@
   },
   "armv8-a/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 43332,
-    ".rdata": 20352,
+    ".text": 43284,
+    ".rdata": 20256,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 736,
@@ -570,8 +570,8 @@
   },
   "armv8-a/size-auto/fasta": {
    "sections": {
-    ".text": 28624,
-    ".rdata": 13696,
+    ".text": 28524,
+    ".rdata": 13544,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 544,
@@ -581,8 +581,8 @@
   },
   "armv8-a/size-auto/fibre": {
    "sections": {
-    ".text": 59224,
-    ".rdata": 27508,
+    ".text": 59152,
+    ".rdata": 27356,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 920,
@@ -592,10 +592,10 @@
   },
   "armv8-a/size-auto/k-nucleotide": {
    "sections": {
-    ".text": 139064,
-    ".rdata": 51684,
+    ".text": 138944,
+    ".rdata": 52524,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -604,8 +604,8 @@
   },
   "armv8-a/size-auto/mandelbrot": {
    "sections": {
-    ".text": 59148,
-    ".rdata": 25112,
+    ".text": 59100,
+    ".rdata": 25016,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1168,
@@ -615,10 +615,10 @@
   },
   "armv8-a/size-auto/n-body": {
    "sections": {
-    ".text": 77136,
-    ".rdata": 35240,
+    ".text": 77064,
+    ".rdata": 36056,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -627,11 +627,11 @@
   },
   "armv8-a/size-auto/pidigits": {
    "sections": {
-    ".text": 108204,
-    ".rdata": 43256,
+    ".text": 108240,
+    ".rdata": 43184,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -639,19 +639,19 @@
   },
   "armv8-a/size-auto/regex-redux": {
    "sections": {
-    ".text": 368600,
-    ".rdata": 86572,
+    ".text": 368624,
+    ".rdata": 116900,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 46808,
-    ".rdata": 19228,
+    ".text": 46736,
+    ".rdata": 19116,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 896,
@@ -661,10 +661,10 @@
   },
   "armv8-a/size-auto/spectral-norm": {
    "sections": {
-    ".text": 94416,
-    ".rdata": 41520,
+    ".text": 94344,
+    ".rdata": 42400,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -673,8 +673,8 @@
   },
   "armv8-a/size-auto/thread": {
    "sections": {
-    ".text": 71156,
-    ".rdata": 31792,
+    ".text": 71084,
+    ".rdata": 31640,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1152,
@@ -684,8 +684,8 @@
   },
   "armv8-a/size-off/binary-trees": {
    "sections": {
-    ".text": 59168,
-    ".rdata": 25176,
+    ".text": 59120,
+    ".rdata": 25080,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1160,
@@ -695,8 +695,8 @@
   },
   "armv8-a/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 43356,
-    ".rdata": 20352,
+    ".text": 43308,
+    ".rdata": 20256,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 736,
@@ -706,8 +706,8 @@
   },
   "armv8-a/size-off/fasta": {
    "sections": {
-    ".text": 28672,
-    ".rdata": 13696,
+    ".text": 28572,
+    ".rdata": 13544,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 544,
@@ -717,8 +717,8 @@
   },
   "armv8-a/size-off/fibre": {
    "sections": {
-    ".text": 59248,
-    ".rdata": 27508,
+    ".text": 59176,
+    ".rdata": 27356,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 920,
@@ -728,10 +728,10 @@
   },
   "armv8-a/size-off/k-nucleotide": {
    "sections": {
-    ".text": 139240,
-    ".rdata": 51684,
+    ".text": 139120,
+    ".rdata": 52524,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -740,8 +740,8 @@
   },
   "armv8-a/size-off/mandelbrot": {
    "sections": {
-    ".text": 59228,
-    ".rdata": 25112,
+    ".text": 59180,
+    ".rdata": 25016,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1168,
@@ -751,10 +751,10 @@
   },
   "armv8-a/size-off/n-body": {
    "sections": {
-    ".text": 77176,
-    ".rdata": 35240,
+    ".text": 77104,
+    ".rdata": 36056,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -764,30 +764,30 @@
   "armv8-a/size-off/pidigits": {
    "sections": {
     ".text": 108272,
-    ".rdata": 43256,
+    ".rdata": 43184,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "armv8-a/size-off/regex-redux": {
    "sections": {
-    ".text": 368672,
-    ".rdata": 86572,
+    ".text": 368696,
+    ".rdata": 116900,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 312
+    ".reloc": 304
    }
   },
   "armv8-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 46880,
-    ".rdata": 19228,
+    ".text": 46808,
+    ".rdata": 19116,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 896,
@@ -797,10 +797,10 @@
   },
   "armv8-a/size-off/spectral-norm": {
    "sections": {
-    ".text": 94524,
-    ".rdata": 41520,
+    ".text": 94452,
+    ".rdata": 42400,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -809,8 +809,8 @@
   },
   "armv8-a/size-off/thread": {
    "sections": {
-    ".text": 71156,
-    ".rdata": 31792,
+    ".text": 71084,
+    ".rdata": 31640,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1152,
@@ -820,8 +820,8 @@
   },
   "armv8-a/speed-all/binary-trees": {
    "sections": {
-    ".text": 69556,
-    ".rdata": 24736,
+    ".text": 69508,
+    ".rdata": 24632,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1160,
@@ -831,8 +831,8 @@
   },
   "armv8-a/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 48400,
-    ".rdata": 19864,
+    ".text": 48352,
+    ".rdata": 19760,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 736,
@@ -842,8 +842,8 @@
   },
   "armv8-a/speed-all/fasta": {
    "sections": {
-    ".text": 31432,
-    ".rdata": 13560,
+    ".text": 31332,
+    ".rdata": 13416,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 544,
@@ -853,8 +853,8 @@
   },
   "armv8-a/speed-all/fibre": {
    "sections": {
-    ".text": 63288,
-    ".rdata": 27084,
+    ".text": 63216,
+    ".rdata": 26940,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 920,
@@ -864,10 +864,10 @@
   },
   "armv8-a/speed-all/k-nucleotide": {
    "sections": {
-    ".text": 162964,
-    ".rdata": 49940,
+    ".text": 162844,
+    ".rdata": 50780,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -876,8 +876,8 @@
   },
   "armv8-a/speed-all/mandelbrot": {
    "sections": {
-    ".text": 68588,
-    ".rdata": 24672,
+    ".text": 68540,
+    ".rdata": 24576,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1168,
@@ -887,10 +887,10 @@
   },
   "armv8-a/speed-all/n-body": {
    "sections": {
-    ".text": 88980,
-    ".rdata": 33808,
+    ".text": 88908,
+    ".rdata": 34624,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -899,11 +899,11 @@
   },
   "armv8-a/speed-all/pidigits": {
    "sections": {
-    ".text": 132392,
-    ".rdata": 42784,
+    ".text": 132476,
+    ".rdata": 42760,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -911,19 +911,19 @@
   },
   "armv8-a/speed-all/regex-redux": {
    "sections": {
-    ".text": 437896,
-    ".rdata": 85644,
+    ".text": 437920,
+    ".rdata": 115964,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 53172,
-    ".rdata": 18932,
+    ".text": 53100,
+    ".rdata": 18812,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 896,
@@ -933,10 +933,10 @@
   },
   "armv8-a/speed-all/spectral-norm": {
    "sections": {
-    ".text": 110852,
-    ".rdata": 39880,
+    ".text": 110780,
+    ".rdata": 40760,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -945,8 +945,8 @@
   },
   "armv8-a/speed-all/thread": {
    "sections": {
-    ".text": 76604,
-    ".rdata": 31312,
+    ".text": 76532,
+    ".rdata": 31160,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1152,
@@ -956,8 +956,8 @@
   },
   "armv8-a/speed-auto/binary-trees": {
    "sections": {
-    ".text": 69556,
-    ".rdata": 24736,
+    ".text": 69508,
+    ".rdata": 24632,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1160,
@@ -967,8 +967,8 @@
   },
   "armv8-a/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 48400,
-    ".rdata": 19864,
+    ".text": 48352,
+    ".rdata": 19760,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 736,
@@ -978,8 +978,8 @@
   },
   "armv8-a/speed-auto/fasta": {
    "sections": {
-    ".text": 31432,
-    ".rdata": 13560,
+    ".text": 31332,
+    ".rdata": 13416,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 544,
@@ -989,8 +989,8 @@
   },
   "armv8-a/speed-auto/fibre": {
    "sections": {
-    ".text": 63288,
-    ".rdata": 27084,
+    ".text": 63216,
+    ".rdata": 26940,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 920,
@@ -1000,10 +1000,10 @@
   },
   "armv8-a/speed-auto/k-nucleotide": {
    "sections": {
-    ".text": 162964,
-    ".rdata": 49940,
+    ".text": 162844,
+    ".rdata": 50780,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -1012,8 +1012,8 @@
   },
   "armv8-a/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 68588,
-    ".rdata": 24672,
+    ".text": 68540,
+    ".rdata": 24576,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1168,
@@ -1023,10 +1023,10 @@
   },
   "armv8-a/speed-auto/n-body": {
    "sections": {
-    ".text": 88980,
-    ".rdata": 33808,
+    ".text": 88908,
+    ".rdata": 34624,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -1035,11 +1035,11 @@
   },
   "armv8-a/speed-auto/pidigits": {
    "sections": {
-    ".text": 132392,
-    ".rdata": 42784,
+    ".text": 132476,
+    ".rdata": 42760,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1047,19 +1047,19 @@
   },
   "armv8-a/speed-auto/regex-redux": {
    "sections": {
-    ".text": 437896,
-    ".rdata": 85644,
+    ".text": 437920,
+    ".rdata": 115964,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 53172,
-    ".rdata": 18932,
+    ".text": 53100,
+    ".rdata": 18812,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 896,
@@ -1069,10 +1069,10 @@
   },
   "armv8-a/speed-auto/spectral-norm": {
    "sections": {
-    ".text": 110852,
-    ".rdata": 39880,
+    ".text": 110780,
+    ".rdata": 40760,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -1081,8 +1081,8 @@
   },
   "armv8-a/speed-auto/thread": {
    "sections": {
-    ".text": 76604,
-    ".rdata": 31312,
+    ".text": 76532,
+    ".rdata": 31160,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1152,
@@ -1092,8 +1092,8 @@
   },
   "armv8-a/speed-off/binary-trees": {
    "sections": {
-    ".text": 69416,
-    ".rdata": 24736,
+    ".text": 69368,
+    ".rdata": 24632,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1160,
@@ -1103,8 +1103,8 @@
   },
   "armv8-a/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 48460,
-    ".rdata": 19864,
+    ".text": 48412,
+    ".rdata": 19760,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 736,
@@ -1114,8 +1114,8 @@
   },
   "armv8-a/speed-off/fasta": {
    "sections": {
-    ".text": 31468,
-    ".rdata": 13560,
+    ".text": 31368,
+    ".rdata": 13416,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 544,
@@ -1125,8 +1125,8 @@
   },
   "armv8-a/speed-off/fibre": {
    "sections": {
-    ".text": 63348,
-    ".rdata": 27084,
+    ".text": 63276,
+    ".rdata": 26940,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 920,
@@ -1136,10 +1136,10 @@
   },
   "armv8-a/speed-off/k-nucleotide": {
    "sections": {
-    ".text": 162860,
-    ".rdata": 49940,
+    ".text": 162740,
+    ".rdata": 50780,
     ".buildid": 81,
-    ".data": 1352,
+    ".data": 244,
     ".pdata": 2040,
     ".landin": 64,
     ".tls": 8,
@@ -1148,8 +1148,8 @@
   },
   "armv8-a/speed-off/mandelbrot": {
    "sections": {
-    ".text": 68384,
-    ".rdata": 24672,
+    ".text": 68336,
+    ".rdata": 24576,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1168,
@@ -1159,10 +1159,10 @@
   },
   "armv8-a/speed-off/n-body": {
    "sections": {
-    ".text": 89056,
-    ".rdata": 33808,
+    ".text": 88984,
+    ".rdata": 34624,
     ".buildid": 81,
-    ".data": 1112,
+    ".data": 104,
     ".pdata": 1064,
     ".landin": 64,
     ".tls": 8,
@@ -1171,31 +1171,31 @@
   },
   "armv8-a/speed-off/pidigits": {
    "sections": {
-    ".text": 132288,
-    ".rdata": 42784,
+    ".text": 132388,
+    ".rdata": 42760,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1544,
+    ".pdata": 1552,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "armv8-a/speed-off/regex-redux": {
    "sections": {
-    ".text": 438164,
-    ".rdata": 85644,
+    ".text": 438188,
+    ".rdata": 115964,
     ".buildid": 81,
-    ".data": 33137,
+    ".data": 2796,
     ".pdata": 4976,
     ".tls": 8,
-    ".reloc": 312
+    ".reloc": 304
    }
   },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 52924,
-    ".rdata": 18932,
+    ".text": 52852,
+    ".rdata": 18812,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 896,
@@ -1205,10 +1205,10 @@
   },
   "armv8-a/speed-off/spectral-norm": {
    "sections": {
-    ".text": 110700,
-    ".rdata": 39880,
+    ".text": 110628,
+    ".rdata": 40760,
     ".buildid": 81,
-    ".data": 1264,
+    ".data": 196,
     ".pdata": 1576,
     ".landin": 64,
     ".tls": 8,
@@ -1217,8 +1217,8 @@
   },
   "armv8-a/speed-off/thread": {
    "sections": {
-    ".text": 76728,
-    ".rdata": 31312,
+    ".text": 76656,
+    ".rdata": 31160,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1152,
@@ -1273,9 +1273,9 @@
   "armv8.1-a/none-all/k-nucleotide": {
    "sections": {
     ".text": 493164,
-    ".rdata": 65712,
+    ".rdata": 66808,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -1296,9 +1296,9 @@
   "armv8.1-a/none-all/n-body": {
    "sections": {
     ".text": 312112,
-    ".rdata": 47628,
+    ".rdata": 48620,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -1307,11 +1307,11 @@
   },
   "armv8.1-a/none-all/pidigits": {
    "sections": {
-    ".text": 442024,
-    ".rdata": 57532,
+    ".text": 442192,
+    ".rdata": 57588,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1320,12 +1320,12 @@
   "armv8.1-a/none-all/regex-redux": {
    "sections": {
     ".text": 1289496,
-    ".rdata": 120776,
+    ".rdata": 151088,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8.1-a/none-all/reverse-complement": {
@@ -1342,9 +1342,9 @@
   "armv8.1-a/none-all/spectral-norm": {
    "sections": {
     ".text": 355668,
-    ".rdata": 53836,
+    ".rdata": 54892,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -1409,9 +1409,9 @@
   "armv8.1-a/none-auto/k-nucleotide": {
    "sections": {
     ".text": 493212,
-    ".rdata": 65712,
+    ".rdata": 66808,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -1432,9 +1432,9 @@
   "armv8.1-a/none-auto/n-body": {
    "sections": {
     ".text": 312112,
-    ".rdata": 47628,
+    ".rdata": 48620,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -1443,11 +1443,11 @@
   },
   "armv8.1-a/none-auto/pidigits": {
    "sections": {
-    ".text": 442024,
-    ".rdata": 57532,
+    ".text": 442192,
+    ".rdata": 57588,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1456,12 +1456,12 @@
   "armv8.1-a/none-auto/regex-redux": {
    "sections": {
     ".text": 1290264,
-    ".rdata": 120776,
+    ".rdata": 151088,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8.1-a/none-auto/reverse-complement": {
@@ -1478,9 +1478,9 @@
   "armv8.1-a/none-auto/spectral-norm": {
    "sections": {
     ".text": 355668,
-    ".rdata": 53836,
+    ".rdata": 54892,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -1545,9 +1545,9 @@
   "armv8.1-a/none-off/k-nucleotide": {
    "sections": {
     ".text": 493532,
-    ".rdata": 65712,
+    ".rdata": 66808,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -1568,9 +1568,9 @@
   "armv8.1-a/none-off/n-body": {
    "sections": {
     ".text": 312176,
-    ".rdata": 47628,
+    ".rdata": 48620,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -1579,25 +1579,25 @@
   },
   "armv8.1-a/none-off/pidigits": {
    "sections": {
-    ".text": 442184,
-    ".rdata": 57532,
+    ".text": 442360,
+    ".rdata": 57588,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "armv8.1-a/none-off/regex-redux": {
    "sections": {
     ".text": 1290408,
-    ".rdata": 120776,
+    ".rdata": 151088,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 312
+    ".reloc": 304
    }
   },
   "armv8.1-a/none-off/reverse-complement": {
@@ -1614,9 +1614,9 @@
   "armv8.1-a/none-off/spectral-norm": {
    "sections": {
     ".text": 355852,
-    ".rdata": 53836,
+    ".rdata": 54892,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -1636,8 +1636,8 @@
   },
   "armv8.1-a/size-all/binary-trees": {
    "sections": {
-    ".text": 60576,
-    ".rdata": 25756,
+    ".text": 60528,
+    ".rdata": 25652,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1208,
@@ -1647,8 +1647,8 @@
   },
   "armv8.1-a/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 44816,
-    ".rdata": 20940,
+    ".text": 44768,
+    ".rdata": 20844,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 784,
@@ -1658,8 +1658,8 @@
   },
   "armv8.1-a/size-all/fasta": {
    "sections": {
-    ".text": 30108,
-    ".rdata": 14276,
+    ".text": 30008,
+    ".rdata": 14124,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 592,
@@ -1669,8 +1669,8 @@
   },
   "armv8.1-a/size-all/fibre": {
    "sections": {
-    ".text": 61008,
-    ".rdata": 28376,
+    ".text": 60936,
+    ".rdata": 28224,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 968,
@@ -1680,10 +1680,10 @@
   },
   "armv8.1-a/size-all/k-nucleotide": {
    "sections": {
-    ".text": 140480,
-    ".rdata": 52224,
+    ".text": 140360,
+    ".rdata": 53112,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -1692,8 +1692,8 @@
   },
   "armv8.1-a/size-all/mandelbrot": {
    "sections": {
-    ".text": 60600,
-    ".rdata": 25684,
+    ".text": 60552,
+    ".rdata": 25588,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1216,
@@ -1703,10 +1703,10 @@
   },
   "armv8.1-a/size-all/n-body": {
    "sections": {
-    ".text": 78620,
-    ".rdata": 35788,
+    ".text": 78548,
+    ".rdata": 36644,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -1715,11 +1715,11 @@
   },
   "armv8.1-a/size-all/pidigits": {
    "sections": {
-    ".text": 109656,
-    ".rdata": 43836,
+    ".text": 109692,
+    ".rdata": 43764,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1727,19 +1727,19 @@
   },
   "armv8.1-a/size-all/regex-redux": {
    "sections": {
-    ".text": 369572,
-    ".rdata": 87120,
+    ".text": 369596,
+    ".rdata": 117480,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 48260,
-    ".rdata": 19808,
+    ".text": 48188,
+    ".rdata": 19688,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 944,
@@ -1749,10 +1749,10 @@
   },
   "armv8.1-a/size-all/spectral-norm": {
    "sections": {
-    ".text": 95868,
-    ".rdata": 42060,
+    ".text": 95796,
+    ".rdata": 42980,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -1761,8 +1761,8 @@
   },
   "armv8.1-a/size-all/thread": {
    "sections": {
-    ".text": 72920,
-    ".rdata": 32636,
+    ".text": 72848,
+    ".rdata": 32484,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1200,
@@ -1772,8 +1772,8 @@
   },
   "armv8.1-a/size-auto/binary-trees": {
    "sections": {
-    ".text": 60576,
-    ".rdata": 25756,
+    ".text": 60528,
+    ".rdata": 25652,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1208,
@@ -1783,8 +1783,8 @@
   },
   "armv8.1-a/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 44816,
-    ".rdata": 20940,
+    ".text": 44768,
+    ".rdata": 20844,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 784,
@@ -1794,8 +1794,8 @@
   },
   "armv8.1-a/size-auto/fasta": {
    "sections": {
-    ".text": 30108,
-    ".rdata": 14276,
+    ".text": 30008,
+    ".rdata": 14124,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 592,
@@ -1805,8 +1805,8 @@
   },
   "armv8.1-a/size-auto/fibre": {
    "sections": {
-    ".text": 61008,
-    ".rdata": 28376,
+    ".text": 60936,
+    ".rdata": 28224,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 968,
@@ -1816,10 +1816,10 @@
   },
   "armv8.1-a/size-auto/k-nucleotide": {
    "sections": {
-    ".text": 140516,
-    ".rdata": 52224,
+    ".text": 140396,
+    ".rdata": 53112,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -1828,8 +1828,8 @@
   },
   "armv8.1-a/size-auto/mandelbrot": {
    "sections": {
-    ".text": 60600,
-    ".rdata": 25684,
+    ".text": 60552,
+    ".rdata": 25588,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1216,
@@ -1839,10 +1839,10 @@
   },
   "armv8.1-a/size-auto/n-body": {
    "sections": {
-    ".text": 78620,
-    ".rdata": 35788,
+    ".text": 78548,
+    ".rdata": 36644,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -1851,11 +1851,11 @@
   },
   "armv8.1-a/size-auto/pidigits": {
    "sections": {
-    ".text": 109656,
-    ".rdata": 43836,
+    ".text": 109692,
+    ".rdata": 43764,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1863,19 +1863,19 @@
   },
   "armv8.1-a/size-auto/regex-redux": {
    "sections": {
-    ".text": 370052,
-    ".rdata": 87120,
+    ".text": 370076,
+    ".rdata": 117480,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8.1-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 48260,
-    ".rdata": 19808,
+    ".text": 48188,
+    ".rdata": 19688,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 944,
@@ -1885,10 +1885,10 @@
   },
   "armv8.1-a/size-auto/spectral-norm": {
    "sections": {
-    ".text": 95868,
-    ".rdata": 42060,
+    ".text": 95796,
+    ".rdata": 42980,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -1897,8 +1897,8 @@
   },
   "armv8.1-a/size-auto/thread": {
    "sections": {
-    ".text": 72920,
-    ".rdata": 32636,
+    ".text": 72848,
+    ".rdata": 32484,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1200,
@@ -1908,8 +1908,8 @@
   },
   "armv8.1-a/size-off/binary-trees": {
    "sections": {
-    ".text": 60620,
-    ".rdata": 25756,
+    ".text": 60572,
+    ".rdata": 25652,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1208,
@@ -1919,8 +1919,8 @@
   },
   "armv8.1-a/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 44840,
-    ".rdata": 20940,
+    ".text": 44792,
+    ".rdata": 20844,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 784,
@@ -1930,8 +1930,8 @@
   },
   "armv8.1-a/size-off/fasta": {
    "sections": {
-    ".text": 30156,
-    ".rdata": 14276,
+    ".text": 30056,
+    ".rdata": 14124,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 592,
@@ -1941,8 +1941,8 @@
   },
   "armv8.1-a/size-off/fibre": {
    "sections": {
-    ".text": 61032,
-    ".rdata": 28376,
+    ".text": 60960,
+    ".rdata": 28224,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 968,
@@ -1952,10 +1952,10 @@
   },
   "armv8.1-a/size-off/k-nucleotide": {
    "sections": {
-    ".text": 140692,
-    ".rdata": 52224,
+    ".text": 140572,
+    ".rdata": 53112,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -1964,8 +1964,8 @@
   },
   "armv8.1-a/size-off/mandelbrot": {
    "sections": {
-    ".text": 60680,
-    ".rdata": 25684,
+    ".text": 60632,
+    ".rdata": 25588,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1216,
@@ -1975,10 +1975,10 @@
   },
   "armv8.1-a/size-off/n-body": {
    "sections": {
-    ".text": 78660,
-    ".rdata": 35788,
+    ".text": 78588,
+    ".rdata": 36644,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -1988,30 +1988,30 @@
   "armv8.1-a/size-off/pidigits": {
    "sections": {
     ".text": 109724,
-    ".rdata": 43836,
+    ".rdata": 43764,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "armv8.1-a/size-off/regex-redux": {
    "sections": {
-    ".text": 370124,
-    ".rdata": 87120,
+    ".text": 370148,
+    ".rdata": 117480,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 312
+    ".reloc": 304
    }
   },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 48332,
-    ".rdata": 19808,
+    ".text": 48260,
+    ".rdata": 19688,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 944,
@@ -2021,10 +2021,10 @@
   },
   "armv8.1-a/size-off/spectral-norm": {
    "sections": {
-    ".text": 95976,
-    ".rdata": 42060,
+    ".text": 95904,
+    ".rdata": 42980,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -2033,8 +2033,8 @@
   },
   "armv8.1-a/size-off/thread": {
    "sections": {
-    ".text": 72920,
-    ".rdata": 32636,
+    ".text": 72848,
+    ".rdata": 32484,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1200,
@@ -2044,8 +2044,8 @@
   },
   "armv8.1-a/speed-all/binary-trees": {
    "sections": {
-    ".text": 71080,
-    ".rdata": 25308,
+    ".text": 71032,
+    ".rdata": 25212,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1208,
@@ -2055,8 +2055,8 @@
   },
   "armv8.1-a/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 49956,
-    ".rdata": 20452,
+    ".text": 49908,
+    ".rdata": 20348,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 784,
@@ -2066,8 +2066,8 @@
   },
   "armv8.1-a/speed-all/fasta": {
    "sections": {
-    ".text": 32988,
-    ".rdata": 14140,
+    ".text": 32888,
+    ".rdata": 13996,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 592,
@@ -2077,8 +2077,8 @@
   },
   "armv8.1-a/speed-all/fibre": {
    "sections": {
-    ".text": 65144,
-    ".rdata": 27952,
+    ".text": 65072,
+    ".rdata": 27800,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 968,
@@ -2088,10 +2088,10 @@
   },
   "armv8.1-a/speed-all/k-nucleotide": {
    "sections": {
-    ".text": 164488,
-    ".rdata": 50480,
+    ".text": 164368,
+    ".rdata": 51368,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -2100,8 +2100,8 @@
   },
   "armv8.1-a/speed-all/mandelbrot": {
    "sections": {
-    ".text": 70112,
-    ".rdata": 25244,
+    ".text": 70064,
+    ".rdata": 25148,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1216,
@@ -2111,10 +2111,10 @@
   },
   "armv8.1-a/speed-all/n-body": {
    "sections": {
-    ".text": 90536,
-    ".rdata": 34356,
+    ".text": 90464,
+    ".rdata": 35204,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -2123,11 +2123,11 @@
   },
   "armv8.1-a/speed-all/pidigits": {
    "sections": {
-    ".text": 133916,
-    ".rdata": 43364,
+    ".text": 134000,
+    ".rdata": 43340,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2135,19 +2135,19 @@
   },
   "armv8.1-a/speed-all/regex-redux": {
    "sections": {
-    ".text": 439420,
-    ".rdata": 86192,
+    ".text": 439444,
+    ".rdata": 116544,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8.1-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 54696,
-    ".rdata": 19504,
+    ".text": 54624,
+    ".rdata": 19384,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 944,
@@ -2157,10 +2157,10 @@
   },
   "armv8.1-a/speed-all/spectral-norm": {
    "sections": {
-    ".text": 112376,
-    ".rdata": 40428,
+    ".text": 112304,
+    ".rdata": 41340,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -2169,8 +2169,8 @@
   },
   "armv8.1-a/speed-all/thread": {
    "sections": {
-    ".text": 78440,
-    ".rdata": 32156,
+    ".text": 78368,
+    ".rdata": 32004,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1200,
@@ -2180,8 +2180,8 @@
   },
   "armv8.1-a/speed-auto/binary-trees": {
    "sections": {
-    ".text": 71080,
-    ".rdata": 25308,
+    ".text": 71032,
+    ".rdata": 25212,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1208,
@@ -2191,8 +2191,8 @@
   },
   "armv8.1-a/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 49956,
-    ".rdata": 20452,
+    ".text": 49908,
+    ".rdata": 20348,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 784,
@@ -2202,8 +2202,8 @@
   },
   "armv8.1-a/speed-auto/fasta": {
    "sections": {
-    ".text": 32988,
-    ".rdata": 14140,
+    ".text": 32888,
+    ".rdata": 13996,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 592,
@@ -2213,8 +2213,8 @@
   },
   "armv8.1-a/speed-auto/fibre": {
    "sections": {
-    ".text": 65144,
-    ".rdata": 27952,
+    ".text": 65072,
+    ".rdata": 27800,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 968,
@@ -2224,10 +2224,10 @@
   },
   "armv8.1-a/speed-auto/k-nucleotide": {
    "sections": {
-    ".text": 164488,
-    ".rdata": 50480,
+    ".text": 164368,
+    ".rdata": 51368,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -2236,8 +2236,8 @@
   },
   "armv8.1-a/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 70112,
-    ".rdata": 25244,
+    ".text": 70064,
+    ".rdata": 25148,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1216,
@@ -2247,10 +2247,10 @@
   },
   "armv8.1-a/speed-auto/n-body": {
    "sections": {
-    ".text": 90536,
-    ".rdata": 34356,
+    ".text": 90464,
+    ".rdata": 35204,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -2259,11 +2259,11 @@
   },
   "armv8.1-a/speed-auto/pidigits": {
    "sections": {
-    ".text": 133916,
-    ".rdata": 43364,
+    ".text": 134000,
+    ".rdata": 43340,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2271,19 +2271,19 @@
   },
   "armv8.1-a/speed-auto/regex-redux": {
    "sections": {
-    ".text": 439420,
-    ".rdata": 86192,
+    ".text": 439444,
+    ".rdata": 116544,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 288
+    ".reloc": 280
    }
   },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 54696,
-    ".rdata": 19504,
+    ".text": 54624,
+    ".rdata": 19384,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 944,
@@ -2293,10 +2293,10 @@
   },
   "armv8.1-a/speed-auto/spectral-norm": {
    "sections": {
-    ".text": 112376,
-    ".rdata": 40428,
+    ".text": 112304,
+    ".rdata": 41340,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -2305,8 +2305,8 @@
   },
   "armv8.1-a/speed-auto/thread": {
    "sections": {
-    ".text": 78440,
-    ".rdata": 32156,
+    ".text": 78368,
+    ".rdata": 32004,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1200,
@@ -2316,8 +2316,8 @@
   },
   "armv8.1-a/speed-off/binary-trees": {
    "sections": {
-    ".text": 70940,
-    ".rdata": 25308,
+    ".text": 70892,
+    ".rdata": 25212,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1208,
@@ -2327,8 +2327,8 @@
   },
   "armv8.1-a/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 50016,
-    ".rdata": 20452,
+    ".text": 49968,
+    ".rdata": 20348,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 784,
@@ -2338,8 +2338,8 @@
   },
   "armv8.1-a/speed-off/fasta": {
    "sections": {
-    ".text": 33024,
-    ".rdata": 14140,
+    ".text": 32924,
+    ".rdata": 13996,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 592,
@@ -2349,8 +2349,8 @@
   },
   "armv8.1-a/speed-off/fibre": {
    "sections": {
-    ".text": 65204,
-    ".rdata": 27952,
+    ".text": 65132,
+    ".rdata": 27800,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 968,
@@ -2360,10 +2360,10 @@
   },
   "armv8.1-a/speed-off/k-nucleotide": {
    "sections": {
-    ".text": 164384,
-    ".rdata": 50480,
+    ".text": 164264,
+    ".rdata": 51368,
     ".buildid": 81,
-    ".data": 1392,
+    ".data": 244,
     ".pdata": 2088,
     ".landin": 64,
     ".tls": 8,
@@ -2372,8 +2372,8 @@
   },
   "armv8.1-a/speed-off/mandelbrot": {
    "sections": {
-    ".text": 69908,
-    ".rdata": 25244,
+    ".text": 69860,
+    ".rdata": 25148,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1216,
@@ -2383,10 +2383,10 @@
   },
   "armv8.1-a/speed-off/n-body": {
    "sections": {
-    ".text": 90612,
-    ".rdata": 34356,
+    ".text": 90540,
+    ".rdata": 35204,
     ".buildid": 81,
-    ".data": 1144,
+    ".data": 104,
     ".pdata": 1112,
     ".landin": 64,
     ".tls": 8,
@@ -2395,31 +2395,31 @@
   },
   "armv8.1-a/speed-off/pidigits": {
    "sections": {
-    ".text": 133812,
-    ".rdata": 43364,
+    ".text": 133912,
+    ".rdata": 43340,
     ".buildid": 81,
     ".data": 212,
-    ".pdata": 1592,
+    ".pdata": 1600,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "armv8.1-a/speed-off/regex-redux": {
    "sections": {
-    ".text": 439688,
-    ".rdata": 86192,
+    ".text": 439712,
+    ".rdata": 116544,
     ".buildid": 81,
-    ".data": 33161,
+    ".data": 2796,
     ".pdata": 5024,
     ".tls": 8,
-    ".reloc": 312
+    ".reloc": 304
    }
   },
   "armv8.1-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 54448,
-    ".rdata": 19504,
+    ".text": 54376,
+    ".rdata": 19384,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 944,
@@ -2429,10 +2429,10 @@
   },
   "armv8.1-a/speed-off/spectral-norm": {
    "sections": {
-    ".text": 112224,
-    ".rdata": 40428,
+    ".text": 112152,
+    ".rdata": 41340,
     ".buildid": 81,
-    ".data": 1296,
+    ".data": 196,
     ".pdata": 1624,
     ".landin": 64,
     ".tls": 8,
@@ -2441,8 +2441,8 @@
   },
   "armv8.1-a/speed-off/thread": {
    "sections": {
-    ".text": 78564,
-    ".rdata": 32156,
+    ".text": 78492,
+    ".rdata": 32004,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1200,
