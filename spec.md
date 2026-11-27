@@ -35226,6 +35226,117 @@ path before it runs and changes the user's settings.
 
 **Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
 
+### D2960 — A Windows peer starts itself again where a POSIX peer forks
+
+**From** D2473 and D2474.
+
+**The discrepancy:** D2473 left off the Windows targets every ABI fixture
+whose peer includes a POSIX header. Four of them hold what no other
+Windows fixture holds: copies bounded by a page Windows refuses to read,
+every raw image of an encoding with its holes trapping, a reserved
+pattern trapping before the store that would change shared memory, and a
+`noreturn` path ending the process or trapping at a C callee that returns.
+Three fork a child for each case that traps or ends, and read its signal or
+status from `waitpid`; Windows has no `fork`.
+
+**Chosen:** under `_WIN32` a peer starts its own image again with
+`CreateProcess`, naming the case on the command line, waits for it and
+reads its exit code: a trap is `STATUS_ILLEGAL_INSTRUCTION`, `ud2`'s on
+x86-64 and `brk`'s on arm64, and an ending is the code the program gave.
+The copy inherits the lane's error mode and job (D2474), so a trap reaches
+no error report. Memory both see is a page of an anonymous file mapping
+whose handle the copy inherits and is named on its command line. The
+guard pages are `VirtualAlloc`'s, the second made `PAGE_NOACCESS` by
+`VirtualProtect`. Each fixture keeps one peer, its POSIX arm unchanged,
+and names both Windows targets.
+
+**The alternatives:** a Windows twin of each fixture, which would let the
+two copies of one oracle drift apart; threads with a vectored exception
+handler in place of a second process, which observes a trap the program
+handles rather than one that ends it, as the POSIX children's do; and
+leaving the fixtures off Windows, with these observations met by no
+Windows C code.
+
+**Pinned by** `abi/r440-native-bounds`, `abi/r640-exhaustive-encodings`,
+`abi/r640-reserved-trap` and `abi/r670-noreturn` on both Windows targets.
+
+### D2961 — On Windows the variadic probe holds a float in both banks
+
+**From** D2473 and [1580].
+
+**The discrepancy:** `abi/r440-native-varargs` observes, besides the
+variadic values C reads by `va_arg`, the count of vector registers a SysV
+caller leaves in `al`, through a probe in assembly. Neither Windows
+convention has that count: Win64 puts a variadic float in the first four
+slots in both its integer register and its XMM register, and arm64
+Windows passes every variadic in the integer registers and the stack.
+
+**Chosen:** on Windows the probe answers what `al`'s would, the floats'
+count with eight at most, from the floats C reads by `va_arg`; on x86-64
+an assembly entry first compares each float in the register slots with
+its copy in the slot's XMM register and answers -1 when they differ,
+which a callee that reads either bank needs. The fixture names both
+Windows targets.
+
+**The alternatives:** leaving the fixture off Windows, since
+`windows-variadic-floats` holds the values past the register slots, which
+leaves the second bank unobserved; and a probe answering the floats'
+count alone, which observes nothing the C oracle does not.
+
+**Pinned by** `abi/r440-native-varargs` on both Windows targets.
+
+### D2962 — Win64's hidden result address comes back in rax; arm64 has none to return
+
+**From** D2473 and [1600].
+
+**The discrepancy:** `abi/r440-sret-pointer-observation` holds a callee
+to returning the hidden result address in `rax`, which SysV requires, and
+`abi/r450-x86-callee-probes` holds SysV's and AAPCS64's callee saves
+across a Landin routine C enters, through assembly in each peer that
+carries ELF's `.type` and `.size`.
+
+**Chosen:** Win64 requires the hidden address back in `rax` too, so the
+sret peer has a Win64 arm: the address arrives in `rcx`, the explicit
+arguments move one slot along, and each probe takes the 32-byte shadow
+area. The fixture names windows-x86-64 alone: arm64 Windows, as AAPCS64
+does, passes the address in `x8` and asks nothing of what comes back, as
+Darwin's and Linux arm64's lanes already record. The callee probe's Win64
+arm sets and checks every register Win64 makes a callee save but the XMM
+ones, which `windows-c-entry-saves` holds: `rbx`, `rbp`, `rdi`, `rsi` and
+`r12` to `r15`. Its arm64 assembly is arm64 Windows' as it is, with `x18`,
+which Windows keeps, untouched, and the fixture names both Windows
+targets.
+
+**The alternatives:** a returned-address probe for arm64 Windows, which
+would hold refine to a rule the convention does not make.
+
+**Pinned by** `abi/r440-sret-pointer-observation` on windows-x86-64 and
+`abi/r450-x86-callee-probes` on both Windows targets.
+
+### D2963 — A renamed `main` called from C has no Windows form yet
+
+**From** D2269 and D2473.
+
+**The discrepancy:** `abi/r440-native-renamed-main` holds that a C
+callback a Landin program names `main` neither establishes nor replaces
+the argument root, which its C peer establishes through
+`_landin_host_initialize_arguments`, and that a foreign symbol spelled
+`.Llandin_host_argv` stays the foreign one.
+
+**Chosen:** the fixture names no Windows target. Windows has no C-callable
+initializer: `_landin_start` keeps the root itself (D2269), so a C program
+on Windows has no root to establish and the fixture's observation no form
+there. Its foreign `.L` name is also one COFF's assembler takes as
+private, the case `abi/r440-native-link-namespace` holds.
+
+**The alternatives:** a Windows twin that drops the root and the `.L`
+name, which would hold only that a renamed callback is callable, as
+every Windows ABI fixture's callbacks already are; and a C-callable
+initializer in `hosted/system` for Windows, which changes what D2269 chose
+and is a decision of its own.
+
+**Pinned by** the fixture's `targets:`, which name no Windows target.
+
 ### D2487 — A Windows image carries no time of its link
 
 **From** D2189, D2327 and D2486.
