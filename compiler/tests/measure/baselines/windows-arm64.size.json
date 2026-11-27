@@ -46,6 +46,18 @@
     ".reloc": 52
    }
   },
+  "armv8-a/none-all/k-nucleotide": {
+   "sections": {
+    ".text": 489208,
+    ".rdata": 65172,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "armv8-a/none-all/mandelbrot": {
    "sections": {
     ".text": 212032,
@@ -133,6 +145,18 @@
     ".pdata": 920,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "armv8-a/none-auto/k-nucleotide": {
+   "sections": {
+    ".text": 489256,
+    ".rdata": 65172,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "armv8-a/none-auto/mandelbrot": {
@@ -224,6 +248,18 @@
     ".reloc": 68
    }
   },
+  "armv8-a/none-off/k-nucleotide": {
+   "sections": {
+    ".text": 489576,
+    ".rdata": 65172,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "armv8-a/none-off/mandelbrot": {
    "sections": {
     ".text": 212240,
@@ -311,6 +347,18 @@
     ".pdata": 920,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "armv8-a/size-all/k-nucleotide": {
+   "sections": {
+    ".text": 139028,
+    ".rdata": 51684,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "armv8-a/size-all/mandelbrot": {
@@ -402,6 +450,18 @@
     ".reloc": 52
    }
   },
+  "armv8-a/size-auto/k-nucleotide": {
+   "sections": {
+    ".text": 139064,
+    ".rdata": 51684,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "armv8-a/size-auto/mandelbrot": {
    "sections": {
     ".text": 59148,
@@ -489,6 +549,18 @@
     ".pdata": 920,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "armv8-a/size-off/k-nucleotide": {
+   "sections": {
+    ".text": 139240,
+    ".rdata": 51684,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "armv8-a/size-off/mandelbrot": {
@@ -580,6 +652,18 @@
     ".reloc": 52
    }
   },
+  "armv8-a/speed-all/k-nucleotide": {
+   "sections": {
+    ".text": 162964,
+    ".rdata": 49940,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "armv8-a/speed-all/mandelbrot": {
    "sections": {
     ".text": 68588,
@@ -667,6 +751,18 @@
     ".pdata": 920,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "armv8-a/speed-auto/k-nucleotide": {
+   "sections": {
+    ".text": 162964,
+    ".rdata": 49940,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "armv8-a/speed-auto/mandelbrot": {
@@ -758,6 +854,18 @@
     ".reloc": 68
    }
   },
+  "armv8-a/speed-off/k-nucleotide": {
+   "sections": {
+    ".text": 162860,
+    ".rdata": 49940,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 2040,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "armv8-a/speed-off/mandelbrot": {
    "sections": {
     ".text": 68384,
@@ -845,6 +953,18 @@
     ".pdata": 968,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "armv8.1-a/none-all/k-nucleotide": {
+   "sections": {
+    ".text": 493164,
+    ".rdata": 65712,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "armv8.1-a/none-all/mandelbrot": {
@@ -936,6 +1056,18 @@
     ".reloc": 52
    }
   },
+  "armv8.1-a/none-auto/k-nucleotide": {
+   "sections": {
+    ".text": 493212,
+    ".rdata": 65712,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "armv8.1-a/none-auto/mandelbrot": {
    "sections": {
     ".text": 215988,
@@ -1023,6 +1155,18 @@
     ".pdata": 968,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "armv8.1-a/none-off/k-nucleotide": {
+   "sections": {
+    ".text": 493532,
+    ".rdata": 65712,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "armv8.1-a/none-off/mandelbrot": {
@@ -1114,6 +1258,18 @@
     ".reloc": 52
    }
   },
+  "armv8.1-a/size-all/k-nucleotide": {
+   "sections": {
+    ".text": 140480,
+    ".rdata": 52224,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "armv8.1-a/size-all/mandelbrot": {
    "sections": {
     ".text": 60600,
@@ -1201,6 +1357,18 @@
     ".pdata": 968,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "armv8.1-a/size-auto/k-nucleotide": {
+   "sections": {
+    ".text": 140516,
+    ".rdata": 52224,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "armv8.1-a/size-auto/mandelbrot": {
@@ -1292,6 +1460,18 @@
     ".reloc": 68
    }
   },
+  "armv8.1-a/size-off/k-nucleotide": {
+   "sections": {
+    ".text": 140692,
+    ".rdata": 52224,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "armv8.1-a/size-off/mandelbrot": {
    "sections": {
     ".text": 60680,
@@ -1379,6 +1559,18 @@
     ".pdata": 968,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "armv8.1-a/speed-all/k-nucleotide": {
+   "sections": {
+    ".text": 164488,
+    ".rdata": 50480,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "armv8.1-a/speed-all/mandelbrot": {
@@ -1470,6 +1662,18 @@
     ".reloc": 52
    }
   },
+  "armv8.1-a/speed-auto/k-nucleotide": {
+   "sections": {
+    ".text": 164488,
+    ".rdata": 50480,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "armv8.1-a/speed-auto/mandelbrot": {
    "sections": {
     ".text": 70112,
@@ -1557,6 +1761,18 @@
     ".pdata": 968,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "armv8.1-a/speed-off/k-nucleotide": {
+   "sections": {
+    ".text": 164384,
+    ".rdata": 50480,
+    ".buildid": 81,
+    ".data": 1392,
+    ".pdata": 2088,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "armv8.1-a/speed-off/mandelbrot": {

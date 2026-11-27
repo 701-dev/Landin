@@ -46,6 +46,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v1/none-all/k-nucleotide": {
+   "sections": {
+    ".text": 335129,
+    ".rdata": 63436,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v1/none-all/mandelbrot": {
    "sections": {
     ".text": 149760,
@@ -133,6 +145,18 @@
     ".pdata": 1380,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v1/none-auto/k-nucleotide": {
+   "sections": {
+    ".text": 335144,
+    ".rdata": 63436,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v1/none-auto/mandelbrot": {
@@ -224,6 +248,18 @@
     ".reloc": 68
    }
   },
+  "x86-64-v1/none-off/k-nucleotide": {
+   "sections": {
+    ".text": 335206,
+    ".rdata": 63436,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "x86-64-v1/none-off/mandelbrot": {
    "sections": {
     ".text": 149798,
@@ -311,6 +347,18 @@
     ".pdata": 1380,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v1/size-all/k-nucleotide": {
+   "sections": {
+    ".text": 116380,
+    ".rdata": 47236,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v1/size-all/mandelbrot": {
@@ -402,6 +450,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v1/size-auto/k-nucleotide": {
+   "sections": {
+    ".text": 116422,
+    ".rdata": 47236,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v1/size-auto/mandelbrot": {
    "sections": {
     ".text": 49258,
@@ -489,6 +549,18 @@
     ".pdata": 1380,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "x86-64-v1/size-off/k-nucleotide": {
+   "sections": {
+    ".text": 116630,
+    ".rdata": 47236,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "x86-64-v1/size-off/mandelbrot": {
@@ -580,6 +652,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v1/speed-all/k-nucleotide": {
+   "sections": {
+    ".text": 156903,
+    ".rdata": 46780,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v1/speed-all/mandelbrot": {
    "sections": {
     ".text": 67717,
@@ -667,6 +751,18 @@
     ".pdata": 1380,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v1/speed-auto/k-nucleotide": {
+   "sections": {
+    ".text": 156903,
+    ".rdata": 46780,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v1/speed-auto/mandelbrot": {
@@ -758,6 +854,18 @@
     ".reloc": 68
    }
   },
+  "x86-64-v1/speed-off/k-nucleotide": {
+   "sections": {
+    ".text": 156775,
+    ".rdata": 46780,
+    ".buildid": 81,
+    ".data": 1352,
+    ".pdata": 3060,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "x86-64-v1/speed-off/mandelbrot": {
    "sections": {
     ".text": 67717,
@@ -845,6 +953,18 @@
     ".pdata": 1488,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v2/none-all/k-nucleotide": {
+   "sections": {
+    ".text": 340052,
+    ".rdata": 63996,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v2/none-all/mandelbrot": {
@@ -936,6 +1056,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v2/none-auto/k-nucleotide": {
+   "sections": {
+    ".text": 340067,
+    ".rdata": 63996,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v2/none-auto/mandelbrot": {
    "sections": {
     ".text": 154683,
@@ -1023,6 +1155,18 @@
     ".pdata": 1488,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "x86-64-v2/none-off/k-nucleotide": {
+   "sections": {
+    ".text": 340129,
+    ".rdata": 63996,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "x86-64-v2/none-off/mandelbrot": {
@@ -1114,6 +1258,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v2/size-all/k-nucleotide": {
+   "sections": {
+    ".text": 118399,
+    ".rdata": 47796,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v2/size-all/mandelbrot": {
    "sections": {
     ".text": 51277,
@@ -1201,6 +1357,18 @@
     ".pdata": 1488,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v2/size-auto/k-nucleotide": {
+   "sections": {
+    ".text": 118441,
+    ".rdata": 47796,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v2/size-auto/mandelbrot": {
@@ -1292,6 +1460,18 @@
     ".reloc": 68
    }
   },
+  "x86-64-v2/size-off/k-nucleotide": {
+   "sections": {
+    ".text": 118649,
+    ".rdata": 47796,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "x86-64-v2/size-off/mandelbrot": {
    "sections": {
     ".text": 51362,
@@ -1379,6 +1559,18 @@
     ".pdata": 1488,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v2/speed-all/k-nucleotide": {
+   "sections": {
+    ".text": 159271,
+    ".rdata": 47332,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v2/speed-all/mandelbrot": {
@@ -1470,6 +1662,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v2/speed-auto/k-nucleotide": {
+   "sections": {
+    ".text": 159271,
+    ".rdata": 47332,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v2/speed-auto/mandelbrot": {
    "sections": {
     ".text": 70085,
@@ -1557,6 +1761,18 @@
     ".pdata": 1488,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "x86-64-v2/speed-off/k-nucleotide": {
+   "sections": {
+    ".text": 159143,
+    ".rdata": 47332,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3168,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "x86-64-v2/speed-off/mandelbrot": {
@@ -1648,6 +1864,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v3/none-all/k-nucleotide": {
+   "sections": {
+    ".text": 342277,
+    ".rdata": 64060,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v3/none-all/mandelbrot": {
    "sections": {
     ".text": 157189,
@@ -1735,6 +1963,18 @@
     ".pdata": 1500,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v3/none-auto/k-nucleotide": {
+   "sections": {
+    ".text": 342292,
+    ".rdata": 64060,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v3/none-auto/mandelbrot": {
@@ -1826,6 +2066,18 @@
     ".reloc": 68
    }
   },
+  "x86-64-v3/none-off/k-nucleotide": {
+   "sections": {
+    ".text": 342354,
+    ".rdata": 64060,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "x86-64-v3/none-off/mandelbrot": {
    "sections": {
     ".text": 157227,
@@ -1913,6 +2165,18 @@
     ".pdata": 1500,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v3/size-all/k-nucleotide": {
+   "sections": {
+    ".text": 119001,
+    ".rdata": 47860,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v3/size-all/mandelbrot": {
@@ -2004,6 +2268,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v3/size-auto/k-nucleotide": {
+   "sections": {
+    ".text": 119043,
+    ".rdata": 47860,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v3/size-auto/mandelbrot": {
    "sections": {
     ".text": 51980,
@@ -2091,6 +2367,18 @@
     ".pdata": 1500,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "x86-64-v3/size-off/k-nucleotide": {
+   "sections": {
+    ".text": 119251,
+    ".rdata": 47860,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "x86-64-v3/size-off/mandelbrot": {
@@ -2182,6 +2470,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v3/speed-all/k-nucleotide": {
+   "sections": {
+    ".text": 159975,
+    ".rdata": 47396,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v3/speed-all/mandelbrot": {
    "sections": {
     ".text": 70789,
@@ -2269,6 +2569,18 @@
     ".pdata": 1500,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v3/speed-auto/k-nucleotide": {
+   "sections": {
+    ".text": 159975,
+    ".rdata": 47396,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v3/speed-auto/mandelbrot": {
@@ -2360,6 +2672,18 @@
     ".reloc": 68
    }
   },
+  "x86-64-v3/speed-off/k-nucleotide": {
+   "sections": {
+    ".text": 159847,
+    ".rdata": 47396,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3180,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "x86-64-v3/speed-off/mandelbrot": {
    "sections": {
     ".text": 70789,
@@ -2447,6 +2771,18 @@
     ".pdata": 1512,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v4/none-all/k-nucleotide": {
+   "sections": {
+    ".text": 343686,
+    ".rdata": 64132,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v4/none-all/mandelbrot": {
@@ -2538,6 +2874,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v4/none-auto/k-nucleotide": {
+   "sections": {
+    ".text": 343701,
+    ".rdata": 64132,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v4/none-auto/mandelbrot": {
    "sections": {
     ".text": 158598,
@@ -2625,6 +2973,18 @@
     ".pdata": 1512,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "x86-64-v4/none-off/k-nucleotide": {
+   "sections": {
+    ".text": 343763,
+    ".rdata": 64132,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "x86-64-v4/none-off/mandelbrot": {
@@ -2716,6 +3076,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v4/size-all/k-nucleotide": {
+   "sections": {
+    ".text": 119388,
+    ".rdata": 47924,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v4/size-all/mandelbrot": {
    "sections": {
     ".text": 52367,
@@ -2803,6 +3175,18 @@
     ".pdata": 1512,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v4/size-auto/k-nucleotide": {
+   "sections": {
+    ".text": 119430,
+    ".rdata": 47924,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v4/size-auto/mandelbrot": {
@@ -2894,6 +3278,18 @@
     ".reloc": 68
    }
   },
+  "x86-64-v4/size-off/k-nucleotide": {
+   "sections": {
+    ".text": 119638,
+    ".rdata": 47924,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
+   }
+  },
   "x86-64-v4/size-off/mandelbrot": {
    "sections": {
     ".text": 52452,
@@ -2981,6 +3377,18 @@
     ".pdata": 1512,
     ".tls": 16,
     ".reloc": 52
+   }
+  },
+  "x86-64-v4/speed-all/k-nucleotide": {
+   "sections": {
+    ".text": 160487,
+    ".rdata": 47460,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
    }
   },
   "x86-64-v4/speed-all/mandelbrot": {
@@ -3072,6 +3480,18 @@
     ".reloc": 52
    }
   },
+  "x86-64-v4/speed-auto/k-nucleotide": {
+   "sections": {
+    ".text": 160487,
+    ".rdata": 47460,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
   "x86-64-v4/speed-auto/mandelbrot": {
    "sections": {
     ".text": 71301,
@@ -3159,6 +3579,18 @@
     ".pdata": 1512,
     ".tls": 16,
     ".reloc": 68
+   }
+  },
+  "x86-64-v4/speed-off/k-nucleotide": {
+   "sections": {
+    ".text": 160359,
+    ".rdata": 47460,
+    ".buildid": 81,
+    ".data": 1376,
+    ".pdata": 3192,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 76
    }
   },
   "x86-64-v4/speed-off/mandelbrot": {

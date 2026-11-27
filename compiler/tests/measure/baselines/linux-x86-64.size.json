@@ -46,6 +46,18 @@
     ".bss": 168
    }
   },
+  "x86-64-v1/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 340993,
+    ".rodata": 63324,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1800,
+    ".bss": 256
+   }
+  },
   "x86-64-v1/none-all/mandelbrot": {
    "sections": {
     ".text": 144561,
@@ -133,6 +145,18 @@
     ".data.rel.ro": 288,
     ".data": 824,
     ".bss": 168
+   }
+  },
+  "x86-64-v1/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 341008,
+    ".rodata": 63324,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1800,
+    ".bss": 256
    }
   },
   "x86-64-v1/none-auto/mandelbrot": {
@@ -224,6 +248,18 @@
     ".bss": 168
    }
   },
+  "x86-64-v1/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 341070,
+    ".rodata": 63324,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1800,
+    ".bss": 256
+   }
+  },
   "x86-64-v1/none-off/mandelbrot": {
    "sections": {
     ".text": 144589,
@@ -311,6 +347,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v1/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 120092,
+    ".rodata": 45944,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v1/size-all/mandelbrot": {
@@ -402,6 +450,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v1/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 120146,
+    ".rodata": 45944,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v1/size-auto/mandelbrot": {
    "sections": {
     ".text": 48414,
@@ -489,6 +549,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v1/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 120354,
+    ".rodata": 45944,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v1/size-off/mandelbrot": {
@@ -580,6 +652,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v1/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 139756,
+    ".rodata": 45338,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v1/speed-all/mandelbrot": {
    "sections": {
     ".text": 52838,
@@ -667,6 +751,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v1/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 139756,
+    ".rodata": 45338,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v1/speed-auto/mandelbrot": {
@@ -758,6 +854,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v1/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 140268,
+    ".rodata": 45338,
+    ".note.gnu.property": 48,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v1/speed-off/mandelbrot": {
    "sections": {
     ".text": 53094,
@@ -845,6 +953,18 @@
     ".data.rel.ro": 288,
     ".data": 832,
     ".bss": 168
+   }
+  },
+  "x86-64-v2/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 345385,
+    ".rodata": 63809,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1808,
+    ".bss": 256
    }
   },
   "x86-64-v2/none-all/mandelbrot": {
@@ -936,6 +1056,18 @@
     ".bss": 168
    }
   },
+  "x86-64-v2/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 345400,
+    ".rodata": 63809,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1808,
+    ".bss": 256
+   }
+  },
   "x86-64-v2/none-auto/mandelbrot": {
    "sections": {
     ".text": 148953,
@@ -1023,6 +1155,18 @@
     ".data.rel.ro": 288,
     ".data": 832,
     ".bss": 168
+   }
+  },
+  "x86-64-v2/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 345462,
+    ".rodata": 63809,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1808,
+    ".bss": 256
    }
   },
   "x86-64-v2/none-off/mandelbrot": {
@@ -1114,6 +1258,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v2/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 121896,
+    ".rodata": 46429,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v2/size-all/mandelbrot": {
    "sections": {
     ".text": 50218,
@@ -1201,6 +1357,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v2/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 121950,
+    ".rodata": 46429,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v2/size-auto/mandelbrot": {
@@ -1292,6 +1460,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v2/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 122158,
+    ".rodata": 46429,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v2/size-off/mandelbrot": {
    "sections": {
     ".text": 50268,
@@ -1379,6 +1559,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v2/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 141868,
+    ".rodata": 45767,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v2/speed-all/mandelbrot": {
@@ -1470,6 +1662,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v2/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 141868,
+    ".rodata": 45767,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v2/speed-auto/mandelbrot": {
    "sections": {
     ".text": 54950,
@@ -1557,6 +1761,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v2/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 142380,
+    ".rodata": 45767,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v2/speed-off/mandelbrot": {
@@ -1648,6 +1864,18 @@
     ".bss": 168
    }
   },
+  "x86-64-v3/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 347644,
+    ".rodata": 63865,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1812,
+    ".bss": 256
+   }
+  },
   "x86-64-v3/none-all/mandelbrot": {
    "sections": {
     ".text": 151493,
@@ -1735,6 +1963,18 @@
     ".data.rel.ro": 288,
     ".data": 836,
     ".bss": 168
+   }
+  },
+  "x86-64-v3/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 347659,
+    ".rodata": 63865,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1812,
+    ".bss": 256
    }
   },
   "x86-64-v3/none-auto/mandelbrot": {
@@ -1826,6 +2066,18 @@
     ".bss": 168
    }
   },
+  "x86-64-v3/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 347721,
+    ".rodata": 63865,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1812,
+    ".bss": 256
+   }
+  },
   "x86-64-v3/none-off/mandelbrot": {
    "sections": {
     ".text": 151521,
@@ -1913,6 +2165,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v3/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 122497,
+    ".rodata": 46485,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v3/size-all/mandelbrot": {
@@ -2004,6 +2268,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v3/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 122551,
+    ".rodata": 46485,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v3/size-auto/mandelbrot": {
    "sections": {
     ".text": 50920,
@@ -2091,6 +2367,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v3/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 122759,
+    ".rodata": 46485,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v3/size-off/mandelbrot": {
@@ -2182,6 +2470,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v3/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 142572,
+    ".rodata": 45823,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v3/speed-all/mandelbrot": {
    "sections": {
     ".text": 55654,
@@ -2269,6 +2569,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v3/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 142572,
+    ".rodata": 45823,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v3/speed-auto/mandelbrot": {
@@ -2360,6 +2672,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v3/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 143084,
+    ".rodata": 45823,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v3/speed-off/mandelbrot": {
    "sections": {
     ".text": 55910,
@@ -2447,6 +2771,18 @@
     ".data.rel.ro": 288,
     ".data": 836,
     ".bss": 168
+   }
+  },
+  "x86-64-v4/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 349052,
+    ".rodata": 63922,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1812,
+    ".bss": 256
    }
   },
   "x86-64-v4/none-all/mandelbrot": {
@@ -2538,6 +2874,18 @@
     ".bss": 168
    }
   },
+  "x86-64-v4/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 349067,
+    ".rodata": 63922,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1812,
+    ".bss": 256
+   }
+  },
   "x86-64-v4/none-auto/mandelbrot": {
    "sections": {
     ".text": 152901,
@@ -2625,6 +2973,18 @@
     ".data.rel.ro": 288,
     ".data": 836,
     ".bss": 168
+   }
+  },
+  "x86-64-v4/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 349129,
+    ".rodata": 63922,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1812,
+    ".bss": 256
    }
   },
   "x86-64-v4/none-off/mandelbrot": {
@@ -2716,6 +3076,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v4/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 122883,
+    ".rodata": 46542,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v4/size-all/mandelbrot": {
    "sections": {
     ".text": 51306,
@@ -2803,6 +3175,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v4/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 122937,
+    ".rodata": 46542,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v4/size-auto/mandelbrot": {
@@ -2894,6 +3278,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v4/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 123145,
+    ".rodata": 46542,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v4/size-off/mandelbrot": {
    "sections": {
     ".text": 51356,
@@ -2981,6 +3377,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v4/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 143020,
+    ".rodata": 45880,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v4/speed-all/mandelbrot": {
@@ -3072,6 +3480,18 @@
     ".bss": 160
    }
   },
+  "x86-64-v4/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 143020,
+    ".rodata": 45880,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "x86-64-v4/speed-auto/mandelbrot": {
    "sections": {
     ".text": 56102,
@@ -3159,6 +3579,18 @@
     ".data.rel.ro": 288,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "x86-64-v4/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 143532,
+    ".rodata": 45880,
+    ".note.gnu.property": 64,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "x86-64-v4/speed-off/mandelbrot": {
