@@ -3922,7 +3922,7 @@ the tables.
 
 ### R22.31 — Refusals that say what to do
 
-Status: planned
+Status: active
 Depends on: none
 
 Refusals met since R20.61 that do not say what to do, or say something
