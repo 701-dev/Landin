@@ -94,7 +94,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.39, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.39, R22.46, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -4444,6 +4444,55 @@ the normalization test's pairs; the radix parses against an oracle at
 every width, prefix and radix; the quoted form read back as a literal by
 `refine`; the example programs that write these by hand moved to them;
 image size on Cortex-M0 measured for the Unicode and the ASCII forms.
+
+### R22.46 — The complete gate belongs to a batch
+
+Status: planned
+Depends on: none
+Promotion: maintainer
+
+An item's promotion still asks its own complete gate and boards, and
+with as many items as agents that queued about fifty complete gates in a
+day against the account's limit of 60 jobs at once; the maintainer's
+answer was that the complete gate belongs to a batch, a phase gate or
+the day, not to an item. An item is checked locally with the exact
+selectors for what it touches and committed complete on its branch, its
+closing commit included, and does not push or gate alone. A batch,
+which `item.py batch` forms, lists, adds a branch to and drops one from,
+names its integrator and its target, `main` or a phase's window branch,
+and merges its members' branches after the target, in order, as a train
+does but with no member gated first; the train's rule that each
+member's head have a passed push gate goes. One complete gate and one
+boards run on the batch's merged tree, and the target's own gate on it,
+are the exit evidence of every item in it, which Mechanics' completion
+rule and the `Done:` paragraphs name. A failure is routed to the member
+whose change reaches the failing lane's inputs, the one that joined last
+when none does, and fixed by its agent on the batch's branch; a member
+that cannot be fixed there is dropped and its branch left as it was. A
+change to the toolchain (`environments/pins.sh`, `flake.nix`,
+`flake.lock`), to CI (`.github/`) or to the rig (`environments/boards/`
+and the board harness) still gates alone, as a batch of one, and a
+batch with a `Promotion: maintainer` member is promoted by the
+maintainer. AGENTS.md's "The mechanical gate", process.md's gate
+reference with its promotion queue and train, Mechanics' Authority and
+Gates paragraphs, the landin-change skill and the brief `item.py start`
+writes say the same thing, and the host's interim rule that asks it by
+hand is retired. Until R22.37 applies the selection a batch's gate is
+the complete gate; R22.37 changes which gate a batch runs, not that a
+batch runs it, so this item waits for neither R22.36's shadow period
+nor R22.37. Placed here so that no phase gate waits for it; it depends
+on no other item.
+
+Exit evidence: `item.py` tests that `promote` refuses a lone item's
+push gate as its evidence where a batch is required, accepts a batch's
+gate and boards for every member, and takes a toolchain, CI or rig
+change as a batch of one; a script test that forms a batch of two
+ungated branches, routes a failure to the member whose change reaches
+the failing lane, drops a member, and promotes on one gate; `check.py`
+holding AGENTS.md, process.md, the skill and the brief to the batch
+wording and refusing the per-item gate wording; the first batch landed
+on one complete gate and one boards run, named runs, each member's
+`Done:` paragraph naming them.
 
 ### R22.50 — Locale formatting
 
