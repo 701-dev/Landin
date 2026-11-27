@@ -1497,6 +1497,8 @@ relro padding grows only as far as its text shrank. `SR-1918` and
 `SR-1959` are completed and deleted; the flag-add tests that pinned the
 count's check now pin its absence. The candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45953123499).
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R16.45 — A call's failure tested once
 
@@ -3742,6 +3744,8 @@ n-body 1,000,000 executes 1.53 G instructions and spectral-norm 1,000
 D2551's assembly block, about 16% of n-body's instructions, the
 measurement D2551 left its builtin open for; and `SR-2093`, x86-64
 storing an `f64` through the frame and a general register, about 8%.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.22 — k-nucleotide ported
 
@@ -3773,6 +3777,8 @@ with `cmp.hash_word` as the key's hash it took 96 s. The map's share is
 rather than inlined, 17, and the storage's length and view 9; the calls
 are `R551-12`'s evidence entries D339 never copies, where the
 measurement is added.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.23 — pidigits ported
 
@@ -3949,6 +3955,8 @@ the gate, and one of them failed; they run, and a control holds every
 module's to its end. `SR-1871` stays open with a `Kept:` line: switching
 the Pico 2's cores needs the rig and the port's boot image. Q-346 and
 Q-347 are answered.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.28 — What Windows still lacks after R21.70
 
@@ -3990,6 +3998,8 @@ switch's code: the lane recognises a lost step exactly and runs the
 session again, three attempts at most (D2970). The friction items the
 Windows VM's build met were already settled by R21.70; SR-2113 records
 a probe branch's delete failing at the sr.ht mirror.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.29 — Release archives that say where they run
 
@@ -4023,6 +4033,8 @@ matrix builds `.#refine` and the development shell on an arm64 runner
 held no Debian package since D2572, so `SR-1894` is retired by D2977 in
 its place. `SR-1820` and `SR-1516` are taken; SR-1850 keeps the
 formula's `depends_on macos: :tahoe`, which is the tap's.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.30 — Text and Unicode
 
@@ -4096,6 +4108,8 @@ number names its generator` and `an assembly operand links`, and
 `environments/cortex-m/descriptions.py`'s `reset.ld`. SR-1979, offered
 beside the item, stays open: its notes need the inferred type each
 inference path decides, not a note's words.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.32 — Defects the library work met
 
@@ -4142,6 +4156,8 @@ already stopped a QEMU program, but `events-network-limits` ran at six
 profiles in one piece, six hung ten-minute accepts past the job's hour.
 Filed from findings handed to the item or met on the way: `SR-2143` to
 `SR-2146`.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.33 — Boards reused on identical images
 
@@ -4248,6 +4264,8 @@ gate now reports those keys and passes, and the recording commit reuses
 it. Q-364 answered. Rows filed: SR-2062, the `link.exe` exit of gate
 45932328693, and SR-2063, `network-receive-timeout` on FreeBSD in gate
 45953203349 attempt 1.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.35 — Checks too long for a gate, by record
 
@@ -4299,6 +4317,8 @@ same bits on Linux x86-64, arm64 and RV64, and the same bits R22.10's
 runs hashed. Filed: `SR-2072`, a detached run stopped when the host ended
 the agents' sessions. Activations read and not met: `SR-1118`, `SR-1859`,
 `SR-1917`, `SR-1919`, `SR-1991`, which match a changed file's path alone.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.36 — Failure causes recorded, and the selection in shadow
 
@@ -4532,6 +4552,8 @@ sections. Found and fixed: a reader holding its slice locked itself for
 as long as a view `take` lent was used (L0315), which shaped D3035; and
 a parameter spelled as the module type it hides, `order: order`, was
 refused as naming no type, now as hiding it (D3039).
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.42 — Random draws programs use
 
@@ -4563,6 +4585,8 @@ for `runtime/random-sequence` was stale; it is 6.6 KB. `SR-2163`
 records `refine run`'s refusal of a program argument given without `--`,
 and `SR-2164` `item.py gate --watch` declining to follow a run again
 after its watch reached its limit.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.43 — Sockets by name, with their options
 
@@ -4632,6 +4656,8 @@ none; the lowering now stores it through the result as it loads it,
 `runtime/multi-result-field-element-store` pinning each shape; and
 `scripts/static_check.py` compiles a `--link=libc` fixture whose program
 another fixture holds from its directory, as the harness does.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.44 — Command-line arguments parsed
 
@@ -4682,6 +4708,8 @@ through it, and the Benchmark Game programs keep reading their number as
 the programs they are measured against do (D3098). A table cannot say
 that two arguments come together, which the tree copy checks by hand,
 `SR-2183`. Gate run 45993916766 and boards run 45993929218 passed on 1714f568b.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.45 — Text's everyday calls
 
@@ -4757,6 +4785,8 @@ canonical match 19,570, and the ASCII forms 724 bytes of code. Fixed on the
 way: `docs/library.md` named the scalar walk's `done` and `width`, renamed
 by D2030 and D2031, and a narrow integer had no append. `SR-1939`'s and
 `SR-2012`'s refusals were met again and recorded in their rows.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.46 — The complete gate belongs to a batch
 
@@ -4928,6 +4958,8 @@ the lazy DFA from where it stopped (D2834, pinned by
 `runtime/regex-prefilter-watch`), and the run takes 10.6 s against 12.5
 s for Python's `re`; the rest is the DFA's own speed, which R22.80
 measures.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.63 — The ten programs measured
 
