@@ -392,6 +392,10 @@ def main(argv=None):
                                          "-c", companion, "-o", peer_object], label + f"-peer-{index}", cwd)
                             objects.append(peer_object)
                         companions = objects
+                        #  The peers are objects now: an assembler option
+                        #  was theirs, and a link of objects alone refuses
+                        #  it as unused.
+                        c_args = [a for a in c_args if not a.startswith("-Wa,")]
                     run.command(["/usr/bin/clang", "-arch", "arm64", "-std=c11", "-O2",
                                  "-Wall", "-Wextra", "-Werror", *c_args, object_file, *companions,
                                  "-o", executable], label + "-link", cwd)
