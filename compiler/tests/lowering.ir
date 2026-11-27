@@ -19991,16 +19991,16 @@ item 191 ROUTINE shortest result struct signature 161 params 5 slots 125 blocks 
     11 NUMBER i32 1
     12 STORE slot 10 <- 11
     13 LOAD i32 slot 5
-    14 STORE slot 11 <- 13
-    15 LOAD u32 slot 4
-    16 CONVERSION i32 <- 15
-    17 LOAD i32 slot 11
-    18 ADD i32 <- 17 16
-    19 STORE slot 12 <- 18
-    20 NUMBER i32 2
-    21 LOAD i32 slot 12
-    22 ADD i32 <- 21 20
-    23 LOAD i32 slot 10
+    14 LOAD i32 slot 10
+    15 SUBTRACT i32 <- 14 13
+    16 STORE slot 11 <- 15
+    17 LOAD u32 slot 4
+    18 CONVERSION i32 <- 17
+    19 LOAD i32 slot 11
+    20 SUBTRACT i32 <- 19 18
+    21 STORE slot 12 <- 20
+    22 NUMBER i32 2
+    23 LOAD i32 slot 12
     24 SUBTRACT i32 <- 23 22
     25 STORE slot 7 <- 24
     26 LOAD u64 slot 2
