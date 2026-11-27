@@ -286,6 +286,28 @@ jobs:
               "$unpacked/bin/refine" "$name" --describe > /dev/null
             done
           fi
+          #  The macOS archive runs on the macOS install.sh, the README and
+          #  the formula state (D2974): every executable in it has that
+          #  minos, which the runner's SDK chooses, as no deployment target
+          #  is set.  A runner on a newer SDK raises it, and this says so
+          #  before a release claims the older one.  A tag older than the
+          #  stated minimum has no line to check against.
+          minimum=$(sed -n 's/^macos_minimum=//p' install.sh)
+          if [ "$RUNNER_OS" = macOS ] && [ -n "$minimum" ]; then
+            stated="$RUNNER_TEMP/stated"
+            rm -rf "$stated"
+            mkdir -p "$stated"
+            tar -xzf "$asset" -C "$stated"
+            for file in "$stated"/bin/refine "$stated"/libexec/landin/refine-*; do
+              [ -f "$file" ] || continue
+              found=$(vtool -show-build "$file" | awk '$1 == "minos" { print $2 }')
+              echo "${file#"$stated"/}: minos $found"
+              if [ "$found" != "$minimum.0" ]; then
+                echo "${file#"$stated"/} needs macOS $found; install.sh states $minimum" >&2
+                exit 1
+              fi
+            done
+          fi
           #  The Linux archive where no glibc is: alone in an empty root, and
           #  installed by install.sh on the pinned Alpine, running the first
           #  program and the --link=libc fixtures against musl (D1790), as

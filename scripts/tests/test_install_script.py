@@ -57,7 +57,7 @@ class Installs(unittest.TestCase):
             #  The dynamic archive's case runs for a Linux one alone.
             try:
                 named = install_check.host_platform()
-                platform, cases = None, 9 + named.endswith("-linux")
+                platform, cases = None, 10 + named.endswith("-linux")
             except SystemExit:
                 platform, cases = "x86_64-linux", 9
             passed, failures = install_check.run_checks(
@@ -73,6 +73,10 @@ class Names(unittest.TestCase):
         build = workflow.split("\n  build:\n", 1)[1].split("\n  user-image:", 1)[0]
         platforms = re.findall(r"^ +platform: (\S+)$", build, re.M)
         self.assertEqual(len(platforms), 3)
+        #  The FreeBSD archive, from its own job's guest.
+        freebsd = workflow.split("\n  freebsd:\n", 1)[1].split("\n  publish:", 1)[0]
+        self.assertIn("name: archive-x86_64-freebsd", freebsd)
+        platforms.append("x86_64-freebsd")
         self.assertIn('asset="landin-$version-${{ matrix.platform }}.tar.gz"',
                       workflow)
         self.assertIn('asset="landin-$version-${{ matrix.platform }}'
@@ -89,8 +93,10 @@ class Names(unittest.TestCase):
                          "landin-1.2.3-%s%s.tar.gz.sha256" % (one, suffix))])
 
     def test_options_it_refuses(self):
-        for argv, said in ((["--platform", "x86_64-freebsd"],
+        for argv, said in ((["--platform", "aarch64-freebsd"],
                             "no release archive is named for"),
+                           (["--platform", "x86_64-freebsd", "--variant",
+                             "static", "--list"], "FreeBSD has one"),
                            (["--version", "1.x", "--list"],
                             "is not a release version"),
                            (["--variant", "shared", "--list"],
@@ -103,6 +109,18 @@ class Names(unittest.TestCase):
                                  env={"PATH": os.environ["PATH"]})
             self.assertEqual(ran.returncode, 1, argv)
             self.assertIn(said, ran.stderr, argv)
+
+    def test_the_macos_minimum_is_stated_and_checked(self):
+        """install.sh's macos_minimum is the minos the release workflow
+        holds the macOS archive to, and the one the installing guides
+        and the inventory state."""
+        minimum = install_check.macos_minimum()
+        workflow = (ROOT / ".github/workflows/release.yml").read_text()
+        self.assertIn("sed -n 's/^macos_minimum=//p' install.sh", workflow)
+        self.assertIn("vtool -show-build", workflow)
+        for name in ("README.md", "docs/capabilities.md"):
+            text = " ".join((ROOT / name).read_text().split())
+            self.assertIn("macOS %d or later" % minimum, text, name)
 
     def test_help_prints_the_options(self):
         ran = subprocess.run(["sh", str(install_check.SCRIPT), "--help"],

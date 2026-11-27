@@ -3911,22 +3911,36 @@ the gate's Windows lanes.
 
 ### R22.29 — Release archives that say where they run
 
-Status: planned
+Status: complete
 Depends on: none
 
 What a user installing a release meets, scheduled by the register sweep
 of 2026-11-26, before the next release: SR-1850's macOS archive, which
 needs macOS 26 and says so nowhere, which Q-347's answer makes the
 minimum it states;
-SR-1820's `install.sh`, which refuses the FreeBSD archive the release
-workflow now publishes; SR-1516's flake, which nothing builds on
-`aarch64-linux`; and SR-1894's locked Debian packages, which nothing
+`SR-1820`'s `install.sh`, which refuses the FreeBSD archive the release
+workflow now publishes; `SR-1516`'s flake, which nothing builds on
+`aarch64-linux`; and `SR-1894`'s locked Debian packages, which nothing
 fetches until a candidate's gate does. Placed here so that no phase gate
 waits for it; it depends on no other item.
 
 Exit evidence: the release workflow's checks and `install.sh`'s tests
 holding each change, the flake built for `aarch64-linux` in the gate,
 and the scheduled package fetch's first run.
+
+Done: the macOS archive states macOS 26 as its minimum, as Q-347's
+answer chose (D2974): `install.sh` holds it as `macos_minimum`, refuses
+an earlier macOS before downloading, and the release workflow requires
+every executable of the archive to have that `minos`; the README and the
+inventory say it. `install.sh` installs the FreeBSD x86-64 archive
+(D2975), and the FreeBSD host lane's packaging runs the install check in
+the guest against the archive it made, so the gate and the release
+workflow install the real archive with the script. The gate's flake
+matrix builds `.#refine` and the development shell on an arm64 runner
+(D2976). The scheduled package fetch was not built: the Cortex-M lock has
+held no Debian package since D2572, so `SR-1894` is retired by D2977 in
+its place. `SR-1820` and `SR-1516` are taken; SR-1850 keeps the
+formula's `depends_on macos: :tahoe`, which is the tap's.
 
 ### R22.30 — Text and Unicode
 

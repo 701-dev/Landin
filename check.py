@@ -11133,8 +11133,9 @@ PROCESS_SECTION_BUDGETS = {
     #  that measured them (D2854).
     "The mechanical gate": 59000,
     #  Raised when the install script's check joined the recipe's step 6,
-    #  and again when the static Linux archive's check did.
-    "Releasing a version": 13000,
+    #  again when the static Linux archive's check did, and again when
+    #  the formula came to depend on the macOS archive's stated minimum.
+    "Releasing a version": 13200,
 }
 
 

@@ -46035,6 +46035,113 @@ names, both archives of each Linux platform, to `release.yml`'s;
 `scripts/tests/test_static_archive.py` holds `env.sh`'s choice and its
 refusals; `scripts/tests/test_build_inventory.py` the manifest's link row.
 
+### D2974 — The macOS archive states macOS 26 as its minimum, and the release workflow holds it there
+
+**The discrepancy:** the release builds `refine` on GitHub's `macos-26`
+runner with no deployment target, so the SDK gave it a `minos` of 26.0
+and it stopped in dyld on macOS 15 at
+`posix_spawn_file_actions_addfchdir`, while the README,
+`docs/capabilities.md` and the Homebrew formula said only "a Mac with
+Apple Silicon".
+
+**Chosen:** macOS 26 is the stated minimum, as the maintainer decided,
+and the build is unchanged. `install.sh` holds it as one line,
+`macos_minimum=26`. On a Mac it reads `sw_vers -productVersion` and
+refuses an earlier macOS before it downloads, naming the minimum, the
+running version, nix and the source build. The release workflow's
+packaging step unpacks the macOS archive and requires `vtool
+-show-build` to give every executable in it, `bin/refine` and each
+`libexec/landin/refine-*`, a `minos` of that line's version, so a runner
+whose newer SDK would raise the minimum fails the release before it
+publishes rather than after. The README's installing routes and the
+inventory say macOS 26 or later. The formula's `depends_on macos:` is
+the tap's, outside this repository.
+
+**The alternatives:** a deployment target of macOS 14 with
+`posix_spawn_file_actions_addchdir_np` where the newer call is missing,
+the question's recommendation, which the maintainer did not take; an
+explicit `MACOSX_DEPLOYMENT_TARGET=26.0`, which states the same minimum
+through GNAT's driver, an untested path, where the check already
+catches a change; and leaving the refusal to dyld's message after the
+download, which names a symbol rather than a version.
+
+**Pinned by** `scripts/install_check.py`'s case `a Mac older than the
+macOS archive needs`, run by the gate on each host and by
+`scripts/tests/test_install_script.py`, which also holds the release
+workflow's check to `install.sh`'s line and the README's and the
+inventory's statement to it.
+
+### D2975 — The install script serves the FreeBSD x86-64 archive
+
+**The discrepancy:** the release workflow publishes
+`landin-VERSION-x86_64-freebsd.tar.gz` from the release after 0.2.11, and
+`install.sh` refused FreeBSD and sent its users to a source build.
+
+**Chosen:** `install.sh` names `x86_64-freebsd` among its platforms,
+detects it from `uname -s` `FreeBSD` and `uname -m` `amd64`, lists it,
+refuses `--variant` there as on macOS, checks the digest with the base
+system's `sha256 -q` where neither `sha256sum` nor `shasum` is found,
+says after an install that linking needs the base system's `cc` and
+binutils' `as`, and on a failed download asks whether the version is a
+release with a FreeBSD archive. FreeBSD on arm64 stays refused, since no
+release publishes its archive. The FreeBSD host lane's `--package`, which
+makes the archive in the gate's `freebsd-host-release` job and in the
+release workflow, runs `scripts/install_check.py` in the guest against
+the archive it packaged, with GNAT moved away, so the script installs
+the real archive and runs the first program on FreeBSD before any
+release holds it; the lane installs `curl` for it.
+
+**The alternatives:** waiting for a release with the archive, which
+leaves the script refusing an archive that release would publish; and
+serving the arm64 archive as well, which no release publishes.
+
+**Pinned by** `scripts/install_check.py`'s cases in the FreeBSD guest,
+and `scripts/tests/test_install_script.py`, which holds the script's
+names to the release workflow's FreeBSD job and its refusal of
+`--variant` there.
+
+### D2976 — The gate builds the flake for aarch64-linux on an arm64 runner
+
+**The discrepancy:** the gate's flake job built `.#refine` on x86-64
+only and evaluated the other systems with `nix flake check --no-build`,
+so a dependency only the arm64 prebuilt toolchain archives add, as
+GPRbuild's `libgmp.so.10` was, went unseen until someone built there.
+
+**Chosen:** a fourth part of the flake matrix, `flake-compiler-arm64`,
+on GitHub's `ubuntu-24.04-arm` runner, checks that Nix's system is
+`aarch64-linux`, builds `.#refine` and `.#refine-bin` and enters the
+development shell, running `scripts/toolchain.sh` in it, as the x86-64
+part does. It is a lane of its own in `.github/gate-lanes.json`, with the
+x86-64 part's inputs less the README route's scripts, which it does not
+run.
+
+**The alternatives:** building `aarch64-linux` on the x86-64 runner
+through binfmt emulation, which the row allowed if it cost less wall
+time; it runs every compile of the build under QEMU, where the arm64
+runner costs one more job of about the x86-64 part's length, in
+parallel with it; and the README's `nix profile install` route on arm64,
+which takes the prebuilt archive and so would not have shown the defect.
+
+**Pinned by** the gate's `flake-compiler-arm64` job.
+
+### D2977 — No scheduled fetch of the Cortex-M lock's packages
+
+**The discrepancy:** the register asked for a weekly run fetching every
+Debian package of `environments/cortex-m/tools.lock.json`, after the pool
+moved one in the middle of a candidate's gate. Since D2572 the lock holds
+no Debian package: its three archives are 701-dev/nix-packages' exports
+in the project's own bucket, which nothing outside the project moves,
+and D2734 took the gate's other Linux tools from that cache.
+
+**Chosen:** no scheduled fetch, and the register's row retired for this
+reason. A lock entry from an outside pool would bring the question back.
+
+**The alternatives:** the weekly job as the row described, fetching
+archives whose only provider is the project.
+
+**Pinned by** `environments/cortex-m/test.py`'s
+`test_the_lock_is_nix_packages_archives_only`.
+
 ### D571 — A round's yield calls nothing beneath it but its sweep, its idler and its switch
 
 **The tour said** nothing. `core/fibre/stacks`' round of turns is the one
