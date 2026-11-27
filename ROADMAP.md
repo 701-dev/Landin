@@ -3941,7 +3941,7 @@ case, and `docs/diagnostics.md` saying the new notes.
 
 ### R22.32 — Defects the library work met
 
-Status: planned
+Status: active
 Depends on: none
 
 Defects R19 to R22.30 met beside their own work, scheduled by the
