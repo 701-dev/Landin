@@ -1,11 +1,16 @@
---  A multicast exchange on one host through hosted/blocking, over the
---  loopback interface, which a host's firewall lets through where it may
---  drop a datagram looped back from another: a datagram socket joins the
---  group 239.255.43.43 through 127.0.0.1, another sends to the group at
---  its port with one hop out through 127.0.0.1, which it reads back, and
---  the datagram arrives; leaving the group twice is `address_unavailable`
---  the second time, and so is joining an address that is no group.  An
---  IPv6 socket's interface reads back as the system's choice until set.
+--  A multicast exchange on one host through hosted/blocking.  A datagram
+--  socket joins the group 239.255.43.43 and another sends to the group at
+--  its port with one hop, first through the loopback interface, which a
+--  host's firewall lets through where it may drop a datagram looped back
+--  from another, and where no datagram comes that way, as on Windows,
+--  whose loopback carries none, through the system's choice of interface.
+--  The interface a sender was given reads back as it was set, the
+--  datagram arrives with its sender's port, leaving the group twice is
+--  `address_unavailable` the second time, and so is joining an address
+--  that is no group.  An IPv6 socket's interface reads back as the
+--  system's choice until set.  The program's status says which check
+--  failed: 2 the exchange, 3 the second leave, 4 the address that is no
+--  group, 5 the IPv6 interface.
 import core/cmp
 import core/io
 import core/net
@@ -32,47 +37,91 @@ unavailable: (host: blocking.host, socket: io.file, group: net.address,
     end if
 end unavailable
 
-exchange: (host: blocking.host) -> none ! ... =
-    receiver: io.file = try net.open_datagram(host, net.unspecified(net.ipv4, 0))
-    defer net.close(host, receiver) else none
-    bound: net.address = try net.local_address(host, receiver)
-    group: net.address = net.ipv4_address(239, 255, 43, 43, bound.port)
-    here: net.address = net.loopback(net.ipv4, 0)
-    try net.join_group(host, receiver, group, here)
-    try net.set_timeouts(host, receiver, time.seconds(5), time.seconds(5))
+--- Send to the group through the interface `through` names and receive
+--- what was sent on `receiver`, which joined it through the same; leave
+--- the group again either way.  Whether the datagram arrived.
+exchanged: (host: blocking.host, receiver: io.file, group: net.address,
+            through: net.address) -> (arrived: bool) ! ... =
+    arrived = false
+    try net.join_group(host, receiver, group, through)
+    defer net.leave_group(host, receiver, group, through) else none
     sender: io.file = try net.open_datagram(host, net.unspecified(net.ipv4, 0))
     defer net.close(host, sender) else none
     try net.set_number(host, sender, net.multicast_hops, 1)
-    fail wrong when not net.is_unspecified(try net.multicast_interface(host,
-                                                                       sender))
-    try net.set_multicast_interface(host, sender, here)
-    fail wrong when not net.same_address(try net.multicast_interface(host,
-                                                                     sender),
-                                         here)
+    --  The system's choice is the sender's until it is given another.
+    if not net.is_unspecified(through) then
+        fail wrong when not net.is_unspecified(
+            try net.multicast_interface(host, sender))
+        try net.set_multicast_interface(host, sender, through)
+        fail wrong when not net.same_address(
+            try net.multicast_interface(host, sender), through)
+    end if
     try net.send_to(host, sender, "to the group", group)
     mut buffer: [32]u8 = zeroed
-    got: net.datagram = try net.receive_from(host, receiver, buffer[0..<32])
+    got: net.datagram = net.receive_from(host, receiver, buffer[0..<32])
+        else (problem)
+        fail problem when problem <> net.timed_out
+        return
+    end
     fail wrong when cmp.compare(buffer[0..<got.count], "to the group")
       <> cmp.equal
     sent_from: net.address = try net.local_address(host, sender)
     fail wrong when got.sender.port <> sent_from.port
-    try net.leave_group(host, receiver, group, here)
-    fail wrong when not unavailable(host, receiver, group, false)
-    fail wrong when not unavailable(host, receiver, net.loopback(net.ipv4, 0),
-                                    true)
-    six: io.file = try net.open_datagram(host, net.unspecified(net.ipv6, 0))
-    defer net.close(host, six) else none
-    chosen: net.address = try net.multicast_interface(host, six)
-    fail wrong when chosen.family <> net.ipv6 or not net.is_unspecified(chosen)
-      or net.zone_length(chosen) <> 0
+    arrived = true
+end exchanged
+
+--- The exchange through the loopback interface, or else through the
+--- system's choice.
+exchange: (host: blocking.host, receiver: io.file, group: net.address)
+          -> none ! ... =
+    try net.set_timeouts(host, receiver, time.seconds(3), time.seconds(3))
+    here: net.address = net.loopback(net.ipv4, 0)
+    looped: bool = exchanged(host, receiver, group, here) else (problem)
+        fail problem when problem == wrong
+        false
+    end
+    return when looped
+    fail wrong when not try exchanged(host, receiver, group,
+                                      net.unspecified(net.ipv4, 0))
 end exchange
+
+--- The IPv6 socket's interface: the system's choice.
+six: (host: blocking.host) -> (yes: bool) ! ... =
+    socket: io.file = try net.open_datagram(host, net.unspecified(net.ipv6, 0))
+    defer net.close(host, socket) else none
+    chosen: net.address = try net.multicast_interface(host, socket)
+    yes = chosen.family == net.ipv6 and net.is_unspecified(chosen)
+          and net.zone_length(chosen) == 0
+end six
 
 public main: () -> (code: i32) =
     code = 1
     host := blocking.new()
-    exchange(host) else (problem)
+    receiver: io.file = net.open_datagram(host, net.unspecified(net.ipv4, 0))
+        else (problem)
         _ = problem
         return
     end
+    defer net.close(host, receiver) else none
+    bound: net.address = net.local_address(host, receiver) else (problem)
+        _ = problem
+        return
+    end
+    group: net.address = net.ipv4_address(239, 255, 43, 43, bound.port)
+    code = 2
+    exchange(host, receiver, group) else (problem)
+        _ = problem
+        return
+    end
+    code = 3
+    return when not unavailable(host, receiver, group, false)
+    code = 4
+    return when not unavailable(host, receiver, net.loopback(net.ipv4, 0), true)
+    code = 5
+    yes: bool = six(host) else (problem)
+        _ = problem
+        return
+    end
+    return when not yes
     code = 42
 end main
