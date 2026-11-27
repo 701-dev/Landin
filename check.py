@@ -342,6 +342,10 @@ ROADMAP_PHASE = re.compile(r"^## (R(\d+)) — \S.*$")
 #  and neither items nor a gate.
 ROADMAP_RETIRED_PHASE = re.compile(r"^## (R\d+) — \S.* \(retired\)$")
 ROADMAP_WORK = re.compile(r"^### (R\d+\.([1-9]\d*)) — (\S.*)$")
+#  An item retired before it was done keeps its heading, the title marked
+#  ` (retired)`, and a paragraph saying why: no status, dependency or
+#  promotion line, and its identity is never used again.
+ROADMAP_RETIRED_ITEM = " (retired)"
 ROADMAP_GATE = re.compile(r"^### (R\d+) gate$")
 ROADMAP_STATUS = re.compile(r"^Status: (planned|active|blocked|complete)$")
 CURRENT_ROADMAP_WORK = re.compile(
@@ -2036,6 +2040,7 @@ def check_roadmap(path):
     current_phase = None
     actual_phases = []
     retired = set()
+    retired_items = set()
 
     for n, line in enumerate(lines, 1):
         phase = ROADMAP_PHASE.match(line)
@@ -2059,6 +2064,8 @@ def check_roadmap(path):
         if work:
             work_id, suffix, title = work.groups()
             works[work_id].append(n)
+            if title.endswith(ROADMAP_RETIRED_ITEM):
+                retired_items.add(work_id)
             work_titles[title].append(n)
             #  Tens are the planned spacing; a unit ID is work inserted
             #  between two existing items, and it must have somewhere to
@@ -2128,6 +2135,18 @@ def check_roadmap(path):
                 end = n
                 break
         chunk = lines[start:end - 1]
+        if work_id in retired_items:
+            kept = [line for line in chunk
+                    if line.startswith(("Status:", "Depends on:",
+                                        "Promotion:", "Blocked because:"))]
+            if kept:
+                out.append((start, "%s is retired and keeps %r; a retired"
+                            " item has its heading and a paragraph saying"
+                            " why, nothing else" % (work_id, kept[0])))
+            if not any(line.strip() for line in chunk):
+                out.append((start, "%s is retired and says nothing of why"
+                            % work_id))
+            continue
         statuses = [(start + offset, line) for offset, line in enumerate(chunk, 1)
                     if line.startswith("Status:")]
         depends = [(start + offset, line) for offset, line in enumerate(chunk, 1)
@@ -2175,9 +2194,21 @@ def check_roadmap(path):
         for name in names:
             if name == work_id or name == work_id.split(".")[0]:
                 out.append((depends[0][0], "%s depends on itself" % work_id))
+            elif name in retired_items:
+                out.append((depends[0][0], "%s depends on retired %s"
+                            % (work_id, name)))
             elif not dependency_items(name, works):
                 out.append((depends[0][0], "%s depends on unknown %s"
                             % (work_id, name)))
+
+    #  A retired item is in no lane and the target of no dependency; only
+    #  a reference may still name it.
+    defined = set(works)
+    works = {work_id: locations for work_id, locations in works.items()
+             if work_id not in retired_items}
+    dependencies = {work_id: [name for name in names
+                              if name not in retired_items]
+                    for work_id, names in dependencies.items()}
 
     #  Any item whose dependencies are complete may be active, several at
     #  once: the serial lane's item, the continuous items, and an item of a
@@ -2214,7 +2245,7 @@ def check_roadmap(path):
     #  too.  The first roadmap's items are in the history, not here, so a
     #  reference to one is a reference to nothing this file holds.
     text = "\n".join(lines)
-    known = set(works)
+    known = defined
     for match in ROADMAP_REFERENCE_CANDIDATE.finditer(text):
         work_id = match.group(1)
         line = text.count("\n", 0, match.start()) + 1
@@ -2242,6 +2273,44 @@ def check_roadmap(path):
             visit(work_id, [])
 
     return sorted(set(out))
+
+
+def removed_item_problems(full_run):
+    """No item heading the branch's base on `origin/main` held is gone.
+
+    An identity is never reused, so an item that will not be done is
+    retired, its heading kept and marked ` (retired)` with a paragraph
+    saying why, as a retired phase is; one simply removed left its
+    identity recorded only in the history.  The items of a phase retired
+    whole go with it.  Without `origin/main` there is nothing to compare.
+    """
+    if not full_run:
+        return []
+    #  Against the merge base, not main's tip: an item main added since
+    #  the branch left it is not one the branch removed.
+    base = (_git(ROOT, "merge-base", "HEAD", "origin/main") or "").strip()
+    then = _git(ROOT, "show", "%s:%s" % (base, ROADMAP)) if base else None
+    path = os.path.join(ROOT, ROADMAP)
+    if then is None or not os.path.exists(path):
+        return []
+    now = read_file(path, encoding="utf-8")
+    present = {found.group(1) for found in
+               (ROADMAP_WORK.match(line) for line in now.splitlines())
+               if found}
+    retired_phases = {found.group(1) for found in
+                      (ROADMAP_RETIRED_PHASE.match(line)
+                       for line in now.splitlines()) if found}
+    out = []
+    for line in then.splitlines():
+        found = ROADMAP_WORK.match(line)
+        if not found or found.group(1) in present \
+                or found.group(1).split(".")[0] in retired_phases:
+            continue
+        out.append((ROADMAP, 1, "%s was on origin/main where this branch"
+                    " left it, and its heading is gone; an item that will not be done keeps its heading,"
+                    " marked `(retired)`, and a paragraph saying why"
+                    % found.group(1)))
+    return out
 
 
 def register_rows(root):
@@ -2422,12 +2491,19 @@ def register_ages(root):
     #  A merge's own diff is read only where it differs from every parent:
     #  a `Kept:` line written in resolving it, not one it brought cleanly,
     #  whose own commit is in the history.
+    #  A merge being resolved is read as the commit it will make: its
+    #  parents HEAD and MERGE_HEAD, the history of both, so that the ages
+    #  are those the committed merge gives.
+    pending = _git(root, "rev-parse", "-q", "--verify", "MERGE_HEAD")
+    pending = pending.strip() if pending else None
+    head = (_git(root, "rev-parse", "-q", "--verify", "HEAD") or "").strip()
+    tips = [head or "HEAD"] + ([pending] if pending else [])
     starts = []
     for arguments in (("--diff-filter=A",),
                       ("--diff-merges=dense-combined", "-G",
                        REGISTER_KEPT_GIT)):
         log = _git(root, "log", "--format=commit %H", "--name-only",
-                   *arguments, "--", REGISTER_DIRECTORY)
+                   *arguments, *tips, "--", REGISTER_DIRECTORY)
         if log is None:
             return None
         newest, commit = {}, None
@@ -2439,8 +2515,6 @@ def register_ages(root):
                                   commit)
         starts.append(newest)
     added, kept = starts
-    pending = _git(root, "rev-parse", "-q", "--verify", "MERGE_HEAD")
-    pending = pending.strip() if pending else None
     complete_at = {}
     def complete(commit):
         if commit not in complete_at:
@@ -2457,20 +2531,19 @@ def register_ages(root):
         if start in before:
             return before[start]
         done = set(complete(start))
-        after = _git(root, "rev-list", "--ancestry-path",
-                     "%s..HEAD" % start)
+        after = _git(root, "rev-list", "--ancestry-path", "^" + start,
+                     *tips)
         descendants = set((after or "").split()) | {start}
         merges = _git(root, "rev-list", "--merges", "--parents",
-                      "--ancestry-path", "%s..HEAD" % start) or ""
+                      "--ancestry-path", "^" + start, *tips) or ""
         joined = [parent for line in merges.splitlines()
                   for parent in line.split()[1:]]
+        #  A merge being resolved joins MERGE_HEAD's line to HEAD's.
+        if pending:
+            joined += tips
         for parent in joined:
             if parent not in descendants:
                 done |= complete(parent)
-        #  A merge being resolved joins MERGE_HEAD's line to HEAD's.
-        if pending and _git(root, "merge-base", "--is-ancestor", start,
-                            pending) is None:
-            done |= complete(pending)
         before[start] = done
         return done
     ages = {}
@@ -3211,8 +3284,9 @@ def check_citations(paths, guide_paths=()):
                     line = text.count("\n", 0, match.start()) + 1
                     out.append((path, line, "[%s] is not a four-digit construct citation"
                                 % match.group(1)))
+            #  A model joined by a hyphen, a Cortex-X925, is no finding.
             for match in re.finditer(
-                    r"(?<![A-Za-z0-9_])(%s\d+)(?![A-Za-z0-9_])"
+                    r"(?<![A-Za-z0-9_])(?<![A-Za-z]-)(%s\d+)(?![A-Za-z0-9_])"
                     % FINDING_LETTERS, text):
                 if match.group(1) not in findings:
                     line = text.count("\n", 0, match.start()) + 1
@@ -11026,10 +11100,14 @@ PROCESS_SECTION_BUDGETS = {
     #  push and merge-main learned the register check, merge-main a named
     #  branch and the queue a line for work that is no item; and again
     #  when push learned the pre-push checks and boards beside the gate,
-    #  gate the first-failure watch and main's verdict, merge-main trains.
-    "Running an item": 6700,
+    #  gate the first-failure watch and main's verdict, merge-main trains;
+    #  and again when start learned work that is no item, an adopted
+    #  branch's own item and retired items, and the queue its version.
+    "Running an item": 7300,
     "Closing an item": 6400,
-    "Local agent feedback": 16800,
+    #  Raised when resume_tests.py continued a cut-off complete run and
+    #  the checks learned to name a shell of another flake.
+    "Local agent feedback": 17400,
     "Parallel sessions and shared resources": 14600,
     #  Raised when gate_watch.py learned --verdict.
     "Command reference": 8500,
@@ -12853,6 +12931,18 @@ def generate_tokens():
     return 0
 
 
+#  A stream's untracked notes at a worktree's root failed the
+#  full run, which reads new documents before they are added on purpose.
+UNTRACKED_NOTE = (" (the file is untracked: a note kept in a checkout goes"
+                  " under .scratch/, which no check reads)")
+
+
+def untracked_files():
+    """The paths Git neither tracks nor ignores, as check.py names them."""
+    listed = _git(ROOT, "ls-files", "-z", "--others", "--exclude-standard")
+    return {name for name in (listed or "").split("\0") if name}
+
+
 def print_problems(what, problems):
     """Say what a generator could not generate and every problem that
     stopped it, the way generate_tokens names the grammar's."""
@@ -13000,6 +13090,18 @@ def generate(flags):
     return 0
 
 
+def environment_note():
+    """scripts/environment_key.py's note when the shell is another
+    flake's, as after a merge that changed it; None otherwise."""
+    path = os.path.join(ROOT, "scripts", "environment_key.py")
+    if not os.path.exists(path):
+        return None
+    spec = importlib.util.spec_from_file_location("environment_key", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.note(ROOT)
+
+
 def main(argv):
     here = os.path.dirname(os.path.abspath(__file__))
     if here:
@@ -13034,6 +13136,9 @@ def main(argv):
 
     full_run = len(argv) == 1
     paths = FILES if full_run else argv[1:]
+    stale = environment_note()
+    if stale:
+        print(stale)
     missing = [p for p in paths if not os.path.exists(p)]
     if missing:
         print("not found next to check.py: %s" % ", ".join(missing))
@@ -13162,9 +13267,13 @@ def main(argv):
         extra += fixture_sources()
         extra += pinned_fixtures()
         extra += lowering_verifies()
+    extra += removed_item_problems(full_run)
     extra += check_matrix(full_run)
+    untracked = untracked_files() if extra else set()
     for path, line, why in sorted(set(extra)):
         total += 1
+        if path in untracked:
+            why += UNTRACKED_NOTE
         print("%-30s %5d  %s" % (path, line, why))
 
     left = ("; %d file(s) left to the full run" % unchecked
@@ -13181,6 +13290,8 @@ def main(argv):
                    % ("per-file rules clean" if not total
                       else "%d problem(s)" % total))
     print("\n%s%s" % (verdict, left))
+    if stale and total:
+        print(stale)
     return 1 if total else 0
 
 

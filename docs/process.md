@@ -128,7 +128,7 @@ puts the steps in order:
 
 | step | command | what it does |
 |---|---|---|
-| start | `item.py start ITEM` | refuses a complete item or one with an incomplete dependency; makes `../Landin-ITEM` and its branch from `origin/main`, or from the integration branch of the item's [breaking window](#a-breaking-window); reserves blocks of decision, row and question numbers no other running item of the clone holds, which `register_next.py` then gives out first; marks the item active, moves a pointer naming it, commits that as `Gate: explanatory`; writes the item's brief |
+| start | `item.py start ITEM [--adopt WORKTREE] [--base COMMIT]` | refuses a complete or retired item or one with an incomplete dependency; `--adopt` takes on an existing worktree, from its branch's head when that head adds the item's text; makes `../Landin-ITEM` and its branch from `origin/main`, or from the integration branch of the item's [breaking window](#a-breaking-window); reserves blocks of decision, row and question numbers no other running item of the clone holds, which `register_next.py` then gives out first; marks the item active, moves a pointer naming it, commits that as `Gate: explanatory`; writes the item's brief |
 | after a reopen | `item.py resume [ITEM]` | the worktree, every recorded run as running, finished or lost, the gate runs, the journal's last lines and the next step |
 | along the way | `item.py note ITEM TEXT`, `item.py run ITEM NAME --limit S [--cwd DIR] -- COMMAND` | a dated journal line; a detached `run_logged.py` run kept in the state, in the item's worktree or DIR |
 | push | `item.py push ITEM [--watch] [--boards] [--no-check]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; refuses a tree the register's age check refuses, or the whole `check.py` when the push changes the roadmap; runs the pre-push checks the paths changed since the last push select, in one `dev-test.sh` invocation where it can (an `.ldn` file: the formatting case; `compiler/` or the library: the `lowering` suite; a new library module: the debugger workloads' closures; the library: `script_tests.py test_library_docs`; a merge: the whole `check.py`), refusing with the failed command and its log, `--no-check` to push regardless; notes when the measured sizes may move; pushes the head to GitHub, then to [the mirror](#integration-publication-and-ci), whose refusal it reports with the command to retry and does not count as the push failing; records the head's gate runs as `gate` does; `--boards` dispatches its boards beside the gate |
@@ -138,6 +138,7 @@ puts the steps in order:
 | promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer`; a window's item lands on its integration branch instead, without boards |
 | finish | `item.py finish ITEM` | once main's gate on the promoted commit passed, its verdict or the whole run, a window's item once it landed, or an item whose head reached its landing branch or main by hand: removes the worktree and the local and remote branch, gives up the promotion token, keeps the state under `landin-items/done/`; run from the item's own worktree it works from the clone's main checkout |
 | watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait NAME [--why TEXT] \| --release NAME \| --take NAME --why TEXT] [--target BRANCH]` | every running item, its gate runs as GitHub gives them now, and the tokens' holders and lines; those nothing has moved for an hour, exit 1; each token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), giving up a token or place, or taking a token for work that is no item, such as a register sweep, until it is released, in line when held |
+| work that is no item | `item.py start NAME --work TEXT [--adopt WORKTREE]` | a lower-case NAME, never an item's identity, with its own worktree and branch, reserved numbers, brief, and the push, gate, boards, promotion and finish of an item; no roadmap entry is read or marked, and `promote` needs no complete item |
 | report | `item.py report ITEM` | a draft of [the report](../.agents/skills/landin-change/report.md), ending with the open questions the item asked and their defaults |
 
 ### A breaking window
@@ -229,7 +230,11 @@ Before an item closes:
    regenerates `roadmap/register.md`. After any other register edit run
    `python3 check.py --register` for the generated page. Work outside an
    item takes decision numbers from `register_next.py --decision`, which
-   skips every running item's reserved block.
+   skips every running item's reserved block and every number `spec.md`
+   holds on any branch of the clone, and claims those it gives for
+   fourteen days, so that no item started meanwhile reserves them; work
+   long enough to need a block is started as one, `item.py start NAME
+   --work TEXT`.
 
    `python3 check.py` refuses a register over its cap of 60 open rows, so
    an item that would close over it first schedules, settles or puts to the
@@ -283,6 +288,11 @@ nix develop -c python3 scripts/run_logged.py \
     env LANDIN_TEST_JOBS=1 ./scripts/dev-test.sh \
         --suite=checking --suite=lowering
 ```
+
+A shell sourced before a merge changed `flake.nix`, `flake.lock` or
+`environments/pins.sh` is the old flake's, and a check that reads the
+tools can fail for that alone: `check.py` and `script_tests.py` say so
+first, and sourcing `agent_env.sh` again gives the new one.
 
 Choose the selectors for the change. `dev-test.sh` checks its own build;
 a preceding `dev-build.sh` is useful when compilation feedback is needed,
@@ -441,7 +451,11 @@ It returns at once and the run goes on in a session of its own, which
 `--wait` attaches to from the old session or a new one. Nothing ends such a
 run by accident, so the limit is required: past it the wrapper ends the
 command and `result.json` says `limit_reached`. `--stop DIRECTORY` ends it
-early. Either ends the run's whole process group: what is still in it
+early. A complete suite stopped by its limit is continued, not started
+again: `python3 scripts/resume_tests.py DIRECTORY` runs, in one
+invocation, every suite the cut-off run's log does not show passed, a
+`FILTERED` run that with the first covers the suite only on the same tree,
+which it says. Either ends the run's whole process group: what is still in it
 `--grace` seconds (10) after the SIGTERM, such as an emulator a test
 started, is killed, and `result.json`'s `group_killed` says whether that
 was needed. A build waiting for a lock no record names prints, on Linux,
@@ -577,6 +591,11 @@ another commit and the branch has no work yet, the child runs
 HEAD`. A child that cannot move its branch stops and reports the commit
 it started from, so that the integrator takes its diff against that
 commit and not against the named base.
+
+A stream's own notes, never committed, go under the worktree's
+`.scratch/`, which Git ignores and no check reads, or outside it; the full
+`check.py` reads every other Markdown file, an untracked one too, and
+says so of a file it refuses.
 
 Assign owned paths, branch, base commit and nonoverlapping decision,
 diagnostic and register ranges in the brief. Check the integration branch
@@ -1407,6 +1426,9 @@ in line and waits with `item.py queue --wait ITEM`, which returns once the
 token is its own; it keeps working meanwhile, but takes no final merge.
 An item takes it only once its head's push gate passed.
 Work that is no item waits for it with `queue --wait NAME --why TEXT`.
+Each worktree runs its own branch's `item.py` on the one file, so the
+file names the version of its rules, and a copy older than the file
+refuses to rewrite it and names the newer copy to run.
 A holder this clone no longer runs, or whose `main` gate has ended, holds
 nothing. A merge whose main side is all `Gate: explanatory` and leaves the
 gate key alone is declared so by `merge-main` and reuses the candidate's

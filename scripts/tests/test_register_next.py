@@ -154,6 +154,44 @@ class Decisions(unittest.TestCase):
                          ["D90011", "D90021"])
 
 
+class DecisionsOnBranches(unittest.TestCase):
+    """The collisions of 2026-11-25 and 26: a number another branch
+    holds, or one handed out and not yet committed, is not given again."""
+
+    def setUp(self):
+        self.scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(self.scratch.cleanup)
+        self.root = Path(self.scratch.name)
+        git(self.root, "init", "-q", "-b", "main")
+        (self.root / "spec.md").write_text("D90010 decided.\n")
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-q", "-m", "x")
+        original = register_next.blocks
+        register_next.blocks = lambda *a, **k: ([], [])
+        self.addCleanup(setattr, register_next, "blocks", original)
+
+    def test_a_number_another_branch_holds_is_skipped(self):
+        git(self.root, "checkout", "-q", "-b", "other")
+        (self.root / "spec.md").write_text("D90010 and D90030 decided.\n")
+        git(self.root, "commit", "-q", "-am", "y")
+        git(self.root, "checkout", "-q", "main")
+        self.assertEqual(register_next.allocate(self.root, 1, decision=True),
+                         ["D90031"])
+
+    def test_a_number_handed_out_is_claimed_until_it_is_old(self):
+        with redirect_stdout(io.StringIO()) as out:
+            register_next.main(["--decision", "2", "--root", str(self.root)])
+        self.assertEqual(out.getvalue().split(), ["D90011", "D90012"])
+        self.assertEqual(register_next.allocate(self.root, 1, decision=True),
+                         ["D90013"])
+        path = register_next.claims_path(self.root)
+        self.assertEqual(path.name, register_next.CLAIMS)
+        import datetime
+        later = (datetime.date.today()
+                 + datetime.timedelta(days=register_next.CLAIM_DAYS + 1))
+        self.assertEqual(register_next.claims(self.root, today=later), {})
+
+
 class Delete(unittest.TestCase):
     def test_a_deleted_row_leaves_its_citations_quoted(self):
         scratch = tempfile.TemporaryDirectory()

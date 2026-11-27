@@ -141,6 +141,13 @@ GENERATE_ALL = "--generate"
 #  The aggregate job whose conclusion is a gate run's verdict.
 VERDICT_JOB = "gate"
 QUEUE = "queue.json"
+#  The rules a queue file is written under.  Every `item.py` of the clone's
+#  worktrees writes the one file, each its own branch's copy, so a copy
+#  refuses to rewrite a file a newer copy wrote; raise it whenever a change
+#  to `settle` or the file's keys would make an older copy drop or misread
+#  what a newer one keeps, as an older copy once dropped the waiters
+#  that are no item.  A file without the key is the rules of 1.
+QUEUE_SCHEMA = 2
 #  Every change of a queue's holder or line, one JSON object a line, beside
 #  the queue's own file: queue.json keeps only the present, and the
 #  holds of work that is no item were otherwise lost.
@@ -226,6 +233,11 @@ def place(state):
     return worktree if worktree.is_dir() else main_checkout()
 
 
+#  A roadmap item's identity, and the name of work that is no item.
+ITEM_NAME = re.compile(r"R\d+\.\d+")
+WORK_NAME = re.compile(r"[a-z][a-z0-9-]*")
+
+
 def slug(item):
     return item.lower().replace(".", "-")
 
@@ -244,6 +256,8 @@ def roadmap_items(text):
         identity = found.group(1)
         entry = {"title": found.group(2), "line": n + 1, "status": None,
                  "depends": [], "maintainer": False}
+        if found.group(2).endswith(" (retired)"):
+            entry["status"] = "retired"
         for following in lines[n + 1:]:
             if following.startswith("#"):
                 break
@@ -427,7 +441,8 @@ def reserve(item, revision, cwd):
     sys.path.insert(0, str(ROOT / "scripts"))
     import register_next
     others = reserved(cwd, exclude=item)
-    used = {"D": decisions_used(revision, cwd),
+    used = {"D": decisions_used(revision, cwd)
+                 | register_next.decisions_taken(str(repository(cwd))),
             "SR": register_next.taken(str(repository(cwd))),
             "Q": register_next.taken(str(repository(cwd)), question=True)}
     return {kind: list(next_free(used[kind], others.get(kind, []), size))
@@ -536,9 +551,15 @@ def start(arguments):
     if (item_directory(item, cwd) / "state.json").exists():
         raise Refused("%s is already running from this clone: `item.py resume"
                       " %s` says where" % (item, item))
+    if arguments.work is not None and (
+            WORK_NAME.fullmatch(item) is None or ITEM_NAME.fullmatch(item)):
+        raise Refused("%r is no name for work that is no item: lower-case"
+                      " letters, digits and hyphens, as nix-packages-4, and"
+                      " never an item's identity" % item)
     if not arguments.no_fetch and not arguments.adopt:
         git("fetch", "-q", "origin", cwd=cwd)
-    target = window_of(item, cwd) or MAIN
+    target = MAIN if arguments.work is not None else (
+        window_of(item, cwd) or MAIN)
     landing = landing_base(target, cwd)
     if arguments.adopt:
         worktree = Path(arguments.adopt).resolve()
@@ -553,11 +574,32 @@ def start(arguments):
         worktree = Path(arguments.worktree or main_checkout(cwd).parent
                         / ("Landin-" + slug(item))).resolve()
     items, _ = roadmap_items(roadmap_at(base, cwd))
+    if arguments.work is not None:
+        #  Work that is no item: its own state, reservations, pushes,
+        #  gates and boards, and no roadmap entry to read or mark.
+        items = dict(items)
+        items[item] = {"title": arguments.work, "line": 0, "status":
+                       "planned", "depends": [], "maintainer": False}
+    if item not in items and arguments.adopt and not arguments.base:
+        #  A continuous item whose text the adopted branch adds itself
+        #  starts from the branch's head, which has the text.
+        head = git("rev-parse", "HEAD", cwd=worktree)
+        at_head, _ = roadmap_items(roadmap_at(head, cwd))
+        if item in at_head:
+            base, items = head, at_head
     if item not in items:
-        raise Refused("ROADMAP.md at %s has no item %s" % (base[:12], item))
+        raise Refused(
+            "ROADMAP.md at %s has no item %s: an item whose text a branch"
+            " adds starts from the commit that adds it; commit the text in"
+            " its worktree, then `item.py start %s --adopt WORKTREE`, which"
+            " starts from the branch's head, or `--base COMMIT`"
+            % (base[:12], item, item))
     entry = items[item]
     if entry["status"] == "complete":
         raise Refused("%s is complete at %s" % (item, base[:12]))
+    if entry["status"] == "retired":
+        raise Refused("%s is retired at %s; its heading's paragraph says why,"
+                      " and its identity is not used again" % (item, base[:12]))
     if entry["status"] == "blocked":
         raise Refused("%s is blocked at %s; its Blocked because: line says"
                       " what it waits for" % (item, base[:12]))
@@ -572,7 +614,8 @@ def start(arguments):
         git("worktree", "add", "-q", "-b", branch, str(worktree), base,
             cwd=cwd)
     reservation = reserve(item, base, cwd)
-    changed = [] if arguments.no_commit else mark_active(worktree, item, entry)
+    changed = [] if arguments.no_commit or arguments.work is not None \
+        else mark_active(worktree, item, entry)
     if changed:
         git("add", *changed, cwd=worktree)
         git("commit", "-q", "-m", "Start %s\n\n%s, made active by"
@@ -583,6 +626,8 @@ def start(arguments):
              "phase": "started", "maintainer": entry["maintainer"],
              "target": target,
              "reserved": reservation, "runs": [], "gates": []}
+    if arguments.work is not None:
+        state["work"] = True
     save(state, cwd)
     brief = BRIEF.format(
         item=item, title=entry["title"], line=entry["line"],
@@ -593,6 +638,11 @@ def start(arguments):
         authority=MAINTAINER if entry["maintainer"] else
         AUTHORITY if target == MAIN else WINDOW_AUTHORITY.format(
             target=target))
+    if arguments.work is not None:
+        brief = re.sub(r"You carry out roadmap item .*? not the file whole\. ",
+                       "You carry out %s, work of Landin that is no roadmap"
+                       " item: %s.\n" % (item, arguments.work), brief,
+                       count=1, flags=re.S)
     (item_directory(item, cwd) / "brief.md").write_text(brief,
                                                          encoding="utf-8")
     journal(item, "started from %s in %s on %s%s" % (
@@ -1075,6 +1125,16 @@ def queue_locked(cwd=None, target=MAIN):
         path = root / name
         data = (json.loads(path.read_text(encoding="utf-8"))
                 if path.exists() else {})
+        schema = data.get("schema", 1)
+        if schema > QUEUE_SCHEMA:
+            raise Refused(
+                "%s was written by a newer scripts/item.py, under the queue's"
+                " rules of %d where this copy, %s, knows those of %d: run the"
+                " newer copy, as `python3 %s/scripts/item.py` once the clone's"
+                " main checkout is current, or merge main into this branch"
+                % (path, schema, Path(__file__).resolve(), QUEUE_SCHEMA,
+                   common_directory(cwd).parent))
+        data["schema"] = QUEUE_SCHEMA
         data.setdefault("holder", None)
         data.setdefault("waiting", [])
         data.setdefault("sessions", {})
@@ -2264,8 +2324,8 @@ def promote(arguments):
     save(state)
     problems = evidence(state, commit)
     items, _ = roadmap_items(git("show", commit + ":ROADMAP.md", cwd=worktree))
-    if not arguments.partial and items.get(item, {}).get("status") != \
-            "complete":
+    if not arguments.partial and not state.get("work") and items.get(
+            item, {}).get("status") != "complete":
         problems.append("%s is not complete in the candidate's ROADMAP.md;"
                         " --partial promotes work short of its close" % item)
     problems += train_landing_problems(state, commit, items,
@@ -2724,6 +2784,10 @@ def main(argv=None):
                      " worktree and its branch instead of making them")
     sub.add_argument("--force", action="store_true",
                      help="start although a dependency is not complete")
+    sub.add_argument("--work", metavar="TEXT", help="work that is no item,"
+                     " named ITEM, as nix-packages-4, and said in TEXT: its"
+                     " state, reservations, push, gate, boards, promotion"
+                     " and finish as an item's, without a roadmap entry")
     sub.add_argument("--no-commit", action="store_true",
                      help="leave the status and pointers as they are")
     sub.add_argument("--no-fetch", action="store_true", help=argparse.SUPPRESS)
