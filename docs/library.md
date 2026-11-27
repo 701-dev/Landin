@@ -400,7 +400,7 @@ The three concepts ship for these types:
 | `utf8`, from `core/text` | yes | yes | yes |
 | `time.duration` and `time.instant`, from `core/time` | yes | yes | yes, by their counts |
 | `net.address`, from `core/net` | yes, as `same_address`, zone included | yes | no |
-| floating-point types | no | no | no |
+| `f32` and `f64` | no | no | yes, by IEEE 754's totalOrder |
 
 Every hash is keyed by a `cmp.hash_seed`, made by `cmp.seed_from` from
 two `u64` words:
@@ -424,6 +424,15 @@ first differing byte decides, and a proper prefix comes first. This is
 C's `memcmp` with the lengths taken into account, and it is the order
 `ls` gives names in the C locale. The `ordered` evidence of `[]u8` is the
 `less` of this order.
+
+The `ordered` evidence of `f32` and `f64` is IEEE 754's totalOrder:
+negative numbers from negative infinity up, then -0.0, +0.0 and the
+positive numbers up to infinity. It agrees with `<` on every pair of
+numbers except the two zeros, so `sort.sort` sorts floats as it sorts
+integers. A NaN sorts to an end by its sign: the negative ones before
+negative infinity, larger payload first, and the positive ones after
+infinity, larger payload last. Floats have no `equatable` or `hashable`
+evidence.
 
 There is one register and no override. To read a shipped type another
 way, put it in a `distinct` wrapper that has its own evidence. A

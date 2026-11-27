@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/cmp orders f32 and f64 by IEEE 754's totalOrder, so core/sort puts negative NaNs first, then negative infinity, the negative numbers, -0.0 before +0.0, the positive numbers, infinity and positive NaNs last, at both widths
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0170, 1280, 1290
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
