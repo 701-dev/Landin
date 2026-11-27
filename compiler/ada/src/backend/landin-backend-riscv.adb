@@ -8918,6 +8918,8 @@ package body Landin.Backend.RiscV is
          Size      : Landin.Targets.Byte_Count;
          Alignment : Landin.Targets.Byte_Alignment)
       is
+         Read_Only : constant Boolean :=
+           Landin.Backend.In_Read_Only_Section (Of_Unit, Facts, Item);
       begin
          if Is_Exported_Item (Item) then
             Emit (".globl " & Symbol (Item));
@@ -8925,10 +8927,15 @@ package body Landin.Backend.RiscV is
          --  An empty datum retains its aligned, zero-sized symbol, without
          --  a zero-count space directive that GNU as diagnoses.
          --  D496: a thread's instances are laid out by the system from the
-         --  image's TLS segment, every one zeroed.
-         Emit (Item_Section
-           (Item, (if Landin.Backend.In_Thread_Storage (Of_Unit, Facts, Item)
-                   then "tbss" else "bss"), "datum", Push => True));
+         --  image's TLS segment, every one zeroed.  D3014: an immutable
+         --  value's zeros are written where its caller put it, the
+         --  read-only section, so that a write faults.
+         if not Read_Only then
+            Emit (Item_Section
+              (Item, (if Landin.Backend.In_Thread_Storage
+                        (Of_Unit, Facts, Item)
+                      then "tbss" else "bss"), "datum", Push => True));
+         end if;
          Emit (".balign "
            & Trimmed (Landin.Targets.Byte_Alignment'Image (Alignment)));
          Emit (ELF_Spelling.Object_Type (Symbol (Item)));
@@ -8939,7 +8946,9 @@ package body Landin.Backend.RiscV is
          end if;
          Emit (ELF_Spelling.Size
            (Symbol (Item), Trimmed (Landin.Targets.Byte_Count'Image (Size))));
-         Emit (ELF_Spelling.Pop_Section);
+         if not Read_Only then
+            Emit (ELF_Spelling.Pop_Section);
+         end if;
       end Emit_Reserved;
 
       --  The extent the zero-image emitters below reserve for `Item`.
@@ -9420,14 +9429,39 @@ package body Landin.Backend.RiscV is
                if Landin.IR.Is_Read_Only (Of_Unit, Item) then
                   Emit (Item_Section (Item, "rodata", "datum"));
                   Emit_Array_Image_Datum (Item);
-               elsif Is_All_Zero (Item) then
+               elsif Is_All_Zero (Item)
+                 and then not Landin.Backend.In_Read_Only_Section
+                   (Of_Unit, Facts, Item)
+               then
                   null;
                else
+                  --  D3014: an immutable module value the loader need not
+                  --  write is read-only, its zeros written, as D161's
+                  --  images are; firmware's relocated ones too.
                   Emit (Item_Section
-                    (Item, (if Pairs and then Landin.IR.Is_Immutable
-                              (Of_Unit, Item) then "rodata" else "data"),
+                    (Item, (if Landin.Backend.In_Read_Only_Section
+                              (Of_Unit, Facts, Item)
+                            then "rodata" else "data"),
                      "datum"));
-                  if Landin.IR.Result_Of (Of_Unit, Item) =
+                  if Is_All_Zero (Item) then
+                     if Landin.IR.Result_Of (Of_Unit, Item) =
+                       Landin.Types.Aggregate
+                     then
+                        Emit_Aggregate_Datum (Item);
+                     elsif Landin.IR.Result_Of (Of_Unit, Item) =
+                       Landin.Types.Fixed_Array
+                     then
+                        Emit_Array_Datum (Item);
+                     else
+                        Emit_Reserved (Item, Landin.Targets.Byte_Count
+                          (Landin.Targets.Bytes
+                          (Size_Of (Landin.IR.Result_Of (Of_Unit, Item),
+                            Facts))),
+                          Landin.Targets.Alignment_Of (Facts,
+                            Size_Of (Landin.IR.Result_Of (Of_Unit, Item),
+                              Facts)));
+                     end if;
+                  elsif Landin.IR.Result_Of (Of_Unit, Item) =
                     Landin.Types.Aggregate
                   then
                      Emit_Recursive_Image_Datum (Item);
@@ -9448,8 +9482,8 @@ package body Landin.Backend.RiscV is
          function Reserved (Index : Positive) return Boolean
          is (Landin.IR.Kind_Of (Of_Unit, Landin.IR.Item_Id (Index))
                = Landin.IR.Datum
-             and then not Landin.IR.Is_Read_Only
-               (Of_Unit, Landin.IR.Item_Id (Index))
+             and then not Landin.Backend.In_Read_Only_Section
+               (Of_Unit, Facts, Landin.IR.Item_Id (Index))
              and then Is_All_Zero (Landin.IR.Item_Id (Index)));
 
          Count : Natural := 0;

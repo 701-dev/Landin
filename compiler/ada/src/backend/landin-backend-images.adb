@@ -1,5 +1,4 @@
 with Ada.Strings.Fixed;
-with Landin.Targets.Capabilities;
 with Landin.Types;
 
 package body Landin.Backend.Images is
@@ -26,8 +25,6 @@ package body Landin.Backend.Images is
       Facts   : Landin.Targets.Target_Facts) return Usage
    is
       Result : Usage;
-      Zero_Constants_Written : constant Boolean :=
-        Landin.Targets.Capabilities.Writes_Zero_Constants (Facts);
    begin
       for Index in 1 .. Landin.IR.Item_Count (Of_Unit) loop
          declare
@@ -60,15 +57,12 @@ package body Landin.Backend.Images is
                  or else Landin.IR.Result_Of (Of_Unit, Item)
                    not in Landin.Types.Aggregate | Landin.Types.Fixed_Array
                  or else Landin.IR.Has_Image (Of_Unit, Item)
-                 or else (Zero_Constants_Written
-                   and then Landin.IR.Is_Immutable (Of_Unit, Item));
+                 or else In_Read_Only_Section (Of_Unit, Facts, Item);
                if not Written then
                   Result.Reserved := Plus (Result.Reserved, Bytes);
                else
                   Result.Initialized := Plus (Result.Initialized, Bytes);
-                  if not Landin.IR.Is_Read_Only (Of_Unit, Item)
-                    and then not Landin.IR.Is_Immutable (Of_Unit, Item)
-                  then
+                  if not In_Read_Only_Section (Of_Unit, Facts, Item) then
                      Result.Writable := Plus (Result.Writable, Bytes);
                   end if;
                end if;

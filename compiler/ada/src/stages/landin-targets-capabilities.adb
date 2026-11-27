@@ -219,9 +219,6 @@ package body Landin.Targets.Capabilities is
        Writable    => Image_Reach (Facts),
        Reserved    => Maximum_Object_Size (Facts)));
 
-   function Writes_Zero_Constants (Facts : Target_Facts) return Boolean is
-     (Backend_For (Facts) in Cortex_M0_ELF | RV32_ELF | Xtensa_ELF);
-
    function Hosted_System_Of (Facts : Target_Facts) return Hosted_System is
    begin
       if Facts = Linux_X86_64 or else Facts = Linux_Arm64

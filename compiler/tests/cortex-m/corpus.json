@@ -3520,6 +3520,16 @@
     "runtime/hosted-text-views": {
       "mode": "execute"
     },
+    "runtime/immutable-module-value-write-faults": {
+      "mode": "restriction",
+      "stops": "oracle",
+      "reason": "Its oracle is the hosted system's page protection refusing the write (D3014); firmware has no memory protection here, so the write is not refused, and what D3014 gives firmware is the value's place in flash."
+    },
+    "runtime/immutable-zero-module-value-write-faults": {
+      "mode": "restriction",
+      "stops": "oracle",
+      "reason": "Its oracle is the hosted system's page protection refusing the write (D3014); firmware has no memory protection here, so the write is not refused, and what D3014 gives firmware is the value's place in flash."
+    },
     "runtime/import-alias-selected-identities": {
       "mode": "execute"
     },

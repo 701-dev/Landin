@@ -382,6 +382,10 @@ A selected runtime/ABI fixture uses the same matrix. Artifact
 names and assertion labels include the profile. Each profile independently
 checks the original exact status, trap and output oracle; agreement with another
 profile alone is never success. Timeout never satisfies `traps: yes`.
+Each outcome's run has a limit of its own, two minutes, rather than the
+runner's ten for any tool: a program still running then is stopped and is
+one failed outcome, named by its label and profile, with the limit's line
+in its output.
 
 The harness adds compiler controls directly, not through a fixture's `args` or
 `run_args`; `profiles` selects the harness matrix separately from the
@@ -788,6 +792,7 @@ emits assembly text.
 | `run_expect` | no | the file holding a runtime or ABI program's expected bytes on the selected `stream` |
 | `status` | no | the exit status `refine` or a compiled program must produce (default 1 for a negative, 0 otherwise) |
 | `traps` | no | `yes` if a runtime or ABI program must end without returning a status |
+| `protected` | no, `yes` only with `traps: yes` | D3014: the program is ended by the system refusing a write to read-only memory, which a hosted system's page protection gives and a firmware image without a memory protection unit does not; the firmware corpora read it as an oracle firmware cannot give, a `restriction` row that `stops` at `oracle` |
 | `trap_report` | no, and only with `traps: yes` | D361's line the trap writes before it ends, `main.ldn:4:9: trap: out_of_range`, its file named relative to its module's root: some line of the program's output must be exactly it, wherever the lane put the fixture |
 | `stream` | no | `output` (the bytes must be on standard output, and standard error must be empty) or `merged` (default) |
 | `lex` | no | the exact complaint the scanner must produce, for a fixture whose fault is lexical |

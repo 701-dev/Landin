@@ -719,6 +719,11 @@ def _traps(meta, value, cls, complain):
         complain("traps is not yes or no: " + value)
 
 
+def _protected(meta, value, cls, complain):
+    if value != "yes":
+        complain("protected is not yes: " + value)
+
+
 def _status(meta, value, cls, complain):
     try:
         _integer(value)
@@ -765,6 +770,7 @@ KEYS = {
     "constructs": _constructs,
     "traps": _traps,
     "trap_report": _nothing,
+    "protected": _protected,
     "status": _status,
 }
 
@@ -892,6 +898,9 @@ def _whole(meta, cls, complain):
     if has("trap_report") and meta.get("traps") != "yes":
         complain("trap_report is the line a trapping program writes, and"
                  " needs traps: yes")
+    if has("protected") and meta.get("traps") != "yes":
+        complain("protected says the program is ended by a refused write,"
+                 " and needs traps: yes")
 
 
 def read(directory, strict=True):

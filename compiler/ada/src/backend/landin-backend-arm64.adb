@@ -8579,6 +8579,21 @@ package body Landin.Backend.Arm64 is
          if Is_Exported_Item (Item) then
             Emit (".globl " & Symbol (Item));
          end if;
+         --  D3014: an immutable value's zeros are written where its caller
+         --  put it, the read-only section, so that a write faults.
+         if Landin.Backend.In_Read_Only_Section (Of_Unit, Facts, Item) then
+            Emit (".balign "
+              & Trimmed (Landin.Targets.Byte_Alignment'Image (Alignment)));
+            Platform_Directive
+              (Platform.Begin_Object (Format, Symbol (Item)));
+            Put (Symbol (Item) & ":");
+            Emit (".zero "
+              & Trimmed (Landin.Targets.Byte_Count'Image (Size)));
+            Platform_Directive (Platform.End_Object
+              (Format, Symbol (Item),
+               Trimmed (Landin.Targets.Byte_Count'Image (Size))));
+            return;
+         end if;
          case Format is
             when Landin.Targets.Capabilities.Mach_O =>
                if Landin.Backend.In_Thread_Storage (Of_Unit, Facts, Item)
@@ -8882,10 +8897,23 @@ package body Landin.Backend.Arm64 is
                         else Platform.Read_Only_Section (Format));
                   Emit_Array_Image_Datum (Item);
                else
-                  Emit (if Format /= Landin.Targets.Capabilities.Mach_O
-                        then Platform.Sectioned (Format,
-                          ELF_Spelling.Item_Section ("data", "datum", Index))
-                        else ".data");
+                  --  D3014: an immutable module value the loader need not
+                  --  write is read-only, as D161's images are.
+                  if Landin.Backend.In_Read_Only_Section
+                    (Of_Unit, Facts, Item)
+                  then
+                     Emit (if Format /= Landin.Targets.Capabilities.Mach_O
+                           then Platform.Sectioned (Format,
+                             ELF_Spelling.Item_Section
+                               ("rodata", "datum", Index))
+                           else Platform.Read_Only_Section (Format));
+                  else
+                     Emit (if Format /= Landin.Targets.Capabilities.Mach_O
+                           then Platform.Sectioned (Format,
+                             ELF_Spelling.Item_Section
+                               ("data", "datum", Index))
+                           else ".data");
+                  end if;
                   if Is_All_Zero (Item) then
                      if Landin.IR.Result_Of (Of_Unit, Item) =
                        Landin.Types.Aggregate

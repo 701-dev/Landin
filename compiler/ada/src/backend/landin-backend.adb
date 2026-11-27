@@ -1988,6 +1988,59 @@ package body Landin.Backend is
         and then Landin.IR.Is_Thread_Storage (Of_Unit, Item);
    end In_Thread_Storage;
 
+   function Image_Relocates
+     (Of_Unit : Landin.IR.Unit;
+      Item    : Landin.IR.Item_Id) return Boolean
+   is
+      use type Landin.IR.Signature_Id;
+   begin
+      if Landin.IR.Signature_Of (Of_Unit, Item) /= Landin.IR.No_Signature
+        or else Landin.IR.Address_Target (Of_Unit, Item) /= Landin.IR.No_Item
+      then
+         return True;
+      elsif Landin.IR.Has_Slice_Image (Of_Unit, Item) then
+         return Landin.IR.Slice_Image_Source (Of_Unit, Item)
+           /= Landin.IR.No_Item;
+      elsif Landin.IR.Result_Of (Of_Unit, Item)
+              in Landin.Types.Aggregate | Landin.Types.Fixed_Array
+        and then Landin.IR.Has_Image (Of_Unit, Item)
+        and then (Landin.IR.Result_Of (Of_Unit, Item)
+                    = Landin.Types.Aggregate
+                  or else Landin.IR.Has_Recursive_Array_Image
+                    (Of_Unit, Item))
+      then
+         for Position in 1 .. Landin.IR.Aggregate_Field_Image_Count
+           (Of_Unit, Item)
+         loop
+            declare
+               Image : constant Landin.IR.Aggregate_Field_Image :=
+                 Landin.IR.Nth_Image_Descriptor (Of_Unit, Item, Position);
+            begin
+               if Image.Target /= Landin.IR.No_Item then
+                  return True;
+               end if;
+            end;
+         end loop;
+      end if;
+      return False;
+   end Image_Relocates;
+
+   function In_Read_Only_Section
+     (Of_Unit : Landin.IR.Unit;
+      Facts   : Landin.Targets.Target_Facts;
+      Item    : Landin.IR.Item_Id) return Boolean
+   is
+      use type Landin.Targets.Capabilities.Hosted_System;
+   begin
+      return Landin.IR.Is_Read_Only (Of_Unit, Item)
+        or else (Landin.IR.Is_Immutable (Of_Unit, Item)
+                 and then not In_Thread_Storage (Of_Unit, Facts, Item)
+                 and then (Landin.Targets.Capabilities.Hosted_System_Of
+                             (Facts)
+                             = Landin.Targets.Capabilities.No_Hosted_System
+                           or else not Image_Relocates (Of_Unit, Item)));
+   end In_Read_Only_Section;
+
    function Report_Claims_Latch
      (Facts : Landin.Targets.Target_Facts) return Boolean is
    begin

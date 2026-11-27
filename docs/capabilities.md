@@ -779,7 +779,14 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   target holds a program's images to a budget, refused as L0505: written
   images to the code model's reach, 2 GiB on x86-64, Darwin and RV64 and
   4 GiB on arm64, or to a firmware profile's flash and RAM, and zero images
-  to the address space alone (D537).
+  to the address space alone (D537). Every backend writes an immutable
+  module-level value, a wholly zero one included, to the target's read-only
+  section, flash on a firmware target and the image's read-only pages on
+  Linux, macOS, FreeBSD and Windows, so a write through a pointer made from
+  its address faults rather than changing it; on a hosted target an
+  immutable value whose image holds an address of something else, a
+  function, a pointer or a slice of other data, stays in writable storage
+  for now (D3014).
 - **Generics and dispatch.** Generics take fixed parameters by compile-time
   substitution, an untyped literal argument takes its parameter's type, and
   a fixed array is lent to a generic slice parameter. A generic

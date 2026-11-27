@@ -1,0 +1,11 @@
+-- D3014: an immutable module value whose image the loader need not write
+-- sits in the target's read-only section, as a text literal does (D161),
+-- so a write through a pointer made from its address faults rather than
+-- changing what every reader of `table` sees.
+table: [4]u32 = [1, 2, 3, 4]
+
+public main: () -> (code: i32) =
+    cell: ptr mut u32 = ptr(usize(addr table))
+    cell.val = 9
+    code = i32(table[0])
+end main
