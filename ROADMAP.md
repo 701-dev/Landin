@@ -3530,7 +3530,10 @@ R22.13 fixed the same on main first, and the merge keeps its fix with
 `runtime/widening-operand-outlives-product` beside its fixture. Filed: `SR-1978`, the scalar kernel's loop and the missing
 vector instructions, and `SR-1979`, an `if` expression's or a literal
 range's type taken from a literal or an atom with no note of the written
-type that fixes it.
+type that fixes it. It landed in R22.36's train: gate run 45920421418,
+passed on its second attempt after the first failed only in SR-1882's
+cancellation race and SR-1940's stack-switch step, and boards run
+45920432106.
 
 ### R22.16 — Linear systems and least squares
 
@@ -4034,6 +4037,11 @@ On the history to that day it samples `arm64-compiler`,
 `rv64-qemu` and `darwin-debug-build`. No lane is keyed by its emission
 yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
 the table's `shadow` entry, which the weekly `table --write` keeps.
+Its own gate run 45902780283 and boards run 45902794687 passed; it landed
+with R22.15 as one train on gate run 45920421418, passed on its second
+attempt after two known flakes (SR-1882, SR-1940), and boards run
+45920432106. The shadow period, the causes it records and the measured
+miss rate remain for the item to close.
 
 ### R22.37 — The selected gate applied
 
