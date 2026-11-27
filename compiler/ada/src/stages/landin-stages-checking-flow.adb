@@ -4016,7 +4016,8 @@ package body Landin.Stages.Checking.Flow is
                                 & " its recovery in parentheses,"
                                 & " `(call(...) else value)` or"
                                 & " `(call(...) else begin return end)`, or"
-                                & " bind the error with `else (problem) ... end`",
+                                & " bind the error with `else (problem)"
+                                & " ... end`",
                      Related => (Source => Syn.Source_Of (Of_Tree),
                                  Where  => Syn.Else_Left_Within
                                    (Of_Tree, Block)),
