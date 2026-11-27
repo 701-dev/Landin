@@ -497,7 +497,7 @@ end compile_class
 reverse_sequence: (inout sequence: byte_sequence) -> none =
     count: usize = sequence.count
     for step in usize(0)..<count / 2 do
-        other: usize = count - (1 + step)
+        other: usize = count - 1 - step
         low: u8 = sequence.low[step]
         high: u8 = sequence.high[step]
         sequence.low[step] = sequence.low[other]

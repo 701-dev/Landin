@@ -3,12 +3,12 @@
 This is the incremental concrete-syntax grammar for Landin editor tooling. It
 is a checked transcription of the enabled language in `../../spec.md`, not a
 second language authority. The parser intentionally accepts a little extra
-around contextual `lenof` and `of` so an incomplete editor buffer remains
-useful; its C-boundary rules keep `c`, `layout`, `link`, and `symbol` as
-identifiers outside their annotated positions. Where the lexer may offer a
-contextual word as its own token, because a declaration, a label or a
-parameter list could begin there, `distinct`, `link`, `option`, `as`,
-`caller`, `through` and `held` are still read as names: in an expression, as a
+around contextual `of` so an incomplete editor buffer remains useful; its
+C-boundary rules keep `c`, `layout`, `link`, and `symbol` as identifiers
+outside their annotated positions. Where the lexer may offer a contextual
+word as its own token, because a declaration, a label, a parameter list or a
+measurement could begin there, `distinct`, `link`, `option`, `as`, `caller`,
+`through`, `held`, `lenof` and `offsetof` are still read as names: in an expression, as a
 declaration's name, as a statement's label, after `end` and as a field's or
 an argument's label. `through` is a keyword only between a conformance's
 concept or entry list and the field whose provider supplies its other
