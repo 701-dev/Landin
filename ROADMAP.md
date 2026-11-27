@@ -4255,7 +4255,7 @@ artifact upload failed on DNS) and boards run 44535495255 on f968ab7f3.
 
 ### R22.62 — regex-redux ported
 
-Status: planned
+Status: active
 Depends on: R22.60
 
 The Benchmarks Game's regex program over `core/regex`, its five
