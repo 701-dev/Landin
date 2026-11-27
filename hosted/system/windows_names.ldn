@@ -1,0 +1,88 @@
+--  Host names resolved for the hosted providers' networks on Windows,
+--  through Windows Sockets' own resolver, `getaddrinfo`, which asks every
+--  source the system is set up to ask, as names.ldn resolves them through
+--  the C library elsewhere (D3075); and the records of Unix-domain paths.
+
+import core/net
+import core/text
+import platform/windows/sockets
+
+fixed if compiler.os == windows then
+    --- Write into `into` the addresses the host name `name` has, each with
+    --- `port`, as `getaddrinfo` gives them, either family and one for each
+    --- address, and return how many: as many as `into` holds, sixteen at
+    --- most, with zero or the Windows Sockets code it failed with,
+    --- `wsa_host_not_found` for a name that is no host name.  The call
+    --- holds the thread while Windows asks, under an event provider too,
+    --- which has no way to wait for it.
+    public resolve_named: (name: []u8, port: u16, into: []mut net.address)
+                          -> (count: usize, code: u32) =
+        count = 0
+        code = sockets.wsa_host_not_found
+        return when not net.is_host_name(name) or lenof name > 253
+        code = sockets.started()
+        return when code <> 0
+        mut room: [256]u8 = zeroed
+        for at in usize(0)..<lenof name do
+            room[at] = name[at]
+        end for
+        mut hints: [48]u8 = zeroed
+        hints[sockets.address_info_kind] = u8(sockets.sock_stream)
+        mut list: usize = 0
+        given: i32 = sockets.resolve_name(addr room[0], 0, addr hints[0],
+                                          addr list)
+        if given <> 0 then
+            code = u32(given)
+            return
+        end if
+        most: usize = if lenof into < 16 then lenof into else 16 end if
+        mut record: usize = list
+        while record <> 0 and count < most do
+            next: ptr usize = ptr(record + sockets.address_info_next)
+            current: usize = record
+            record = next.val
+            family: ptr i32 = ptr(current + sockets.address_info_family)
+            length: ptr usize = ptr(current + sockets.address_info_length)
+            where: ptr usize = ptr(current + sockets.address_info_address)
+            --  A record of another family, or one this module cannot read,
+            --  is passed over.
+            continue when where.val == 0 or length.val > 28
+              or (family.val <> sockets.af_inet
+                  and family.val <> sockets.af_inet6)
+            mut held: sockets.socket_address =
+                (bytes: zeroed, length: i32(length.val))
+            for at in usize(0)..<length.val do
+                byte: ptr u8 = ptr(where.val + at)
+                held.bytes[at] = byte.val
+            end for
+            found: net.address = address_of(held) else (problem)
+                _ = problem
+                continue
+            end
+            into[count] = net.with_port(found, port)
+            inc count
+        end while
+        sockets.free_address_list(list)
+    end resolve_named
+
+    --- The path cannot be a Unix-domain socket's: it is empty, holds a NUL,
+    --- or is longer than `sun_path` holds with its NUL.
+    public invalid_local_path: atom
+
+    --- Make Windows Sockets' record of the Unix-domain path `path`, its
+    --- bytes as they are given, the whole `SOCKADDR_UN` with the path's NUL
+    --- after it, as Windows' own examples bind and connect one.
+    public local_address: (path: text.os_string)
+                          -> (made: sockets.local_socket_address)
+                          ! invalid_local_path =
+        bytes: []u8 = text.os_string_bytes(path)
+        fail invalid_local_path when lenof bytes == 0
+          or lenof bytes >= sockets.unix_path_room
+        made = (bytes: zeroed, length: 110)
+        made.bytes[0] = u8(sockets.af_unix)
+        for index in usize(0)..<lenof bytes do
+            fail invalid_local_path when bytes[index] == 0
+            made.bytes[2 + index] = bytes[index]
+        end for
+    end local_address
+end if

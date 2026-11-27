@@ -265,6 +265,8 @@ public network: type = concept (provider: type) is io.reader, io.writer
     --- Stop taking what is sent to a group `join_group` joined.
     leave_group: (self: provider, socket: io.file, group: address,
                   through: address) -> none ! address_unavailable | io.io_failed
+    set_multicast_interface: (self: provider, socket: io.file, through: address) -> none ! address_unavailable | io.io_failed
+    multicast_interface: (self: provider, socket: io.file) -> (through: address) ! io.io_failed
     --- Write into `into` the addresses the host name `name` has, each with
     --- `port`, in the order the system's resolver gives them, and return
     --- how many, as many as `into` holds.  It waits as a receive does while

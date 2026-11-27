@@ -30,6 +30,12 @@ fixed if compiler.os == windows then
     --- `AF_INET6`: IPv6.
     public af_inet6: i32 = 23
 
+    --- `AF_UNSPEC`: either family, as `resolve_name`'s hints ask.
+    public af_unspec: i32 = 0
+    --- `AF_UNIX`: Unix-domain stream sockets, Windows 10 1803 and later.
+    --- Windows has no Unix-domain datagram sockets.
+    public af_unix: i32 = 1
+
     --- The kinds, `SOCK_STREAM` and `SOCK_DGRAM`.
     public sock_stream: i32 = 1
     --- `SOCK_DGRAM`: datagrams, UDP.
@@ -45,10 +51,20 @@ fixed if compiler.os == windows then
     public wsa_interrupted: u32 = 10004
     --- `WSAEACCES`.
     public wsa_access: u32 = 10013
+    --- `WSAEINVAL`.
+    public wsa_invalid: u32 = 10022
     --- `WSAEWOULDBLOCK`.
     public wsa_would_block: u32 = 10035
     --- `WSAEMSGSIZE`.
     public wsa_message_size: u32 = 10040
+    --- `WSAENOPROTOOPT`: an option the socket's level does not have.
+    public wsa_no_protocol_option: u32 = 10042
+    --- `WSAEPROTONOSUPPORT`.
+    public wsa_protocol_unsupported: u32 = 10043
+    --- `WSAESOCKTNOSUPPORT`.
+    public wsa_kind_unsupported: u32 = 10044
+    --- `WSAEOPNOTSUPP`.
+    public wsa_operation_unsupported: u32 = 10045
     --- `WSAEAFNOSUPPORT`.
     public wsa_family_unsupported: u32 = 10047
     --- `WSAEADDRINUSE`.
@@ -73,6 +89,13 @@ fixed if compiler.os == windows then
     public wsa_connection_refused: u32 = 10061
     --- `WSAEHOSTUNREACH`.
     public wsa_host_unreachable: u32 = 10065
+    --- `WSAHOST_NOT_FOUND`, `getaddrinfo`'s `EAI_NONAME`: no address
+    --- answers to the name.
+    public wsa_host_not_found: u32 = 11001
+    --- `WSATRY_AGAIN`, `EAI_AGAIN`: the name servers did not answer.
+    public wsa_try_again: u32 = 11002
+    --- `WSANO_DATA`, `EAI_NODATA`: the name has no address.
+    public wsa_no_data: u32 = 11004
 
     --  `WSADATA`, which `WSAStartup` fills and nothing here reads: room for
     --  the largest it is.
@@ -121,6 +144,18 @@ fixed if compiler.os == windows then
         bytes: [28]u8
         length: i32
     end socket_address
+
+    --- The longest Unix-domain path, its NUL included: `UNIX_PATH_MAX`,
+    --- `sun_path`'s room.
+    public unix_path_room: usize = 108
+
+    --- A Unix-domain address as the system lays it out, `SOCKADDR_UN`: the
+    --- family, two bytes, and the path, NUL-terminated; and its length,
+    --- the whole record's.
+    public local_socket_address: type = struct
+        bytes: [110]u8
+        length: i32
+    end local_socket_address
 
     --- Bind, connect, listen and accept, `bind`, `connect`, `listen` and
     --- `accept`: zero or `socket_error`; accept's new socket or
@@ -196,6 +231,58 @@ fixed if compiler.os == windows then
     public ipproto_ipv6: i32 = 41
     --- `IPV6_V6ONLY`: an IPv6 socket takes IPv6 alone.
     public ipv6_only: i32 = 27
+    --- `IPPROTO_IP`: the level of IPv4's options.
+    public ipproto_ip: i32 = 0
+
+    --  The options `core/net` names, from the SDK's winsock2.h and
+    --  ws2ipdef.h.  Windows' SO_REUSEADDR, 4, is not POSIX's and is not
+    --  named here: hosted/system's windows_options.ldn says why.
+    --- `SO_EXCLUSIVEADDRUSE`, `~SO_REUSEADDR`: no other socket may bind the
+    --- socket's address and port, nor may it bind one earlier connections
+    --- still hold.
+    public so_exclusive_address_use: i32 = -5
+    --- `SO_KEEPALIVE`.
+    public so_keep_alive: i32 = 0x0008
+    --- `SO_BROADCAST`.
+    public so_broadcast: i32 = 0x0020
+    --- `SO_LINGER`, a `linger_record`.
+    public so_linger: i32 = 0x0080
+    --- `SO_SNDBUF`.
+    public so_send_buffer: i32 = 0x1001
+    --- `SO_RCVBUF`.
+    public so_receive_buffer: i32 = 0x1002
+    --- `IP_MULTICAST_IF`, an `in_addr`.
+    public ip_multicast_interface: i32 = 9
+    --- `IP_TTL`.
+    public ip_ttl: i32 = 4
+    --- `IP_MULTICAST_TTL`.
+    public ip_multicast_ttl: i32 = 10
+    --- `IP_ADD_MEMBERSHIP`, an `ip_mreq`.
+    public ip_add_membership: i32 = 12
+    --- `IP_DROP_MEMBERSHIP`, an `ip_mreq`.
+    public ip_drop_membership: i32 = 13
+    --- `IPV6_UNICAST_HOPS`.
+    public ipv6_unicast_hops: i32 = 4
+    --- `IPV6_MULTICAST_IF`, an interface number.
+    public ipv6_multicast_interface: i32 = 9
+    --- `IPV6_MULTICAST_HOPS`.
+    public ipv6_multicast_hops: i32 = 10
+    --- `IPV6_ADD_MEMBERSHIP`, `IPV6_JOIN_GROUP`, an `ipv6_mreq`.
+    public ipv6_add_membership: i32 = 12
+    --- `IPV6_DROP_MEMBERSHIP`, `IPV6_LEAVE_GROUP`, an `ipv6_mreq`.
+    public ipv6_drop_membership: i32 = 13
+    --- `TCP_KEEPIDLE`, `TCP_KEEPALIVE`: seconds idle before the first
+    --- probe, Windows 10 1709 and later.
+    public tcp_keep_idle: i32 = 3
+    --- `TCP_KEEPINTVL`: seconds between probes.
+    public tcp_keep_interval: i32 = 17
+
+    --- `struct linger`: whether a close lingers, and for how many seconds,
+    --- a `u_short` each.
+    public linger_record: type = struct
+        on: u16
+        seconds: u16
+    end linger_record
     --- Set a socket option, `setsockopt`: zero or `socket_error`.
     public extern(c) link(symbol: "setsockopt") set_option:
         (socket: windows.handle, level: i32, option: i32, value: ptr u8, length: i32)
@@ -233,6 +320,30 @@ fixed if compiler.os == windows then
     public extern(c) link(symbol: "select") select:
         (ignored: i32, reading: usize, writing: usize, failing: usize,
          limit: usize) -> (count: i32)
+
+    --- Resolve the NUL-terminated host name at `name`, `getaddrinfo` with
+    --- no service: zero with the first `struct addrinfo` of a list at
+    --- `list`, which `free_address_list` frees, or a `WSA*` code.
+    public extern(c) link(symbol: "getaddrinfo") resolve_name:
+        (name: ptr u8, service: usize, hints: ptr u8, list: ptr mut usize)
+        -> (code: i32)
+    --- Free what `resolve_name` gave, `freeaddrinfo`.
+    public extern(c) link(symbol: "freeaddrinfo") free_address_list:
+        (list: usize) -> none
+    --- `struct addrinfo` on 64-bit Windows, 48 bytes: the offsets of its
+    --- `ai_family`, `ai_socktype`, `ai_addrlen`, `ai_addr` and `ai_next`.
+    --- Windows puts `ai_canonname` before `ai_addr`, as POSIX does not.
+    public address_info_room: usize = 48
+    --- `ai_family`.
+    public address_info_family: usize = 4
+    --- `ai_socktype`.
+    public address_info_kind: usize = 8
+    --- `ai_addrlen`, a `size_t`.
+    public address_info_length: usize = 16
+    --- `ai_addr`.
+    public address_info_address: usize = 32
+    --- `ai_next`.
+    public address_info_next: usize = 40
 
     --- The interface number a name gives and the name of a number,
     --- `if_nametoindex` and `if_indextoname`: zero, or no name, when there
