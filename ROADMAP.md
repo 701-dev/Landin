@@ -4246,18 +4246,19 @@ the entry-less concept `bits.flags`, the item's first question answered
 without a language rule (D3037). `core/big`, `core/text` and
 `core/random` use it, `limbs.leading_zeros` and `limbs.trailing_zeros`
 leaving the unreleased limb layer, their fixtures' results unchanged
-(D3038). `runtime/bits-every-u8` checks every input and pair,
-`runtime/bits-every-u16` every input against byte tables, three rotation
-counts and eight second operands each, which fits Cortex-M0's twenty
-seconds where every count and pair did not, and `runtime/bits-oracle`
-2048 drawn cases a width at `u32` and `u64` against Python
-(`scripts/bits_oracle.py`). On Cortex-M0 at `size/auto` the probe is
-7,700 bytes of flash, the oracle 9,160 and the byte-order fixture 17,408;
-every fixture fits each profile. `examples.md` lists a WebAssembly
-module's sections. Found and fixed: a reader holding its slice locked
-itself for as long as a view `take` lent was used (L0315), which shaped
-D3035; and a parameter spelled as the module type it hides, `order:
-order`, was refused as naming no type, now as hiding it (D3039).
+(D3038). `runtime/bits-every-u8` checks every input and pair, and
+`runtime/bits-every-u16` and its two `-pairs` halves every input against
+byte tables, with three rotation counts and three second operands each,
+which fits the firmware emulators' twenty seconds where every count and
+pair did not; `runtime/bits-oracle` checks 2048 drawn cases a width at
+`u32` and `u64` against Python (`scripts/bits_oracle.py`). On Cortex-M0
+at `size/auto` the probe is 7,700 bytes of flash, the oracle 9,160, the
+byte-order fixture 11,072 and the varints, split from it to fit RV32's
+32 KiB unoptimized, 8,432. `examples.md` lists a WebAssembly module's
+sections. Found and fixed: a reader holding its slice locked itself for
+as long as a view `take` lent was used (L0315), which shaped D3035; and
+a parameter spelled as the module type it hides, `order: order`, was
+refused as naming no type, now as hiding it (D3039).
 
 ### R22.42 — Random draws programs use
 

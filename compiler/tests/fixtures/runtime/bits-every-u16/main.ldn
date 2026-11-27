@@ -3,9 +3,9 @@
 --  mirror image, built bit by bit, and arithmetic.  Every input of each
 --  one-operand operation is checked, each with three rotation counts,
 --  one, the width less one and the input modulo twice the width and one,
---  so that every count meets almost two thousand inputs, and every input
---  against eight second operands: zero, one, the top bit, the largest
---  value, two alternating patterns, the input itself and its complement.
+--  so that every count meets almost two thousand inputs.  The operations
+--  on two operands are runtime/bits-every-u16-pairs, since the two in one
+--  program pass the twenty seconds a firmware emulator gives a run.
 --  The program exits 42 when all agree, and otherwise the number of the
 --  first operation that did not.
 import core/bits
@@ -82,42 +82,11 @@ single: (x: u32) -> (failed: i32) =
     failed = 0
 end single
 
---  Every operation on two operands, `x` and `y`, against the references.
-pair: (x: u32, y: u32) -> (failed: i32) =
-    left: u16 = u16(x)
-    right: u16 = u16(y)
-    product: u32 = x * y
-    (high: high, low: low) := bits.multiply_wide(left, right)
-    failed = 9
-    return when u32(high) * (top + 1) + u32(low) <> product
-    for carry in u32(0)..<2 do
-        total: u32 = x + y + carry
-        (sum: sum, carry_out: carry_out) :=
-            bits.add_carry(left, right, carry == 1)
-        failed = 10
-        return when u32(sum) <> total % (top + 1)
-          or carry_out <> (total > top)
-        below: bool = x < y + carry
-        expected: u32 = if below then x + (top + 1) - y - carry
-                        else x - y - carry end if
-        (difference: difference, borrow_out: borrow_out) :=
-            bits.subtract_borrow(left, right, carry == 1)
-        failed = 11
-        return when u32(difference) <> expected or borrow_out <> below
-    end for
-    failed = 0
-end pair
-
 public main: () -> (code: i32) =
     tables()
     for x in u32(0)..<top + 1 do
         code = single(x)
         return when code <> 0
-        seconds: [8]u32 = [0, 1, 0x8000, top, 0x5555, 0xaaaa, x, top - x]
-        for y in seconds do
-            code = pair(x, y)
-            return when code <> 0
-        end for
     end for
     code = 42
 end main

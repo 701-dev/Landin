@@ -46821,7 +46821,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** one routine per width, `ones_u32` and the like, which is four names for each idea (D1953); and the instructions in assembly per target, which Cortex-M0 and RV32 lack and which is R16's to choose.
 
-**Pinned by** `runtime/bits-every-u8`, which checks every input of each one-operand routine at every rotation count to twice the width, and every pair of operands, against references written bit by bit in the program; `runtime/bits-every-u16`, which checks every input against byte tables the program builds bit by bit and against arithmetic, each input with three rotation counts so that every count meets almost two thousand inputs, and against eight second operands, which is what a Cortex-M0 emulator runs in its twenty seconds; `runtime/bits-oracle`, whose digests of 2048 drawn cases a width at `u32` and `u64` `scripts/bits_oracle.py` computes with Python's integers; each runs on every target, the firmware lanes included; and `runtime/library-shared-bits`.
+**Pinned by** `runtime/bits-every-u8`, which checks every input of each one-operand routine at every rotation count to twice the width, and every pair of operands, against references written bit by bit in the program; `runtime/bits-every-u16`, which checks every input of each one-operand routine against byte tables the program builds bit by bit and against arithmetic, with three rotation counts each so that every count meets almost two thousand inputs, and `runtime/bits-every-u16-pairs` and `runtime/bits-every-u16-pairs-high`, each half of the inputs against three second operands that meet every carry and borrow at its edge, each with an alternating carry in, split so that each fits the twenty seconds an emulator gives a firmware run; `runtime/bits-oracle`, whose digests of 2048 drawn cases a width at `u32` and `u64` `scripts/bits_oracle.py` computes with Python's integers; each runs on every target, the firmware lanes included; and `runtime/library-shared-bits`.
 
 ### D3035 — Bytes are read and written at an offset the caller passes `inout`, and a failed call moves nothing
 
@@ -46841,7 +46841,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** refusing a non-minimal encoding, which would refuse what linkers write; and Go's `Uvarint`, which reports an overflow as a negative count rather than a failure.
 
-**Pinned by** `runtime/bits-byte-order`'s varints: known encodings at both signs and both ends of the range, every length from one byte to ten in both encodings, padding accepted, and truncated, eleven-byte and overflowing ones refused with their atoms.
+**Pinned by** `runtime/bits-varints`: known encodings at both signs and both ends of the range, every length from one byte to ten in both encodings, padding accepted, and truncated, eleven-byte and overflowing ones refused with their atoms.
 
 ### D3037 — A set's union, intersection, difference and emptiness are library routines, not a language rule
 

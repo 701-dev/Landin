@@ -60,11 +60,11 @@
   "x86-64-v1/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 302003,
-    ".rodata": 56534,
+    ".text": 302111,
+    ".rodata": 56504,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 944,
     ".bss": 248
    }
@@ -149,11 +149,11 @@
   "x86-64-v1/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 302003,
-    ".rodata": 56534,
+    ".text": 302111,
+    ".rodata": 56504,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 944,
     ".bss": 248
    }
@@ -238,11 +238,11 @@
   "x86-64-v1/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 302031,
-    ".rodata": 56534,
+    ".text": 302138,
+    ".rodata": 56504,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 944,
     ".bss": 248
    }
@@ -327,11 +327,11 @@
   "x86-64-v1/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 99861,
-    ".rodata": 40451,
+    ".text": 99938,
+    ".rodata": 40421,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -416,11 +416,11 @@
   "x86-64-v1/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 99861,
-    ".rodata": 40451,
+    ".text": 99938,
+    ".rodata": 40421,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -505,11 +505,11 @@
   "x86-64-v1/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 99933,
-    ".rodata": 40451,
+    ".text": 99958,
+    ".rodata": 40421,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -595,10 +595,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 122086,
-    ".rodata": 40162,
+    ".rodata": 40181,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -684,10 +684,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 122086,
-    ".rodata": 40162,
+    ".rodata": 40181,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -773,10 +773,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 122470,
-    ".rodata": 40162,
+    ".rodata": 40181,
     ".note.gnu.property": 48,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -861,11 +861,11 @@
   "x86-64-v2/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 306395,
-    ".rodata": 57021,
+    ".text": 306503,
+    ".rodata": 56991,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 952,
     ".bss": 248
    }
@@ -950,11 +950,11 @@
   "x86-64-v2/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 306395,
-    ".rodata": 57021,
+    ".text": 306503,
+    ".rodata": 56991,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 952,
     ".bss": 248
    }
@@ -1039,11 +1039,11 @@
   "x86-64-v2/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 306423,
-    ".rodata": 57021,
+    ".text": 306530,
+    ".rodata": 56991,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 952,
     ".bss": 248
    }
@@ -1128,11 +1128,11 @@
   "x86-64-v2/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 101665,
-    ".rodata": 40938,
+    ".text": 101742,
+    ".rodata": 40908,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -1217,11 +1217,11 @@
   "x86-64-v2/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 101665,
-    ".rodata": 40938,
+    ".text": 101742,
+    ".rodata": 40908,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -1306,11 +1306,11 @@
   "x86-64-v2/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 101737,
-    ".rodata": 40938,
+    ".text": 101762,
+    ".rodata": 40908,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -1396,10 +1396,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 124198,
-    ".rodata": 40593,
+    ".rodata": 40612,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -1485,10 +1485,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 124198,
-    ".rodata": 40593,
+    ".rodata": 40612,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -1574,10 +1574,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 124582,
-    ".rodata": 40593,
+    ".rodata": 40612,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -1662,11 +1662,11 @@
   "x86-64-v3/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 308742,
-    ".rodata": 57077,
+    ".text": 308850,
+    ".rodata": 57047,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 956,
     ".bss": 248
    }
@@ -1751,11 +1751,11 @@
   "x86-64-v3/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 308742,
-    ".rodata": 57077,
+    ".text": 308850,
+    ".rodata": 57047,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 956,
     ".bss": 248
    }
@@ -1840,11 +1840,11 @@
   "x86-64-v3/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 308770,
-    ".rodata": 57077,
+    ".text": 308877,
+    ".rodata": 57047,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 956,
     ".bss": 248
    }
@@ -1929,11 +1929,11 @@
   "x86-64-v3/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102349,
-    ".rodata": 40994,
+    ".text": 102426,
+    ".rodata": 40964,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2018,11 +2018,11 @@
   "x86-64-v3/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102349,
-    ".rodata": 40994,
+    ".text": 102426,
+    ".rodata": 40964,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2107,11 +2107,11 @@
   "x86-64-v3/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102421,
-    ".rodata": 40994,
+    ".text": 102446,
+    ".rodata": 40964,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2197,10 +2197,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 124902,
-    ".rodata": 40649,
+    ".rodata": 40668,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2286,10 +2286,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 124902,
-    ".rodata": 40649,
+    ".rodata": 40668,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2375,10 +2375,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 125286,
-    ".rodata": 40649,
+    ".rodata": 40668,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2463,11 +2463,11 @@
   "x86-64-v4/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 310150,
-    ".rodata": 57134,
+    ".text": 310258,
+    ".rodata": 57104,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 956,
     ".bss": 248
    }
@@ -2552,11 +2552,11 @@
   "x86-64-v4/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 310150,
-    ".rodata": 57134,
+    ".text": 310258,
+    ".rodata": 57104,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 956,
     ".bss": 248
    }
@@ -2641,11 +2641,11 @@
   "x86-64-v4/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 310178,
-    ".rodata": 57134,
+    ".text": 310285,
+    ".rodata": 57104,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 956,
     ".bss": 248
    }
@@ -2730,11 +2730,11 @@
   "x86-64-v4/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102735,
-    ".rodata": 41051,
+    ".text": 102812,
+    ".rodata": 41021,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2819,11 +2819,11 @@
   "x86-64-v4/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102735,
-    ".rodata": 41051,
+    ".text": 102812,
+    ".rodata": 41021,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2908,11 +2908,11 @@
   "x86-64-v4/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102807,
-    ".rodata": 41051,
+    ".text": 102832,
+    ".rodata": 41021,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -2998,10 +2998,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 125350,
-    ".rodata": 40706,
+    ".rodata": 40725,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -3087,10 +3087,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 125350,
-    ".rodata": 40706,
+    ".rodata": 40725,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }
@@ -3176,10 +3176,10 @@
    "sections": {
     ".note.gnu.build-id": 48,
     ".text": 125734,
-    ".rodata": 40706,
+    ".rodata": 40725,
     ".note.gnu.property": 64,
     ".tbss": 4,
-    ".data.rel.ro": 240,
+    ".data.rel.ro": 320,
     ".data": 664,
     ".bss": 240
    }

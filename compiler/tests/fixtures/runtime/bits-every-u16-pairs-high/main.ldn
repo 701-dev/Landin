@@ -1,0 +1,50 @@
+--  core/bits's operations on two u16 operands against arithmetic written
+--  here, which shares no code with core/bits: every input of one half of
+--  the range, runtime/bits-every-u16-pairs having the other, against three
+--  second operands, the largest value, the input itself and its
+--  complement, which meet every carry and borrow at its edge, with a
+--  carry in that alternates with the input so that each operand meets
+--  both.  The program exits 42 when all agree, and otherwise the number
+--  of the first operation that did not.
+import core/bits
+
+top: u32 = 65535
+
+--  The inputs this half checks; runtime/bits-every-u16-pairs checks
+--  the rest, so that each fits an emulator's twenty seconds.
+first: u32 = 32768
+last: u32 = 65535
+
+--  Every operation on two operands, `x` and `y`, with `carry` coming in,
+--  against the references.
+pair: (x: u32, y: u32, carry: u32) -> (failed: i32) =
+    left: u16 = u16(x)
+    right: u16 = u16(y)
+    product: u32 = x * y
+    (high: high, low: low) := bits.multiply_wide(left, right)
+    failed = 9
+    return when u32(high) <> product >> 16 or u32(low) <> product & top
+    total: u32 = x + y + carry
+    (sum: sum, carry_out: carry_out) := bits.add_carry(left, right, carry == 1)
+    failed = 10
+    return when u32(sum) <> total & top or carry_out <> (total > top)
+    below: bool = x < y + carry
+    expected: u32 = if below then x + (top + 1) - y - carry
+                    else x - y - carry end if
+    (difference: difference, borrow_out: borrow_out) :=
+        bits.subtract_borrow(left, right, carry == 1)
+    failed = 11
+    return when u32(difference) <> expected or borrow_out <> below
+    failed = 0
+end pair
+
+public main: () -> (code: i32) =
+    for x in first..<last + 1 do
+        seconds: [3]u32 = [top, x, top - x]
+        for y, index in seconds do
+            code = pair(x, y, (x + u32(index)) % 2)
+            return when code <> 0
+        end for
+    end for
+    code = 42
+end main

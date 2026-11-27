@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/bits's reader and writer round-trip every width in both byte orders and lay down each order's bytes, refuse short input with mem.out_of_bounds and a full buffer with mem.out_of_memory without moving, and read and write LEB128 varints at every length, accepting padding and refusing truncated, overlong and overflowing ones
+summary: core/bits's reader and writer round-trip every width in both byte orders and lay down each order's bytes, refuse short input with mem.out_of_bounds and a full buffer with mem.out_of_memory without moving
 program: main.ldn
 root: ../../../../..
 status: 42

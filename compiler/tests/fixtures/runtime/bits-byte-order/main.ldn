@@ -1,11 +1,10 @@
 --  core/bits's reads and writes over a caller's bytes: every width
 --  written and read back in both byte orders, the bytes each order lays
 --  down, short input and a full buffer refused without moving, a view
---  taken that lasts while reading goes on, and LEB128 varints: known
---  encodings, round trips at every length, padding accepted, and
---  truncated, overlong and overflowing ones refused.  The program exits
---  42 when every check holds, and otherwise the number of the first that
---  did not.
+--  taken that lasts while reading goes on.  LEB128 is
+--  runtime/bits-varints, so that each fits a 32 KiB image unoptimized.
+--  The program exits 42 when every check holds, and otherwise the number
+--  of the first that did not.
 import core/bits
 import core/mem
 
@@ -149,126 +148,6 @@ refusals: () -> (failed: i32) =
     failed = 0
 end refusals
 
---  The unsigned encoding of `value` is `expected`, and reads back.
-unsigned_known: (value: u64, expected: []u8) -> (yes: bool) =
-    mut buffer: [10]u8 = zeroed
-    mut at: usize = 0
-    yes = false
-    bits.write_uleb128(buffer, at, value) else begin return end
-    return when not same(buffer[0..<at], expected)
-    mut next: usize = 0
-    read: u64 = bits.read_uleb128(buffer[0..<at], next) else value +% 1
-    yes = read == value and next == at
-end unsigned_known
-
---  The signed encoding of `value` is `expected`, and reads back.
-signed_known: (value: i64, expected: []u8) -> (yes: bool) =
-    mut buffer: [10]u8 = zeroed
-    mut at: usize = 0
-    yes = false
-    bits.write_sleb128(buffer, at, value) else begin return end
-    return when not same(buffer[0..<at], expected)
-    mut next: usize = 0
-    read: i64 = bits.read_sleb128(buffer[0..<at], next)
-        else (if value == 0 then 1 else 0 end if)
-    yes = read == value and next == at
-end signed_known
-
---  Reading `bytes` as an unsigned varint fails `wanted`, and moves nothing.
-unsigned_refused: (bytes: []u8,
-                   wanted: bits.invalid_varint | mem.out_of_bounds)
-                  -> (yes: bool) =
-    mut at: usize = 0
-    yes = false
-    _ = bits.read_uleb128(bytes, at) else (problem)
-        yes = problem == wanted and at == 0
-        0
-    end
-end unsigned_refused
-
---  Reading `bytes` as a signed varint fails `wanted`, and moves nothing.
-signed_refused: (bytes: []u8,
-                 wanted: bits.invalid_varint | mem.out_of_bounds)
-                -> (yes: bool) =
-    mut at: usize = 0
-    yes = false
-    _ = bits.read_sleb128(bytes, at) else (problem)
-        yes = problem == wanted and at == 0
-        0
-    end
-end signed_refused
-
-varints: () -> (failed: i32) =
-    failed = 11
-    return when not unsigned_known(0, [0x00])
-    return when not unsigned_known(127, [0x7f])
-    return when not unsigned_known(128, [0x80, 0x01])
-    return when not unsigned_known(624485, [0xe5, 0x8e, 0x26])
-    return when not unsigned_known(0xffffffffffffffff,
-                                   [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                    0xff, 0xff, 0x01])
-    failed = 12
-    return when not signed_known(0, [0x00])
-    return when not signed_known(-1, [0x7f])
-    return when not signed_known(63, [0x3f])
-    return when not signed_known(64, [0xc0, 0x00])
-    return when not signed_known(-64, [0x40])
-    return when not signed_known(-65, [0xbf, 0x7f])
-    return when not signed_known(-123456, [0xc0, 0xbb, 0x78])
-    return when not signed_known(9223372036854775807,
-                                 [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                  0xff, 0xff, 0x00])
-    return when not signed_known(-9223372036854775807 - 1,
-                                 [0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
-                                  0x80, 0x80, 0x7f])
-    --  Every length from one byte to ten, in both encodings.
-    failed = 13
-    mut buffer: [700]u8 = zeroed
-    mut at: usize = 0
-    for shift in u64(0)..<64 do
-        bits.write_uleb128(buffer, at, u64(1) << shift) else begin return end
-        bits.write_sleb128(buffer, at, 0 - i64(u64(1) << (shift % 63)))
-            else begin return end
-    end for
-    written: []u8 = buffer[0..<at]
-    mut next: usize = 0
-    for shift in u64(0)..<64 do
-        return when (bits.read_uleb128(written, next) else 0)
-          <> u64(1) << shift
-        return when (bits.read_sleb128(written, next) else 0)
-          <> 0 - i64(u64(1) << (shift % 63))
-    end for
-    return when next <> at
-    --  Padding to the ten bytes 64 bits take is accepted, as linkers
-    --  write it.
-    failed = 14
-    mut pad: usize = 0
-    return when (bits.read_uleb128([0x85, 0x80, 0x80, 0x00], pad) else 0) <> 5
-    pad = 0
-    return when (bits.read_sleb128([0xff, 0xff, 0x7f], pad) else 0) <> -1
-    failed = 15
-    return when not unsigned_refused([0x80, 0x80], mem.out_of_bounds)
-    return when not unsigned_refused([], mem.out_of_bounds)
-    return when not signed_refused([0xff], mem.out_of_bounds)
-    --  An eleventh byte, and a tenth byte with bits past the 64th.
-    return when not unsigned_refused([0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
-                                      0x80, 0x80, 0x80, 0x80, 0x00],
-                                     bits.invalid_varint)
-    return when not unsigned_refused([0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                      0xff, 0xff, 0xff, 0x02],
-                                     bits.invalid_varint)
-    return when not signed_refused([0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
-                                    0x80, 0x80, 0x80, 0x80, 0x00],
-                                   bits.invalid_varint)
-    return when not signed_refused([0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                    0xff, 0xff, 0xff, 0x01],
-                                   bits.invalid_varint)
-    return when not signed_refused([0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
-                                    0x80, 0x80, 0x80, 0x7e],
-                                   bits.invalid_varint)
-    failed = 0
-end varints
-
 public main: () -> (code: i32) =
     code = round_trips(bits.little)
     return when code <> 0
@@ -277,8 +156,6 @@ public main: () -> (code: i32) =
     code = layouts()
     return when code <> 0
     code = refusals()
-    return when code <> 0
-    code = varints()
     return when code <> 0
     code = 42
 end main

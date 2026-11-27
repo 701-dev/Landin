@@ -1808,6 +1808,12 @@
     "runtime/bits-every-u16": {
       "mode": "execute"
     },
+    "runtime/bits-every-u16-pairs": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u16-pairs-high": {
+      "mode": "execute"
+    },
     "runtime/bits-every-u8": {
       "mode": "execute"
     },
@@ -1815,6 +1821,9 @@
       "mode": "execute"
     },
     "runtime/bits-sets": {
+      "mode": "execute"
+    },
+    "runtime/bits-varints": {
       "mode": "execute"
     },
     "runtime/bitwise-identities": {

@@ -59,11 +59,11 @@
   },
   "x86-64-v1/none-all/pidigits": {
    "sections": {
-    ".text": 295924,
-    ".rdata": 56304,
+    ".text": 296033,
+    ".rdata": 56360,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -148,11 +148,11 @@
   },
   "x86-64-v1/none-auto/pidigits": {
    "sections": {
-    ".text": 295924,
-    ".rdata": 56304,
+    ".text": 296033,
+    ".rdata": 56360,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -237,14 +237,14 @@
   },
   "x86-64-v1/none-off/pidigits": {
    "sections": {
-    ".text": 295952,
-    ".rdata": 56304,
+    ".text": 296060,
+    ".rdata": 56360,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v1/none-off/reverse-complement": {
@@ -326,11 +326,11 @@
   },
   "x86-64-v1/size-all/pidigits": {
    "sections": {
-    ".text": 96135,
-    ".rdata": 41376,
+    ".text": 96213,
+    ".rdata": 41440,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -415,11 +415,11 @@
   },
   "x86-64-v1/size-auto/pidigits": {
    "sections": {
-    ".text": 96135,
-    ".rdata": 41376,
+    ".text": 96213,
+    ".rdata": 41440,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -504,14 +504,14 @@
   },
   "x86-64-v1/size-off/pidigits": {
    "sections": {
-    ".text": 96207,
-    ".rdata": 41376,
+    ".text": 96233,
+    ".rdata": 41440,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v1/size-off/reverse-complement": {
@@ -593,11 +593,11 @@
   },
   "x86-64-v1/speed-all/pidigits": {
    "sections": {
-    ".text": 133867,
-    ".rdata": 41088,
+    ".text": 133931,
+    ".rdata": 41192,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -682,11 +682,11 @@
   },
   "x86-64-v1/speed-auto/pidigits": {
    "sections": {
-    ".text": 133867,
-    ".rdata": 41088,
+    ".text": 133931,
+    ".rdata": 41192,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -771,14 +771,14 @@
   },
   "x86-64-v1/speed-off/pidigits": {
    "sections": {
-    ".text": 133803,
-    ".rdata": 41088,
+    ".text": 133867,
+    ".rdata": 41192,
     ".buildid": 81,
     ".data": 484,
-    ".pdata": 2316,
+    ".pdata": 2328,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v1/speed-off/reverse-complement": {
@@ -860,11 +860,11 @@
   },
   "x86-64-v2/none-all/pidigits": {
    "sections": {
-    ".text": 300847,
-    ".rdata": 56864,
+    ".text": 300956,
+    ".rdata": 56920,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -949,11 +949,11 @@
   },
   "x86-64-v2/none-auto/pidigits": {
    "sections": {
-    ".text": 300847,
-    ".rdata": 56864,
+    ".text": 300956,
+    ".rdata": 56920,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1038,14 +1038,14 @@
   },
   "x86-64-v2/none-off/pidigits": {
    "sections": {
-    ".text": 300875,
-    ".rdata": 56864,
+    ".text": 300983,
+    ".rdata": 56920,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v2/none-off/reverse-complement": {
@@ -1127,11 +1127,11 @@
   },
   "x86-64-v2/size-all/pidigits": {
    "sections": {
-    ".text": 98154,
-    ".rdata": 41944,
+    ".text": 98232,
+    ".rdata": 42000,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1216,11 +1216,11 @@
   },
   "x86-64-v2/size-auto/pidigits": {
    "sections": {
-    ".text": 98154,
-    ".rdata": 41944,
+    ".text": 98232,
+    ".rdata": 42000,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1305,14 +1305,14 @@
   },
   "x86-64-v2/size-off/pidigits": {
    "sections": {
-    ".text": 98226,
-    ".rdata": 41944,
+    ".text": 98252,
+    ".rdata": 42000,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v2/size-off/reverse-complement": {
@@ -1394,11 +1394,11 @@
   },
   "x86-64-v2/speed-all/pidigits": {
    "sections": {
-    ".text": 136235,
-    ".rdata": 41656,
+    ".text": 136299,
+    ".rdata": 41760,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1483,11 +1483,11 @@
   },
   "x86-64-v2/speed-auto/pidigits": {
    "sections": {
-    ".text": 136235,
-    ".rdata": 41656,
+    ".text": 136299,
+    ".rdata": 41760,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1572,14 +1572,14 @@
   },
   "x86-64-v2/speed-off/pidigits": {
    "sections": {
-    ".text": 136171,
-    ".rdata": 41656,
+    ".text": 136235,
+    ".rdata": 41760,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2424,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v2/speed-off/reverse-complement": {
@@ -1661,11 +1661,11 @@
   },
   "x86-64-v3/none-all/pidigits": {
    "sections": {
-    ".text": 303160,
-    ".rdata": 56928,
+    ".text": 303269,
+    ".rdata": 56984,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1750,11 +1750,11 @@
   },
   "x86-64-v3/none-auto/pidigits": {
    "sections": {
-    ".text": 303160,
-    ".rdata": 56928,
+    ".text": 303269,
+    ".rdata": 56984,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -1839,14 +1839,14 @@
   },
   "x86-64-v3/none-off/pidigits": {
    "sections": {
-    ".text": 303188,
-    ".rdata": 56928,
+    ".text": 303296,
+    ".rdata": 56984,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v3/none-off/reverse-complement": {
@@ -1928,11 +1928,11 @@
   },
   "x86-64-v3/size-all/pidigits": {
    "sections": {
-    ".text": 98839,
-    ".rdata": 42008,
+    ".text": 98917,
+    ".rdata": 42064,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2017,11 +2017,11 @@
   },
   "x86-64-v3/size-auto/pidigits": {
    "sections": {
-    ".text": 98839,
-    ".rdata": 42008,
+    ".text": 98917,
+    ".rdata": 42064,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2106,14 +2106,14 @@
   },
   "x86-64-v3/size-off/pidigits": {
    "sections": {
-    ".text": 98911,
-    ".rdata": 42008,
+    ".text": 98937,
+    ".rdata": 42064,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v3/size-off/reverse-complement": {
@@ -2195,11 +2195,11 @@
   },
   "x86-64-v3/speed-all/pidigits": {
    "sections": {
-    ".text": 136939,
-    ".rdata": 41720,
+    ".text": 137003,
+    ".rdata": 41824,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2284,11 +2284,11 @@
   },
   "x86-64-v3/speed-auto/pidigits": {
    "sections": {
-    ".text": 136939,
-    ".rdata": 41720,
+    ".text": 137003,
+    ".rdata": 41824,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2373,14 +2373,14 @@
   },
   "x86-64-v3/speed-off/pidigits": {
    "sections": {
-    ".text": 136875,
-    ".rdata": 41720,
+    ".text": 136939,
+    ".rdata": 41824,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2436,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v3/speed-off/reverse-complement": {
@@ -2462,11 +2462,11 @@
   },
   "x86-64-v4/none-all/pidigits": {
    "sections": {
-    ".text": 304569,
-    ".rdata": 56992,
+    ".text": 304678,
+    ".rdata": 57056,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2551,11 +2551,11 @@
   },
   "x86-64-v4/none-auto/pidigits": {
    "sections": {
-    ".text": 304569,
-    ".rdata": 56992,
+    ".text": 304678,
+    ".rdata": 57056,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2640,14 +2640,14 @@
   },
   "x86-64-v4/none-off/pidigits": {
    "sections": {
-    ".text": 304597,
-    ".rdata": 56992,
+    ".text": 304705,
+    ".rdata": 57056,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v4/none-off/reverse-complement": {
@@ -2729,11 +2729,11 @@
   },
   "x86-64-v4/size-all/pidigits": {
    "sections": {
-    ".text": 99226,
-    ".rdata": 42072,
+    ".text": 99304,
+    ".rdata": 42128,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2818,11 +2818,11 @@
   },
   "x86-64-v4/size-auto/pidigits": {
    "sections": {
-    ".text": 99226,
-    ".rdata": 42072,
+    ".text": 99304,
+    ".rdata": 42128,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -2907,14 +2907,14 @@
   },
   "x86-64-v4/size-off/pidigits": {
    "sections": {
-    ".text": 99298,
-    ".rdata": 42072,
+    ".text": 99324,
+    ".rdata": 42128,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v4/size-off/reverse-complement": {
@@ -2996,11 +2996,11 @@
   },
   "x86-64-v4/speed-all/pidigits": {
    "sections": {
-    ".text": 137451,
-    ".rdata": 41784,
+    ".text": 137515,
+    ".rdata": 41888,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -3085,11 +3085,11 @@
   },
   "x86-64-v4/speed-auto/pidigits": {
    "sections": {
-    ".text": 137451,
-    ".rdata": 41784,
+    ".text": 137515,
+    ".rdata": 41888,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
     ".reloc": 36
@@ -3174,14 +3174,14 @@
   },
   "x86-64-v4/speed-off/pidigits": {
    "sections": {
-    ".text": 137387,
-    ".rdata": 41784,
+    ".text": 137451,
+    ".rdata": 41888,
     ".buildid": 81,
     ".data": 508,
-    ".pdata": 2448,
+    ".pdata": 2460,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 56
+    ".reloc": 60
    }
   },
   "x86-64-v4/speed-off/reverse-complement": {
