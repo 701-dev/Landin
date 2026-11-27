@@ -2718,7 +2718,7 @@ first; check.py's derivable-negative refusal did not name its exemption
 list; L0301 called a concept or function value "something unknown"; and
 the gate's fuzz round met D1656's rewrite raising a parser defect at a
 declaration of several names whose `=` ends the source. Filed:
-SR-1693, a library module the program does not reach is still a plain
+`SR-1693`, a library module the program does not reach is still a plain
 misspelling.
 
 ### R20.62 — Tools that know a window
@@ -3677,7 +3677,7 @@ padding, so eight format fixtures' corpus rows record limits at
 `compiler/tests/float-text/README.md` holds the figures. Settled: `SR-97`, `SR-285`. The renamed
 `negative/format-array-names-its-type` keeps D880's pin now that an
 `f64` is formattable. Met on the way: SR-1939's grammar defect again,
-in `core/text/shortest.ldn`, and restated; filed: SR-2012, L0102's
+in `core/text/shortest.ldn`, and restated; filed: `SR-2012`, L0102's
 `else begin return end` that L0329 then refuses in an `if` arm.
 
 ### R22.21 — n-body and spectral-norm ported
@@ -3830,7 +3830,7 @@ own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
 `mem.allocate_copy`; the heap handed beside a region is a zone over the
 region's parent; and `time -f %M` is `heap.in_use` and
 `heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
-SR-1881 records the misleading refusal a new Linux wrapper meets.
+`SR-1881` records the misleading refusal a new Linux wrapper meets.
 
 ### R22.27 — Process tools' remaining faults
 
@@ -3926,13 +3926,13 @@ Status: active
 Depends on: none
 
 Refusals met since R20.61 that do not say what to do, or say something
-misleading, scheduled by the register sweep of 2026-11-26: SR-1693's
-L0201 at a library module no import reaches, and SR-1881's at an
+misleading, scheduled by the register sweep of 2026-11-26: `SR-1693`'s
+L0201 at a library module no import reaches, and `SR-1881`'s at an
 undeclared `*_number` of `platform/linux`, both with [1860]'s note to
-check the spelling; SR-1896's L0011 at a hexadecimal float without its
-point; SR-1714's internal defect where a firmware assembly operand is
-linked; SR-1716's developer's linker script that puts a routine at
-address zero without a refusal; and SR-1214's misuse traps of the root,
+check the spelling; `SR-1896`'s L0011 at a hexadecimal float without its
+point; `SR-1714`'s internal defect where a firmware assembly operand is
+linked; `SR-1716`'s developer's linker script that puts a routine at
+address zero without a refusal; and `SR-1214`'s misuse traps of the root,
 which carry no words. Placed here so that no phase gate waits for it; it
 depends on no other item.
 
@@ -3941,16 +3941,16 @@ case, and `docs/diagnostics.md` saying the new notes.
 
 Done: L0201 names the import of a library module no import of the program
 reaches, from a listing of the library the driver hands the stages (D2994,
-SR-1693), and inside `platform/linux` says that an undeclared `*_number`
-is `wrapped.ldn`'s and to run its generator (D2999, SR-1881). A float that
+`SR-1693`), and inside `platform/linux` says that an undeclared `*_number`
+is `wrapped.ldn`'s and to run its generator (D2999, `SR-1881`). A float that
 lacks only its point, `0x1p-20` or `1e10`, is L0321 with an exact fix
-writing `.0` before the exponent (D2995, SR-1896). A firmware target's
+writing `.0` before the exponent (D2995, `SR-1896`). A firmware target's
 assembly operand is L0002 saying how it links, no longer an internal
-defect (D2996, SR-1714). D546's fifth clause holds the startup routines,
-so a script that puts reset at address zero is L0519 (D2997, SR-1716).
+defect (D2996, `SR-1714`). D546's fifth clause holds the startup routines,
+so a script that puts reset at address zero is L0519 (D2997, `SR-1716`).
 The root's other misuses say what was misused before they trap (D2998,
-SR-1214), and L0329's note in an `if` arm writes the leaving recovery in
-parentheses, which L0102's fix left out (D3000, SR-2012). Pinned by
+`SR-1214`), and L0329's note in an `if` arm writes the leaving recovery in
+parentheses, which L0102's fix left out (D3000, `SR-2012`). Pinned by
 `negative/unreached-library-module-prefix-names-its-import`,
 `negative/hexadecimal-float-without-point-is-fixed`,
 `negative/leaving-recovery-in-an-if-arm-is-parenthesised`,
