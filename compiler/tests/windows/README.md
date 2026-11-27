@@ -155,6 +155,12 @@ how LLDB finds a PDB's procedure, and asks for the instruction at every stop
 (D2481). Each session's verdict is in `switch-frames.json` beside the
 transcripts.
 
+It compiles `compiler/tests/debugging/registers.ldn` at `speed`, where
+D339 copies `inline_leaf` into `inline_outer`, and runs the copy session:
+a stop at a line inside the copy, which must be `inline_leaf`'s frame with
+its own `base` and `doubled` above `inline_outer`'s with its `first`, and
+the backtrace `inline_leaf`, `inline_outer`, `main` (D2964).
+
 The gate splits it as it splits the corpus: `windows-emit` adds
 `--prepare-only` and keeps a second bundle, and `windows-debugger` runs it
 on `windows-2025`, the LLDB sessions natively with `--prepared=DIR`, then

@@ -762,6 +762,33 @@ package body Landin.Backend.X86_64 is
       is (if COFF then Codeview.Source_Line (Debug.all, Item, Site)
           else Dwarf.Source_Line (Debug.all, Site));
 
+      --  The line Value's site begins: CodeView names it under the
+      --  identity of the copy whose block holds Value (D339), DWARF's
+      --  line program by its address alone.
+      function Value_Line_Of
+        (Item : Landin.IR.Item_Id; Value : Landin.IR.Value_Id)
+         return String;
+      function Value_Line_Of
+        (Item : Landin.IR.Item_Id; Value : Landin.IR.Value_Id)
+         return String
+      is
+         Site : constant Landin.Provenance.Origin :=
+           Landin.IR.Origin_Of (Of_Unit, Item, Value);
+      begin
+         if not COFF then
+            return Dwarf.Source_Line (Debug.all, Site);
+         end if;
+         declare
+            Copy : constant Natural := Landin.IR.Inlined_At
+              (Of_Unit, Item, Landin.IR.Block_Of (Of_Unit, Item, Value));
+         begin
+            return Codeview.Source_Line
+              (Debug.all, Item, Site,
+               (if Copy = 0 then 0
+                else Codeview.Copy_Identity (Of_Unit, Item, Copy)));
+         end;
+      end Value_Line_Of;
+
       function Function_Type (Symbol : String) return String
         is (if COFF then "" else ELF.Function_Type (Symbol));
       function Object_Type (Symbol : String) return String
@@ -3333,9 +3360,7 @@ package body Landin.Backend.X86_64 is
                      Put (Dwarf.Label_Name
                        (Local_Prefix, "trap", Item, Natural (Trap.Value))
                        & ":");
-                     Put (Line_Of
-                       (Item, Landin.IR.Origin_Of
-                          (Of_Unit, Item, Trap.Value)));
+                     Put (Value_Line_Of (Item, Trap.Value));
                   end if;
                   Put (Trap_Label (Trap.Value, Trap.Reason) & ":");
                   Emit_Panic (Trap.Value, Trap.Reason);
@@ -8016,6 +8041,11 @@ package body Landin.Backend.X86_64 is
          if Debug /= null then
             if COFF then
                Put (Codeview.Function_Id (Item));
+               for Copy in 1 .. Landin.IR.Inline_Site_Count (Of_Unit, Item)
+               loop
+                  Put (Codeview.Inline_Site_Id
+                    (Debug.all, Of_Unit, Item, Copy));
+               end loop;
             end if;
             Put (Dwarf.Label_Name (Local_Prefix, "begin", Item) & ":");
             Put (Line_Of
@@ -8442,9 +8472,7 @@ package body Landin.Backend.X86_64 is
                         Put (Dwarf.Label_Name
                           (Local_Prefix, "value", Item, Natural (Value))
                           & ":");
-                        Put (Line_Of
-                          (Item, Landin.IR.Origin_Of
-                            (Of_Unit, Item, Value)));
+                        Put (Value_Line_Of (Item, Value));
                      end if;
                      Emit_Instruction (Value);
                      if Debug /= null then

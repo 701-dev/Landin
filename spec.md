@@ -35260,6 +35260,8 @@ second apart without `SOURCE_DATE_EPOCH`.
 
 ### D2290 — CodeView describes no inlined copy yet
 
+**Superseded by D2964.** A Windows routine's CodeView describes each inlined copy as an inline site with its own variables; what follows is history.
+
 **The tour said** nothing; D339 describes each inlined copy to DWARF.
 
 **Chosen:** a Windows routine's CodeView describes its own parameters, locals and blocks; an inlined copy's lines belong to the routine it was copied into, and the copy's own variables are not described. The register records the inline sites CodeView would need.
@@ -35267,6 +35269,16 @@ second apart without `SOURCE_DATE_EPOCH`.
 **The alternatives:** writing `S_INLINESITE` records now, whose line directives the backend would name by copy, for a Windows session that does not yet stop in a copy.
 
 **Pinned by** the sessions of `compiler/tests/windows/debug.py`, which call through function values so that no stop is in a copy.
+
+### D2964 — CodeView describes each inlined copy as an inline site
+
+**The tour said** nothing; D339 describes each inlined copy to DWARF, and D2290 left CodeView's copies undescribed.
+
+**Chosen:** with `--debug=full` each of D339's copies in a Windows routine is an `S_INLINESITE`, closed by `S_INLINESITE_END`, inside the lexical block its call stood in. It names the copied routine's `LF_FUNC_ID`, the one that routine's own procedure names, and holds the copy's parameters, locals, source aliases and lexical blocks, each described as the routine's own are, from the same availability. The copy's code has a function identity of its own, numbered after every item's, which `.cv_inline_site_id` declares inlined at the call's line inside the routine's, and its lines are `.cv_loc` directives under that identity, its traps' among them; the assembler's `.cv_inline_linetable` writes them as the site's annotations, and in the routine's own line table they become the call's line. A `DEBUG_S_INLINEELINES` subsection names where each copied routine begins, which LLDB reads a site's routine from. A lexical block covers the copies called inside it. A copy whose call has no known site, or none of whose code is left, has no inline site.
+
+**The alternatives:** describing a copy's variables as the routine's own in a lexical block, which LLDB shows in the caller's frame, under the caller's name; and keeping D2290, under which a stop in a copy showed the caller's frame and none of the copy's variables.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s copy session over `compiler/tests/debugging/registers.ldn` at `speed`, which stops inside `inline_leaf`'s copy in `inline_outer` and requires the frames `inline_leaf`, `inline_outer` and `main` and the copy's own values, run by the gate's `windows-debugger` and `windows-arm64-debugger` jobs.
 
 ### D2291 — A Windows image carries its build's digest in a `.landin` section
 

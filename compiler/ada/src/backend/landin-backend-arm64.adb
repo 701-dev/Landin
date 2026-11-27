@@ -1517,6 +1517,20 @@ package body Landin.Backend.Arm64 is
       is (if COFF
           then Landin.Backend.Codeview.Source_Line (Debug.all, Item, Site)
           else Dwarf.Source_Line (Debug.all, Site));
+
+      --  The line Site begins inside Item's copy Copy, Item's own when
+      --  zero: CodeView names it under the copy's identity (D339),
+      --  DWARF's line program by its address alone.
+      function Line_Of
+        (Item : Landin.IR.Item_Id; Site : Landin.Provenance.Origin;
+         Copy : Natural) return String
+      is (if COFF
+          then Landin.Backend.Codeview.Source_Line
+            (Debug.all, Item, Site,
+             (if Copy = 0 then 0
+              else Landin.Backend.Codeview.Copy_Identity
+                (Of_Unit, Item, Copy)))
+          else Dwarf.Source_Line (Debug.all, Site));
       type Line_Entry is record
          Text : Unbounded.Unbounded_String;
          Offset : Long_Long_Integer;
@@ -1683,6 +1697,8 @@ package body Landin.Backend.Arm64 is
            or else Ada.Strings.Fixed.Index (Instruction, ".loc ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".cv_loc ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".cv_func_id ") = 1
+           or else Ada.Strings.Fixed.Index
+             (Instruction, ".cv_inline_site_id ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".seh_") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".file ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".globl ") = 1
@@ -2963,6 +2979,8 @@ package body Landin.Backend.Arm64 is
             Site : Landin.Panics.Site_Number;
             Origin : Landin.Provenance.Origin;
             Label : Unbounded.Unbounded_String;
+            --  The inlined copy whose code reached it, zero for Item's.
+            Copy : Natural := 0;
          end record;
          package Edge_Vectors is new Ada.Containers.Vectors
            (Positive, Panic_Edge);
@@ -3024,7 +3042,11 @@ package body Landin.Backend.Arm64 is
                Name : constant String := Fresh;
             begin
                Edges.Append (Panic_Edge'
-                 (Reason, Site, Origin, Unbounded.To_Unbounded_String (Name)));
+                 (Reason, Site, Origin, Unbounded.To_Unbounded_String (Name),
+                  (if Current_Value = Landin.IR.No_Value then 0
+                   else Landin.IR.Inlined_At
+                     (Of_Unit, Item, Landin.IR.Block_Of
+                        (Of_Unit, Item, Current_Value)))));
                return Name;
             end;
          end Trap;
@@ -7039,6 +7061,11 @@ package body Landin.Backend.Arm64 is
          if Debug /= null then
             if COFF then
                Put (Landin.Backend.Codeview.Function_Id (Item));
+               for Copy in 1 .. Landin.IR.Inline_Site_Count (Of_Unit, Item)
+               loop
+                  Put (Landin.Backend.Codeview.Inline_Site_Id
+                    (Debug.all, Of_Unit, Item, Copy));
+               end loop;
             end if;
             Put (Dwarf.Label_Name (Local_Prefix, "begin", Item) & ":");
             Put (Line_Of (Item, Landin.IR.Origin_Of (Of_Unit, Item)));
@@ -7286,7 +7313,9 @@ package body Landin.Backend.Arm64 is
                   Put (Dwarf.Label_Name (Local_Prefix, "value", Item,
                     Natural (Current_Value)) & ":");
                   Put (Line_Of (Item,
-                    Landin.IR.Origin_Of (Of_Unit, Item, Current_Value)));
+                    Landin.IR.Origin_Of (Of_Unit, Item, Current_Value),
+                    Landin.IR.Inlined_At
+                      (Of_Unit, Item, Landin.IR.Block_Id (Block))));
                   Row := Lines.Last_Index;
                end if;
                Instruction (Current_Value);
@@ -7355,7 +7384,7 @@ package body Landin.Backend.Arm64 is
          for Edge of Edges loop
             Put (Unbounded.To_String (Edge.Label) & ":");
             if Debug /= null then
-               Put (Line_Of (Item, Edge.Origin));
+               Put (Line_Of (Item, Edge.Origin, Edge.Copy));
             end if;
             if Landin.Panics.Handler (Panic.all) /= Landin.IR.No_Item then
                Immediate ("x0", Pattern (Landin.Panics.Code
