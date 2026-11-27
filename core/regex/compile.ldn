@@ -1,0 +1,815 @@
+--  The compiler: a tree to a program of byte instructions, Thompson's
+--  construction, forward for the engines that read left to right and
+--  reversed for the DFA that finds a match's start from its end.  A class
+--  becomes the bytes of its scalars' UTF-8 encodings, as a trie whose
+--  equal suffixes are shared.
+
+import core/mem
+import core/sort
+import core/vec
+
+--  An instruction's kind.
+--  `inst_range`: one byte from `low` to `high`, then `next`.
+--  `inst_sparse`: one byte, through the edges from `next` to `next + arg`
+--  whose ranges hold it, any of them.
+--  `inst_split`: `next`, preferred, and `arg`.
+--  `inst_save`: record the position in slot `arg`, then `next`.
+--  `inst_look`: the assertion `arg` must hold here, then `next`.
+--  `inst_goto`: `next`, which the compiler's last pass skips.
+--  `inst_match` and `inst_fail`.
+inst_range: u8 = 1
+inst_sparse: u8 = 2
+inst_split: u8 = 3
+inst_save: u8 = 4
+inst_look: u8 = 5
+inst_goto: u8 = 6
+inst_match: u8 = 7
+inst_fail: u8 = 8
+
+inst: type = struct
+    kind: u8
+    low: u8
+    high: u8
+    next: u32
+    arg: u32
+end inst
+
+edge: type = struct
+    low: u8
+    high: u8
+    next: u32
+end edge
+
+--  A compiled program.  `start` is its first instruction, which is
+--  anchored where the search begins; `looks` has bit `k` set for each
+--  look kind `k` it holds.
+program: type = struct
+    insts: vec.list(inst)
+    edges: vec.list(edge)
+    start: u32
+    unanchored: u32
+    looks: u32
+end program
+
+new_program: () -> (result: program) =
+    result = (insts: vec.new(item: inst), edges: vec.new(item: edge),
+              start: 0, unanchored: 0, looks: 0)
+end new_program
+
+release_program: (provider: type is mem.allocator, inout code: program,
+                  memory: provider) -> none =
+    vec.release(code.insts, memory)
+    vec.release(code.edges, memory)
+end release_program
+
+--  A piece of program under construction: where it begins, and the goto
+--  it ends at, whose target the next piece patches.
+fragment: type = struct
+    start: u32
+    exit: u32
+end fragment
+
+--  A UTF-8 byte sequence: `count` byte ranges.
+byte_sequence: type = struct
+    count: usize
+    low: [4]u8
+    high: [4]u8
+end byte_sequence
+
+--  What compiling needs beside the program: the tree, the direction, the
+--  size limit, a scratch list of sequences and the trie's node cache.
+builder: type = struct
+    reverse: bool
+    captures: bool
+    limit: usize
+    sequences: vec.list(byte_sequence)
+    cache: vec.list(u32)
+    pending: vec.list(edge)
+end builder
+
+cache_size: usize = 64
+
+build_failure: type = pattern_too_large | mem.out_of_memory
+
+--  Compile `tree` into `code`, forward or reversed; a reversed program
+--  records no captures.  `limit` bounds its instructions and edges.
+compile_program: (provider: type is mem.allocator, inout code: program,
+                  memory: provider, tree: hir, reverse: bool, limit: usize)
+                 -> none ! build_failure =
+    mut c: builder = (reverse: reverse, captures: not reverse, limit: limit,
+                      sequences: vec.new(item: byte_sequence),
+                      cache: vec.new(item: u32), pending: vec.new(item: edge))
+    defer vec.release(c.sequences, memory)
+    defer vec.release(c.pending, memory)
+    defer vec.release(c.cache, memory)
+    try vec.reserve(c.cache, memory, cache_size)
+    for index in usize(0)..<cache_size do
+        _ = index
+        try vec.push(c.cache, memory, nothing)
+    end for
+    body: fragment = try compile_node(code, memory, c, tree, tree.root)
+    done: u32 = try emit(code, memory, c, inst_match, 0, 0, 0, 0)
+    patch(code, body.exit, done)
+    code.start = body.start
+    code.unanchored = body.start
+    if not reverse then
+        --  `(?s:.)*?` before the pattern, for the DFA's unanchored search:
+        --  it prefers the pattern, and steps a whole scalar at a time, so
+        --  that a match begins only at a scalar's start.
+        mut any_tree: hir = new_hir()
+        defer release_hir(any_tree, memory)
+        everything: scalar_range = (low: 0, high: scalar_limit)
+        try vec.push(any_tree.ranges, memory, everything)
+        whole: hir_node = (kind: node_class, greedy: true, value: 0, child: 0,
+                           sibling: nothing, count: 1, low: 0, high: 0)
+        try vec.push(any_tree.nodes, memory, whole)
+        step: fragment = try compile_node(code, memory, c, any_tree, 0)
+        prefix: u32 = try emit(code, memory, c, inst_split, 0, 0, body.start,
+                               step.start)
+        patch(code, step.exit, prefix)
+        code.unanchored = prefix
+    end if
+    skip_gotos(code)
+    try drop_gotos(code, memory)
+end compile_program
+
+--  Append an instruction and give its index.
+emit: (provider: type is mem.allocator, inout code: program,
+       memory: provider, c: builder, kind: u8, low: u8, high: u8,
+       next: u32, arg: u32) -> (index: u32) ! build_failure =
+    count: usize = vec.length(code.insts)
+    fail pattern_too_large when count + vec.length(code.edges) >= c.limit
+    index = u32(count)
+    added: inst = (kind: kind, low: low, high: high, next: next, arg: arg)
+    try vec.push(code.insts, memory, added)
+end emit
+
+--  A goto whose target is patched later.
+hole: (provider: type is mem.allocator, inout code: program,
+       memory: provider, c: builder) -> (index: u32) ! build_failure =
+    index = try emit(code, memory, c, inst_goto, 0, 0, nothing, 0)
+end hole
+
+--  Point instruction `from`'s `next` at `to`.
+patch: (inout code: program, source: u32, to: u32) -> none =
+    slot := vec.at(code.insts, usize(source)) else (problem)
+        _ = problem
+        return
+    end
+    slot.val.next = to
+end patch
+
+--  Point a split's second branch at `to`.
+patch_second: (inout code: program, source: u32, to: u32) -> none =
+    slot := vec.at(code.insts, usize(source)) else (problem)
+        _ = problem
+        return
+    end
+    slot.val.arg = to
+end patch_second
+
+node_at: (tree: hir, index: u32) -> (node: hir_node) =
+    empty: hir_node = (kind: node_empty, greedy: true, value: 0,
+                       child: nothing, sibling: nothing, count: 0, low: 0,
+                       high: 0)
+    node = vec.get(tree.nodes, usize(index)) else empty
+end node_at
+
+compile_node: (provider: type is mem.allocator, inout code: program,
+               memory: provider, inout c: builder, tree: hir, index: u32)
+              -> (piece: fragment) ! build_failure =
+    node: hir_node = node_at(tree, index)
+    kind: u8 = node.kind
+    if kind == node_empty then
+        exit: u32 = try hole(code, memory, c)
+        piece = (start: exit, exit: exit)
+    elsif kind == node_literal then
+        piece = try compile_literal(code, memory, c, node.value)
+    elsif kind == node_class then
+        piece = try compile_class(code, memory, c, tree, node)
+    elsif kind == node_look then
+        look: u8 = if c.reverse then reversed_look(u8(node.value))
+                   else u8(node.value) end if
+        code.looks = code.looks | u32(1) << u32(look)
+        exit: u32 = try hole(code, memory, c)
+        start: u32 = try emit(code, memory, c, inst_look, 0, 0, exit,
+                              u32(look))
+        piece = (start: start, exit: exit)
+    elsif kind == node_capture then
+        inner: fragment = try compile_node(code, memory, c, tree, node.child)
+        if c.captures then
+            exit: u32 = try hole(code, memory, c)
+            close: u32 = try emit(code, memory, c, inst_save, 0, 0, exit,
+                                  node.value * 2 + 1)
+            open: u32 = try emit(code, memory, c, inst_save, 0, 0,
+                                 inner.start, node.value * 2)
+            patch(code, inner.exit, close)
+            piece = (start: open, exit: exit)
+        else
+            piece = inner
+        end if
+    elsif kind == node_concat then
+        piece = try compile_concat(code, memory, c, tree, node.child)
+    elsif kind == node_alternate then
+        piece = try compile_alternate(code, memory, c, tree, node.child)
+    else
+        piece = try compile_repeat(code, memory, c, tree, node)
+    end if
+end compile_node
+
+--  Whether node `index` can match the empty text.
+matches_empty: (tree: hir, index: u32) -> (yes: bool) =
+    node: hir_node = node_at(tree, index)
+    kind: u8 = node.kind
+    yes = true
+    if kind == node_literal or kind == node_class then
+        yes = false
+    elsif kind == node_repeat then
+        yes = node.low == 0 or matches_empty(tree, node.child)
+    elsif kind == node_capture then
+        yes = matches_empty(tree, node.child)
+    elsif kind == node_concat or kind == node_alternate then
+        mut at: u32 = node.child
+        yes = kind == node_concat
+        while at <> nothing do
+            child: bool = matches_empty(tree, at)
+            if kind == node_concat and not child then
+                yes = false
+                return
+            end if
+            if kind == node_alternate and child then
+                yes = true
+                return
+            end if
+            held: hir_node = node_at(tree, at)
+            at = held.sibling
+        end while
+    end if
+end matches_empty
+
+--  A look as the reversed program sees it: what ends a line forward
+--  begins one backward.
+reversed_look: (kind: u8) -> (result: u8) =
+    result = kind
+    if kind == look_start_text then
+        result = look_end_text
+    elsif kind == look_end_text then
+        result = look_start_text
+    elsif kind == look_start_line then
+        result = look_end_line
+    elsif kind == look_end_line then
+        result = look_start_line
+    elsif kind == look_start_line_crlf then
+        result = look_end_line_crlf
+    elsif kind == look_end_line_crlf then
+        result = look_start_line_crlf
+    elsif kind == look_word_start_ascii or kind == look_word_start_unicode
+      or kind == look_word_start_half_ascii
+      or kind == look_word_start_half_unicode then
+        result = kind + 1
+    elsif kind == look_word_end_ascii or kind == look_word_end_unicode
+      or kind == look_word_end_half_ascii
+      or kind == look_word_end_half_unicode then
+        result = kind - 1
+    end if
+end reversed_look
+
+compile_concat: (provider: type is mem.allocator, inout code: program,
+                 memory: provider, inout c: builder, tree: hir, first: u32)
+                -> (piece: fragment) ! build_failure =
+    --  Backward, the children run last to first: compile them in that
+    --  order by collecting the list's indices first.
+    mut order: vec.list(u32) = vec.new(item: u32)
+    defer vec.release(order, memory)
+    mut at: u32 = first
+    while at <> nothing do
+        try vec.push(order, memory, at)
+        held: hir_node = node_at(tree, at)
+        at = held.sibling
+    end while
+    count: usize = vec.length(order)
+    mut started: bool = false
+    piece = (start: 0, exit: 0)
+    for step in usize(0)..<count do
+        which: usize = if c.reverse then count - 1 - step else step end if
+        child_index: u32 = vec.get(order, which) else (problem)
+            _ = problem
+            fail pattern_too_large
+        end
+        child: fragment = try compile_node(code, memory, c, tree, child_index)
+        if started then
+            patch(code, piece.exit, child.start)
+            piece.exit = child.exit
+        else
+            piece = child
+            started = true
+        end if
+    end for
+end compile_concat
+
+compile_alternate: (provider: type is mem.allocator, inout code: program,
+                    memory: provider, inout c: builder, tree: hir,
+                    first: u32) -> (piece: fragment) ! build_failure =
+    exit: u32 = try hole(code, memory, c)
+    mut previous_split: u32 = nothing
+    mut start: u32 = nothing
+    mut at: u32 = first
+    while at <> nothing do
+        node: hir_node = node_at(tree, at)
+        branch: fragment = try compile_node(code, memory, c, tree, at)
+        patch(code, branch.exit, exit)
+        mut entry: u32 = branch.start
+        if node.sibling <> nothing then
+            entry = try emit(code, memory, c, inst_split, 0, 0, branch.start,
+                             nothing)
+        end if
+        if previous_split == nothing then
+            start = entry
+        else
+            patch_second(code, previous_split, entry)
+        end if
+        previous_split = entry
+        at = node.sibling
+    end while
+    piece = (start: start, exit: exit)
+end compile_alternate
+
+--  A repetition: its operand `low` times, then either a loop or the rest
+--  of `high` as nested options, `x(x(x)?)?`, so that no two copies are
+--  ever both optional at once.
+compile_repeat: (provider: type is mem.allocator, inout code: program,
+                 memory: provider, inout c: builder, tree: hir,
+                 node: hir_node) -> (piece: fragment) ! build_failure =
+    exit: u32 = try hole(code, memory, c)
+    piece = (start: exit, exit: exit)
+    mut started: bool = false
+    mut copies: u32 = node.low
+    if node.high == nothing and node.low > 0 then copies = node.low - 1 end if
+    for count in u32(0)..<copies do
+        _ = count
+        copy: fragment = try compile_node(code, memory, c, tree, node.child)
+        if started then
+            patch(code, piece.exit, copy.start)
+            piece.exit = copy.exit
+        else
+            piece = copy
+            started = true
+        end if
+    end for
+    if node.high == nothing then
+        body: fragment = try compile_node(code, memory, c, tree, node.child)
+        tail: u32 = try hole(code, memory, c)
+        loop_split: u32 = try emit(code, memory, c, inst_split, 0, 0, nothing,
+                                   nothing)
+        if node.greedy then
+            patch(code, loop_split, body.start)
+            patch_second(code, loop_split, tail)
+        else
+            patch(code, loop_split, tail)
+            patch_second(code, loop_split, body.start)
+        end if
+        patch(code, body.exit, loop_split)
+        --  `x*` enters at the split, `x+` at the operand; but `x*` whose
+        --  `x` can match the empty text is `(?:x+)?`, entering through an
+        --  option of its own, so that an empty `x` still takes part and
+        --  sets its groups, as Rust's `regex` makes it.
+        mut entry: u32 = if node.low == 0 then loop_split else body.start
+                         end if
+        if node.low == 0 and matches_empty(tree, node.child) then
+            entry = try emit(code, memory, c, inst_split, 0, 0, nothing,
+                             nothing)
+            if node.greedy then
+                patch(code, entry, body.start)
+                patch_second(code, entry, tail)
+            else
+                patch(code, entry, tail)
+                patch_second(code, entry, body.start)
+            end if
+        end if
+        if started then
+            patch(code, piece.exit, entry)
+        else
+            piece.start = entry
+        end if
+        piece.exit = tail
+    elsif node.high > node.low then
+        optional_exit: u32 = try hole(code, memory, c)
+        mut first_split: u32 = nothing
+        mut previous_exit: u32 = nothing
+        for count in node.low..<node.high do
+            _ = count
+            body: fragment = try compile_node(code, memory, c, tree,
+                                              node.child)
+            option: u32 = try emit(code, memory, c, inst_split, 0, 0,
+                                   nothing, nothing)
+            if node.greedy then
+                patch(code, option, body.start)
+                patch_second(code, option, optional_exit)
+            else
+                patch(code, option, optional_exit)
+                patch_second(code, option, body.start)
+            end if
+            if first_split == nothing then
+                first_split = option
+            else
+                patch(code, previous_exit, option)
+            end if
+            previous_exit = body.exit
+        end for
+        patch(code, previous_exit, optional_exit)
+        if started then
+            patch(code, piece.exit, first_split)
+        else
+            piece.start = first_split
+        end if
+        piece.exit = optional_exit
+    end if
+end compile_repeat
+
+compile_literal: (provider: type is mem.allocator, inout code: program,
+                  memory: provider, inout c: builder, scalar: u32)
+                 -> (piece: fragment) ! build_failure =
+    sequence: byte_sequence = encoded_sequence(scalar)
+    exit: u32 = try hole(code, memory, c)
+    mut target: u32 = exit
+    for step in usize(0)..<sequence.count do
+        --  Built from the last byte read to the first.
+        at: usize = if c.reverse then step else sequence.count - 1 - step end if
+        byte: u8 = sequence.low[at]
+        target = try emit(code, memory, c, inst_range, byte, byte, target, 0)
+    end for
+    piece = (start: target, exit: exit)
+end compile_literal
+
+--  The UTF-8 encoding of one scalar as a sequence of one-byte ranges.
+encoded_sequence: (scalar: u32) -> (sequence: byte_sequence) =
+    sequence = (count: 0, low: zeroed, high: zeroed)
+    if scalar < 0x80 then
+        sequence.count = 1
+        sequence.low[0] = u8(scalar)
+    elsif scalar < 0x800 then
+        sequence.count = 2
+        sequence.low[0] = u8(0xc0 | scalar >> 6)
+        sequence.low[1] = u8(0x80 | scalar & 0x3f)
+    elsif scalar < 0x10000 then
+        sequence.count = 3
+        sequence.low[0] = u8(0xe0 | scalar >> 12)
+        sequence.low[1] = u8(0x80 | scalar >> 6 & 0x3f)
+        sequence.low[2] = u8(0x80 | scalar & 0x3f)
+    else
+        sequence.count = 4
+        sequence.low[0] = u8(0xf0 | scalar >> 18)
+        sequence.low[1] = u8(0x80 | scalar >> 12 & 0x3f)
+        sequence.low[2] = u8(0x80 | scalar >> 6 & 0x3f)
+        sequence.low[3] = u8(0x80 | scalar & 0x3f)
+    end if
+    sequence.high = sequence.low
+end encoded_sequence
+
+--  A class: its byte sequences, each reversed for a reversed program,
+--  sorted, then compiled as a trie.
+compile_class: (provider: type is mem.allocator, inout code: program,
+                memory: provider, inout c: builder, tree: hir,
+                node: hir_node) -> (piece: fragment) ! build_failure =
+    exit: u32 = try hole(code, memory, c)
+    vec.clear(c.sequences)
+    ranges: []scalar_range = vec.used(tree.ranges)
+    first: usize = usize(node.child)
+    for piece_index in first..<first + usize(node.count) do
+        try add_sequences(c, memory, ranges[piece_index])
+    end for
+    if vec.length(c.sequences) == 0 then
+        never: u32 = try emit(code, memory, c, inst_fail, 0, 0, 0, 0)
+        piece = (start: never, exit: exit)
+        return
+    end if
+    if c.reverse then
+        for sequence in vec.used(c.sequences) do
+            reverse_sequence(sequence)
+        end for
+        sort.sort_by(vec.used(c.sequences), u8(0), sequence_less)
+    end if
+    start: u32 = try compile_trie(code, memory, c, 0,
+                                  vec.length(c.sequences), 0, exit)
+    piece = (start: start, exit: exit)
+end compile_class
+
+reverse_sequence: (inout sequence: byte_sequence) -> none =
+    count: usize = sequence.count
+    for step in usize(0)..<count / 2 do
+        other: usize = count - (1 + step)
+        low: u8 = sequence.low[step]
+        high: u8 = sequence.high[step]
+        sequence.low[step] = sequence.low[other]
+        sequence.high[step] = sequence.high[other]
+        sequence.low[other] = low
+        sequence.high[other] = high
+    end for
+end reverse_sequence
+
+sequence_less: (by: u8, left: byte_sequence, right: byte_sequence)
+               -> (yes: bool) =
+    _ = by
+    yes = false
+    for step in usize(0)..<4 do
+        return when step >= left.count or step >= right.count
+        if left.low[step] <> right.low[step] then
+            yes = left.low[step] < right.low[step]
+            return
+        end if
+        if left.high[step] <> right.high[step] then
+            yes = left.high[step] < right.high[step]
+            return
+        end if
+    end for
+end sequence_less
+
+--  Add the UTF-8 sequences of a range of scalars, the surrogates left out.
+add_sequences: (provider: type is mem.allocator, inout c: builder,
+                memory: provider, piece: scalar_range)
+               -> none ! mem.out_of_memory =
+    if piece.low < 0xd800 and piece.high > 0xdfff then
+        try add_sequences_of(c, memory, piece.low, 0xd7ff)
+        try add_sequences_of(c, memory, 0xe000, piece.high)
+    elsif piece.low >= 0xd800 and piece.low <= 0xdfff then
+        if piece.high > 0xdfff then
+            try add_sequences_of(c, memory, 0xe000, piece.high)
+        end if
+    elsif piece.high >= 0xd800 and piece.high <= 0xdfff then
+        try add_sequences_of(c, memory, piece.low, 0xd7ff)
+    else
+        try add_sequences_of(c, memory, piece.low, piece.high)
+    end if
+end add_sequences
+
+--  The last scalar of each UTF-8 length but the longest, and the bits of
+--  one, two and three continuation bytes.
+length_boundaries: [3]u32 = [0x7f, 0x7ff, 0xffff]
+continuation_shifts: [3]u32 = [6, 12, 18]
+
+--  The sequences of `low` to `high`: split where the encoded length
+--  changes, then where a byte other than the last would have to range
+--  over less than all of its continuation values, until each piece's
+--  encodings are the bytes between its ends' encodings, position by
+--  position.
+add_sequences_of: (provider: type is mem.allocator, inout c: builder,
+                   memory: provider, low: u32, high: u32)
+                  -> none ! mem.out_of_memory =
+    mut pending_low: [16]u32 = zeroed
+    mut pending_high: [16]u32 = zeroed
+    mut count: usize = 1
+    pending_low[0] = low
+    pending_high[0] = high
+    while count > 0 do
+        dec count
+        start: u32 = pending_low[count]
+        finish: u32 = pending_high[count]
+        mut split: bool = false
+        for boundary in length_boundaries do
+            if not split and start <= boundary and finish > boundary then
+                pending_low[count] = boundary + 1
+                pending_high[count] = finish
+                inc count
+                pending_low[count] = start
+                pending_high[count] = boundary
+                inc count
+                split = true
+            end if
+        end for
+        continue when split
+        if finish > 0x7f then
+            for shift in continuation_shifts do
+                mask: u32 = (u32(1) << shift) - 1
+                if not split and start & ~mask <> finish & ~mask then
+                    if start & mask <> 0 then
+                        pending_low[count] = (start | mask) + 1
+                        pending_high[count] = finish
+                        inc count
+                        pending_low[count] = start
+                        pending_high[count] = start | mask
+                        inc count
+                        split = true
+                    elsif finish & mask <> mask then
+                        pending_low[count] = finish & ~mask
+                        pending_high[count] = finish
+                        inc count
+                        pending_low[count] = start
+                        pending_high[count] = (finish & ~mask) - 1
+                        inc count
+                        split = true
+                    end if
+                end if
+            end for
+        end if
+        continue when split
+        first: byte_sequence = encoded_sequence(start)
+        last: byte_sequence = encoded_sequence(finish)
+        added: byte_sequence = (count: first.count, low: first.low,
+                                high: last.low)
+        try vec.push(c.sequences, memory, added)
+    end while
+end add_sequences_of
+
+--  The trie of sequences `from` to `to`, which share their first `depth`
+--  ranges, from their next range on: one edge per run of equal next
+--  ranges, each to the trie of the run's rest.  A node equal to one
+--  already built is that one.
+compile_trie: (provider: type is mem.allocator, inout code: program,
+               memory: provider, inout c: builder, first: usize, to: usize,
+               depth: usize, exit: u32) -> (state: u32) ! build_failure =
+    --  This node's edges go on the end of the shared list; each child's
+    --  are pushed and taken off again before the next edge of this one.
+    base: usize = vec.length(c.pending)
+    mut at: usize = first
+    while at < to do
+        head: byte_sequence = vec.get(c.sequences, at) else (problem)
+            _ = problem
+            fail pattern_too_large
+        end
+        if head.count <= depth then
+            inc at
+            continue
+        end if
+        mut run_end: usize = at + 1
+        while run_end < to and same_range(c, run_end, head, depth) do
+            inc run_end
+        end while
+        target: u32 = if head.count == depth + 1 then exit
+                      else try compile_trie(code, memory, c, at, run_end,
+                                            depth + 1, exit) end if
+        added: edge = (low: head.low[depth], high: head.high[depth],
+                       next: target)
+        try vec.push(c.pending, memory, added)
+        at = run_end
+    end while
+    --  The node's edges leave the shared list before it is built: in a
+    --  buffer of the frame's when they are few, as nearly every node's
+    --  are, so that an arena is not spent on them.
+    count: usize = vec.length(c.pending) - base
+    mut few: [32]edge = zeroed
+    mut many: vec.list(edge) = vec.new(item: edge)
+    defer vec.release(many, memory)
+    for index in base..<vec.length(c.pending) do
+        item: edge = vec.get(c.pending, index) else (problem)
+            _ = problem
+            fail pattern_too_large
+        end
+        if count <= lenof few then
+            few[index - base] = item
+        else
+            try vec.push(many, memory, item)
+        end if
+    end for
+    while vec.length(c.pending) > base do
+        _ = vec.pop(c.pending) else (problem)
+            _ = problem
+            break
+        end
+    end while
+    if count <= lenof few then
+        state = try cached_node(code, memory, c, few[0..<count])
+    else
+        state = try cached_node(code, memory, c, vec.used(many))
+    end if
+end compile_trie
+
+same_range: (c: builder, index: usize, head: byte_sequence, depth: usize)
+            -> (yes: bool) =
+    other: byte_sequence = vec.get(c.sequences, index) else (problem)
+        _ = problem
+        yes = false
+        return
+    end
+    yes = other.count > depth and other.low[depth] == head.low[depth]
+          and other.high[depth] == head.high[depth]
+end same_range
+
+--  The instruction of a trie node with these edges: one built for the same
+--  edges before, or a new range instruction for one edge and a sparse one
+--  for more.
+cached_node: (provider: type is mem.allocator, inout code: program,
+              memory: provider, inout c: builder, edges: []edge)
+             -> (state: u32) ! build_failure =
+    mut hash: u32 = 2166136261
+    for item in edges do
+        hash = (hash ^ u32(item.low)) *% 16777619
+        hash = (hash ^ u32(item.high)) *% 16777619
+        hash = (hash ^ item.next) *% 16777619
+    end for
+    slot: usize = usize(hash) % cache_size
+    held: u32 = vec.get(c.cache, slot) else nothing
+    if held <> nothing and node_equals(code, held, edges) then
+        state = held
+        return
+    end if
+    if lenof edges == 1 then
+        state = try emit(code, memory, c, inst_range, edges[0].low,
+                         edges[0].high, edges[0].next, 0)
+    else
+        first: usize = vec.length(code.edges)
+        fail pattern_too_large when first + vec.length(code.insts) >= c.limit
+        for item in edges do
+            try vec.push(code.edges, memory, item)
+        end for
+        state = try emit(code, memory, c, inst_sparse, 0, 0, u32(first),
+                         u32(lenof edges))
+    end if
+    entry := vec.at(c.cache, slot) else (problem)
+        _ = problem
+        return
+    end
+    entry.val = state
+end cached_node
+
+node_equals: (code: program, state: u32, edges: []edge) -> (yes: bool) =
+    yes = false
+    held: inst = vec.get(code.insts, usize(state)) else (problem)
+        _ = problem
+        return
+    end
+    if held.kind == inst_range then
+        yes = lenof edges == 1 and edges[0].low == held.low
+              and edges[0].high == held.high and edges[0].next == held.next
+    elsif held.kind == inst_sparse and usize(held.arg) == lenof edges then
+        stored: []edge = vec.used(code.edges)
+        for item, index in edges do
+            other: edge = stored[usize(held.next) + index]
+            return when other.low <> item.low or other.high <> item.high
+              or other.next <> item.next
+        end for
+        yes = true
+    end if
+end node_equals
+
+--  Point every target past the gotos it reaches, so that no engine
+--  follows a goto: `start`, `next`, a split's `arg` and every edge.
+skip_gotos: (inout code: program) -> none =
+    insts: []mut inst = vec.used(code.insts)
+    code.start = past_gotos(insts, code.start)
+    code.unanchored = past_gotos(insts, code.unanchored)
+    for item in insts do
+        if item.kind <> inst_sparse and item.kind <> inst_match
+          and item.kind <> inst_fail then
+            item.next = past_gotos(insts, item.next)
+        end if
+        if item.kind == inst_split then
+            item.arg = past_gotos(insts, item.arg)
+        end if
+    end for
+    for item in vec.used(code.edges) do
+        item.next = past_gotos(insts, item.next)
+    end for
+end skip_gotos
+
+--  Take the gotos out, which nothing reaches once `skip_gotos` has run,
+--  numbering the rest afresh.
+drop_gotos: (provider: type is mem.allocator, inout code: program,
+             memory: provider) -> none ! mem.out_of_memory =
+    mut renumbered: vec.list(u32) = vec.new(item: u32)
+    defer vec.release(renumbered, memory)
+    count: usize = vec.length(code.insts)
+    try vec.reserve(renumbered, memory, count)
+    mut kept: u32 = 0
+    for item in vec.used(code.insts) do
+        try vec.push(renumbered, memory, kept)
+        if item.kind <> inst_goto then inc kept end if
+    end for
+    map: []u32 = vec.used(renumbered)
+    insts: []mut inst = vec.used(code.insts)
+    mut place: usize = 0
+    for index in usize(0)..<count do
+        item: inst = insts[index]
+        continue when item.kind == inst_goto
+        mut moved: inst = item
+        if item.kind <> inst_sparse and item.kind <> inst_match
+          and item.kind <> inst_fail and item.next <> nothing then
+            moved.next = map[usize(item.next)]
+        end if
+        if item.kind == inst_split and item.arg <> nothing then
+            moved.arg = map[usize(item.arg)]
+        end if
+        insts[place] = moved
+        inc place
+    end for
+    for item in vec.used(code.edges) do
+        item.next = map[usize(item.next)]
+    end for
+    code.start = map[usize(code.start)]
+    code.unanchored = map[usize(code.unanchored)]
+    while vec.length(code.insts) > place do
+        _ = vec.pop(code.insts) else (problem)
+            _ = problem
+            return
+        end
+    end while
+end drop_gotos
+
+past_gotos: (insts: []inst, origin: u32) -> (target: u32) =
+    target = origin
+    mut steps: usize = 0
+    while target <> nothing and usize(target) < lenof insts
+      and insts[usize(target)].kind == inst_goto and steps <= lenof insts do
+        target = insts[usize(target)].next
+        inc steps
+    end while
+end past_gotos

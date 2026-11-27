@@ -50,8 +50,9 @@ several of the tasks together.
 | Write straight to standard error | `io.write(host, io.err(host), bytes)` | [core/io](../core/io) |
 | Turn a failure into words for a person | `failure.words(problem)` | [core/failure](../core/failure) |
 | Turn an errno from `platform/posix` into words | `posix.words(problem)` for an errno alone; `system.words(problem)` for a `system.reason`, an errno or one of the library's failures | [platform/posix](../platform/posix), [hosted/system](../hosted/system) |
-| Right-align a number in a column | `text.over(buffer)` makes a builder, `text.append_u64(line, value)` writes the number, `text.align_right(line, start, width, u8(' '))` pads it from `start`, and `io.put(out, text.used(line))` prints it | [core/text](../core/text) |
-| Print a float with two decimals | Scale it to whole hundredths and print the integer parts, as [core/text](../core/text)'s program shows; floats are not formattable | [core/text](../core/text) |
+| Right-align a number in a column | `io.format(out, "{:8}\n", [any(addr value)])`: a number goes to the right of its width, text to the left, and `{:<8}`, `{:>8}` and `{:^8}` say otherwise | [core/text](../core/text) |
+| Print a float with two decimals | `io.format(out, "{:.2}\n", [any(addr value)])`, or `text.append_f64_fixed(line, value, 2)`: the exact value rounded once, as C's `printf("%.2f")` writes it | [core/text](../core/text) |
+| Read a float from text | `text.parse_f64(bytes)`, rounded once to the nearest `f64`; it reads back everything the library writes | [core/text](../core/text) |
 | Change the case of text | `text.utf8_over(buffer)` makes a builder, `unicode.append_upper(into, source)`, `append_lower` or `append_title` writes the text, and `text.utf8_used(into)` lends it | [core/unicode](../core/unicode) |
 | Count characters as a reader does | `for cluster in unicode.graphemes(source) do`, counting the items | [core/unicode](../core/unicode) |
 | Compare text ignoring case | `unicode.append_folded(into, source)` for each text, `unicode.append_nfc` over each result where accents may be spelled apart, then `text.equal` | [core/unicode](../core/unicode) |
@@ -240,6 +241,8 @@ The library covers:
 - the elementary mathematical functions of `f32` and `f64`, `core/math`;
 - Unicode's properties, case mapping, normalization and the boundaries
   of characters, words and sentences, `core/unicode`;
+- regular expressions over `utf8`, matched in linear time,
+  `core/regex`;
 - complex numbers over `f32` and `f64`, `core/complex`;
 - blocking TCP and UDP sockets over IPv4 and IPv6;
 - threads started as a group the function joins, `hosted/thread`;
@@ -400,7 +403,7 @@ The three concepts ship for these types:
 | `utf8`, from `core/text` | yes | yes | yes |
 | `time.duration` and `time.instant`, from `core/time` | yes | yes | yes, by their counts |
 | `net.address`, from `core/net` | yes, as `same_address`, zone included | yes | no |
-| floating-point types | no | no | no |
+| `f32` and `f64` | no | no | yes, by IEEE 754's totalOrder |
 
 Every hash is keyed by a `cmp.hash_seed`, made by `cmp.seed_from` from
 two `u64` words:
@@ -424,6 +427,15 @@ first differing byte decides, and a proper prefix comes first. This is
 C's `memcmp` with the lengths taken into account, and it is the order
 `ls` gives names in the C locale. The `ordered` evidence of `[]u8` is the
 `less` of this order.
+
+The `ordered` evidence of `f32` and `f64` is IEEE 754's totalOrder:
+negative numbers from negative infinity up, then -0.0, +0.0 and the
+positive numbers up to infinity. It agrees with `<` on every pair of
+numbers except the two zeros, so `sort.sort` sorts floats as it sorts
+integers. A NaN sorts to an end by its sign: the negative ones before
+negative infinity, larger payload first, and the positive ones after
+infinity, larger payload last. Floats have no `equatable` or `hashable`
+evidence.
 
 There is one register and no override. To read a shipped type another
 way, put it in a `distinct` wrapper that has its own evidence. A
@@ -780,31 +792,69 @@ the cut. A `utf8_builder` has no byte append, no alignment and no
 
 ### Formatting
 
-`format` appends a template to a builder. Each `{}` is replaced by the
-next of an array of `any formattable` values, and `{{` and `}}` are
-written as braces. A placeholder takes nothing else: width, padding and
-hexadecimal are the typed calls.
+`format` appends a template to a builder. Each placeholder is replaced by
+the next of an array of `any formattable` values, and `{{` and `}}` are
+written as braces.
 
 The values are an array literal written at the call, which lends the
 array as a slice:
 `text.format(line, "{} {}\n", [any(addr count), any(addr name)])`.
 
+A placeholder is `{}`, or `{:` and a specification as Rust spells it:
+`[[fill]align][+][#][0][width][.precision][kind]`, every part optional.
+
+| Part | Means |
+|---|---|
+| `8`, the width | At least eight scalars: a number goes to the right, anything else to the left |
+| `<`, `>`, `^` | Left, right or centred in the width; a scalar before it is the fill, `{:*^8}` |
+| `+` | A `+` before a number that is not negative |
+| `#` | `0x`, `0o` or `0b` before a number in that radix |
+| `0` | Zeros between a number's sign or prefix and its digits, `-0042` |
+| `.3`, the precision | A float to three places after the point; text to three scalars |
+| `x`, `X`, `o`, `b` | An integer in hexadecimal, upper-case hexadecimal, octal or binary; a negative one as its two's complement at its width, `-1i8` as `ff` |
+| `e`, `E` | A float with one digit before the point and an exponent, `6.02e23` |
+
+A part a value does not read changes nothing: `{:.2}` of an integer is
+the integer. There are no positional or named arguments, and no width or
+precision taken from an argument.
+
 `formattable` has one entry, `append`, which writes a value into a
 builder through a pointer to the value. The library supplies it for
 these types, and a program declares it for a type of its own:
 
-- the ten integer types, in decimal;
+- the ten integer types, in decimal unless the placeholder names a radix;
+- `f32` and `f64`, as `append_f64` writes them unless it names a precision
+  or `e`;
 - `bool`, as `true` or `false`;
 - `utf8`, `[]u8` and OS strings.
 
-Floats, `f32` and `f64`, are not formattable yet.
+The template applies the width, fill and alignment to whatever a
+conformance wrote, so a type of the program's own is padded without
+reading anything. One that wants the precision or the radix reads the
+placeholder with `text.placeholder(into)`, a `text.format_spec`, whose
+`kind` is the letter or zero. Outside a format, and inside a nested
+format's own placeholders, it is `text.plain`.
 
 Nothing runs at compile time, so the template is checked against the
 values when `format` runs:
 
-- A different number of placeholders, or a brace that is neither part of
-  `{}` nor doubled, is `invalid_format`, and nothing is written.
+- A different number of placeholders, a specification that does not
+  parse, or a brace that is neither part of a placeholder nor doubled, is
+  `invalid_format`, and nothing is written.
 - A builder that fills partway is put back before `mem.out_of_memory` is reported.
+
+A float has three forms, each also a typed call:
+
+| Call | Placeholder | Writes |
+|---|---|---|
+| `append_f64(line, value)` | `{}` | The shortest text that reads back as the same value, as a Landin literal is written: `1.0`, `0.1`, `123.456`, and below 0.0001 or from 10^16 up `1.0e16`, `2.5e-7` |
+| `append_f64_fixed(line, value, 3)` | `{:.3}` | Three places after the point, the exact value rounded once with ties to even, as C's `printf("%.3f")` writes it: `3.142`, and `-0.000` for a small negative |
+| `append_f64_exponent(line, value, 3)` | `{:.3e}` | One digit before the point and three after, then the exponent, rounded as `fixed` is: `6.022e23` |
+
+`{:e}` is the shortest digits in the exponent form, `1.0e0`. The
+infinities are `inf` and `-inf`, and a NaN is `NaN`. Each has an `f32`
+call, `append_f32` and the rest, which writes the `f32`'s own shortest
+text, `0.1` for the `f32` nearest a tenth.
 
 `format_onto` formats text that may be longer than its buffer. It formats
 through a buffer of the caller's, and hands the text to an `outlet` each
@@ -814,14 +864,14 @@ the bytes whole or reports `mem.out_of_memory`.
 
 How a value passes through the buffer:
 
-- A value that fits the buffer is formatted whole into it, so a
+- A value that fits the buffer is formatted and padded whole in it, so a
   conformance's `length` and alignments see its own piece.
 - A library value longer than the whole buffer is handed on in pieces as
-  it is written.
+  it is written; a width can then pad it only after it.
 - The buffer must still hold the largest piece a value asks room for at
-  once. Twenty bytes hold every integer the library formats. A
-  conformance of the program's own that asks for more than the buffer has
-  fails with `mem.out_of_memory`.
+  once. Twenty bytes hold every integer the library formats, and a float
+  writes its digits a run at a time. A conformance of the program's own
+  that asks for more than the buffer has fails with `mem.out_of_memory`.
 
 A conformance of the program's own may be writing a value longer than the
 whole buffer, a row with a long name in it. Its offsets still hold:
@@ -838,39 +888,6 @@ whole buffer, a row with a long name in it. Its offsets still hold:
 - `truncate` cuts what the buffer still holds. What was handed on stays
   written.
 
-To print a float, scale it to an integer and print the parts. Converting
-a float to an integer truncates toward zero, and traps when the value
-does not fit. So this function adds a half to round, and takes the sign
-off first so that a negative value rounds the same way:
-
-```landin
---- Append `value` with two decimals, rounded half away from zero.  Floats
---- are not formattable, so this scales the value to whole hundredths and
---- writes the integer part, a point and the two digits after it.
-append_hundredths: (inout line: text.builder, value: f64)
-                   -> none ! mem.out_of_memory =
-    mut magnitude: f64 = value
-    if value < 0.0 then
-        magnitude = -value
-    end if
-    --  The conversion truncates toward zero, so adding a half rounds.
-    hundredths: u64 = u64(magnitude * 100.0 + 0.5)
-    if value < 0.0 and hundredths > 0 then
-        try text.append_byte(line, u8('-'))
-    end if
-    try text.append_u64(line, hundredths / 100)
-    try text.append_byte(line, u8('.'))
-    start: usize = text.length(line)
-    try text.append_u64(line, hundredths % 100)
-    try text.align_right(line, start, 2, u8('0'))
-end append_hundredths
-```
-
-The `0` fill writes five hundredths as `05`, so 2.05 never prints as
-`2.5`. A value that rounds to zero prints without a sign, `0.00`. A value
-too large for a `u64` once scaled, a NaN or an infinity traps at the
-conversion.
-
 No locale is consulted anywhere. The same values give the same bytes
 everywhere, on Cortex-M0 as on a hosted system.
 
@@ -884,6 +901,7 @@ not be UTF-8:
 | `parse_u8` to `parse_u64`, `parse_usize` | nonempty ASCII digits |
 | `parse_i8` to `parse_i64`, `parse_isize` | an optional `-` before them, never a `+`, since no append writes one |
 | `parse_hex_u32`, `parse_hex_u64`, `parse_hex_usize` | hexadecimal digits of either case, with no `0x` |
+| `parse_f64`, `parse_f32` | an optional `-`, digits with an optional point and a digit beside it, `2.` and `.25` too, and an optional exponent, `e` or `E` with an optional sign; or `inf`, `infinity` or `nan` in any case |
 | `to_u32` | `parse_u32` over a `utf8` view |
 
 A parse fails in two ways. The scan goes from the left and reports
@@ -892,7 +910,12 @@ whichever it meets first:
 - Any input other than what the table allows, a space included, is
   `invalid_number`.
 - A value outside the type, above its maximum or below a signed minimum,
-  is `number_overflow`.
+  is `number_overflow`. A float's is a finite decimal whose nearest float
+  is beyond the greatest; one too small for the least subnormal is zero.
+
+A float is read with any number of digits and rounded once to the
+nearest float of its width, ties to even; an `f32` is never rounded
+through an `f64`.
 
 `usize` and `isize` are the target's, 32 bits on Cortex-M.
 
@@ -943,6 +966,7 @@ Database.
 | `is_white_space(scalar)` | Whether it is White_Space: a space, a tab, or a line or paragraph end. |
 | `is_uppercase(scalar)`, `is_lowercase(scalar)` | Whether it is Uppercase, or Lowercase. |
 | `is_cased(scalar)` | Whether it is Cased: upper, lower or title case. |
+| `category_run_end(scalar)`, `property_run_end(scalar)` | The last scalar of the run beginning at `scalar` whose scalars all share its general category, or all answer the six `is_` properties as it does. Stepping from run to run covers every scalar in a few thousand steps, which is how `core/regex` builds its classes. |
 | `is_case_ignorable(scalar)` | Whether it is Case_Ignorable, which case mapping passes over when it looks for the letters around a sigma or for a word's first letter. |
 
 Compare a category with `==`, as in
@@ -1054,7 +1078,8 @@ end counts
 - Case mapping tailored to a locale.
 - Encodings other than UTF-8.
 
-Later items add encodings, locale formatting and regular expressions.
+Later items add encodings and locale formatting. Regular expressions
+are `core/regex`, the next section.
 
 ### Conformance and size
 
@@ -1089,6 +1114,270 @@ of the others does.
 The program is [Text as a reader sees it](../examples.md#text-as-a-reader-sees-it):
 it counts the characters of a name and of two flags, lists the words of a
 sentence, changes case, and compares two texts ignoring case.
+
+## core/regex
+
+Regular expressions over `utf8`: a pattern is compiled when the program
+runs, with the caller's allocator, and then searched for in texts. Use it
+where the thing to find is a shape and not a fixed text; for a fixed
+text, `core/text`'s searches are smaller and need no allocator.
+
+The syntax and the meaning of a pattern are those of Rust's `regex`
+crate, without backreferences and look-around. Every search takes time
+linear in the text, whatever the pattern, which is why those two are
+left out.
+
+| Call | What it does |
+|---|---|
+| `regex.compile`, `regex.compile_with` | Compile a pattern, with the default options or with given ones. |
+| `regex.release` | Give a compiled pattern's storage back. |
+| `regex.defaults`, `regex.lean`, `regex.with_size_limit`, `regex.with_cache_size`, `regex.with_anchored`, `regex.with_engine` | Make and change options. |
+| `regex.is_match`, `regex.find`, `regex.find_at` | Whether a text has a match, and where the first one is. |
+| `regex.captures`, `regex.captures_at`, `regex.group`, `regex.group_count`, `regex.group_named` | Find a match with what each group matched. |
+| `regex.walk_start`, `regex.next_match`, `regex.matches` | Walk every match of a text. |
+| `regex.replace_all` | Append a text with every match replaced from a template. |
+| `regex.words` | A short phrase for a failure of `compile`. |
+| `regex.work`, `regex.fallbacks`, `regex.prepared`, `regex.program_size` | Measure a compiled pattern and its searches. |
+
+A match is a `regex.span` holding two `text.position`s, `begins` and
+`ends`, into the text searched. It holds positions and not the text, so
+slice the text to read it:
+`source[text.offset(found.begins)..<text.offset(found.ends)]`.
+
+Nothing is allocated after the pattern is compiled. The compiled pattern
+holds the storage its searches use, so every search takes it `inout`,
+and one compiled pattern serves one search at a time.
+
+### Compiling
+
+| Call | What it does |
+|---|---|
+| `compile(memory, pattern)` | Compile `pattern` with the options `defaults()` gives. |
+| `compile_with(memory, pattern, settings)` | Compile `pattern` with `settings`. |
+| `release(expression, memory)` | Give the storage back to `memory`, the allocator the pattern was compiled with. The pattern is empty afterwards and matches nothing. |
+
+`memory` is any `mem.allocator`: a heap on a hosted target, an arena
+over a static buffer in firmware. Both calls give a `regex.regex`, which
+the program holds in a `mut` binding, and fail with a
+`regex.compile_failure`:
+
+| Failure | When |
+|---|---|
+| `regex.invalid_pattern` | The pattern is not one the syntax reads: an unclosed group or bracket, a repetition of nothing, a range out of order such as `[z-a]`, an unknown escape or flag, or a class that could match bytes that are not UTF-8, such as `(?-u:\W)`. |
+| `regex.unsupported_pattern` | The pattern writes a backreference such as `(a)\1` or a look-around such as `a(?=b)`, or names a Unicode property that `core/unicode` holds no table for, such as the script in `\p{Greek}`. |
+| `regex.pattern_too_large` | The pattern compiles to more than the options' size limit, or nests groups or brackets more than 64 deep, or counts a repetition past 100,000, as `a{100001}` does. |
+| `regex.unicode_unavailable` | The pattern needs Unicode's tables and was compiled with `lean` options. |
+| `mem.out_of_memory` | The allocator could not give the storage. |
+
+### Options
+
+A `regex.options` value says how a pattern is compiled. Start from one
+of two, and change it with the `with_` calls, each of which returns the
+changed options:
+
+| Call | What it does |
+|---|---|
+| `defaults()` | The usual options. They use `core/unicode`'s tables for `\w`, `\d`, `\s`, `\b`, `\p` and `(?i)`. |
+| `lean()` | The same without Unicode's tables, so a program that compiles only with these links none of them. A pattern that needs them fails with `unicode_unavailable`. |
+| `with_size_limit(settings, limit)` | Set the size limit, counted in the instructions and edges of the compiled program. It bounds a compiled pattern's storage, and so the time a search takes for each byte of text. The limit is 250,000 unless set. |
+| `with_cache_size(settings, bytes)` | Set the bound on the lazy DFA's caches, in bytes, which `compile_with` allocates. It is 512 KiB unless set. Below a few kilobytes the DFA is not used at all. |
+| `with_anchored(settings)` | Anchor every search: a match must begin where the search does, at the text's start or at `find_at`'s position, and in a walk each match must begin where the one before it ended. |
+| `with_engine(settings, which)` | Ask for one engine, for tests and measurement. See [Engines and linear time](#engines-and-linear-time). |
+
+Under `lean()` a pattern can still use the classes by asking for their
+ASCII meanings with the flag `(?-u)`: `(?-u)\w\d\s\b(?i)k` compiles with
+no tables. Firmware usually wants `lean()` and a small cache, as the
+first example below has them.
+
+### The syntax
+
+A pattern means what it means to Rust's `regex` crate:
+
+- A match is leftmost-first: of the matches that begin earliest, the one
+  the pattern prefers, an alternation's earlier branch before a later
+  one.
+- Patterns are in Unicode mode unless they say otherwise: `.` and a
+  class match whole scalars, and `\w`, `\d`, `\s`, `\b` and `(?i)` have
+  their Unicode meanings.
+- The flags are `i`, `m`, `s`, `U`, `u`, `x` and `R`, written `(?i)` or
+  around a group as `(?i:...)`, and turned off after a `-`.
+- A group is named as `(?P<name>...)` or as `(?<name>...)`.
+- A bracketed class takes the set operations `&&`, `--` and `~~`, and
+  the POSIX classes such as `[[:alpha:]]`.
+- `\p{...}` names a general category or a group of them, by short or
+  long name, or one of the binary properties `core/unicode` has:
+  Alphabetic, White_Space, Uppercase, Lowercase, Cased and
+  Case_Ignorable. Case, spaces, underscores and hyphens in the name are
+  ignored, so `\p{L}`, `\p{Letter}` and `\p{letter}` are one.
+- The word looks are `\b`, `\B`, `\b{start}` or `\<`, `\b{end}` or
+  `\>`, `\b{start-half}` and `\b{end-half}`.
+
+A failure has its words from `regex.words(problem)`, a short phrase as
+`failure.words` gives for the rest of the library, whose `failure.reason`
+does not hold these atoms.
+
+### Searching and groups
+
+| Call | What it does |
+|---|---|
+| `is_match(expression, haystack)` | Whether the pattern matches anywhere in `haystack`. |
+| `find(expression, haystack)` | The leftmost-first match, or `mem.not_found`. |
+| `find_at(expression, haystack, start_at)` | The leftmost-first match that begins at or after `start_at`, a scalar's start in `haystack`, or `mem.not_found`. The text before `start_at` still counts for the looks: `\b` and `^` see it. |
+| `captures(expression, haystack)` | As `find`, keeping what each group matched for `group`. |
+| `captures_at(expression, haystack, start_at)` | As `find_at`, keeping the groups. |
+| `group(expression, index)` | What group `index` matched in the last search that kept groups, as a `span`. Group 0 is the whole match. It fails with `mem.not_found` when the group took no part in the match, when there was no match, and when the pattern has no such group. |
+| `group_count(expression)` | How many groups the pattern has, counting group 0: one more than its capturing groups. |
+| `group_named(expression, name)` | The number of the group that `name` names, or `mem.not_found`. |
+
+The groups `group` gives are those of the last search, so read them
+before searching with the same pattern again. `find` and `find_at` keep
+none.
+
+### Walking every match
+
+| Call | What it does |
+|---|---|
+| `walk_start()` | A `regex.cursor` before a text's first match. |
+| `next_match(expression, haystack, at, groups)` | The match after the cursor `at`, moving `at` past it, or `mem.not_found` when there are no more. With `groups` true the match's groups are kept for `group`. |
+| `matches(addr expression, haystack)` | Every match in order, as `next_match` finds them, for a `for` loop. |
+
+Matches do not overlap. An empty match right where the previous match
+ended is passed over, so `a*` over "aab" gives "aa" and then the empty
+match at the end, and nothing between them.
+
+The `for` form is the short one:
+`for found in regex.matches(addr pattern, haystack) do`, where each
+`found` is a `span`. The walk searches through the pointer as it goes,
+so do not use the pattern for anything else inside the loop. It keeps no
+groups; a loop that wants them calls `next_match` with `groups` true.
+
+### Replacing
+
+`replace_all(expression, haystack, template, into)` appends `haystack`
+to the `text.builder` `into` with every match replaced by `template`,
+and returns how many matches there were. The matches are those a walk
+finds. It appends the whole result or nothing: on `mem.out_of_memory`,
+its only failure, `into` holds what it held before.
+
+In the template:
+
+| Written | Stands for |
+|---|---|
+| `$1`, `${1}` | What group 1 matched, and so for each number. `$0` is the whole match. |
+| `$name`, `${name}` | What the group of that name matched. |
+| `$$` | A `$`. |
+
+Without braces the name is the longest run of letters, digits and `_`
+after the `$`, so `$1a` names a group called `1a`, where `${1}a` is
+group 1 and then an `a`. A group that took no part in the match, or that
+the pattern does not have, is empty. A `$` before anything else stands
+for itself.
+
+### What it leaves out
+
+- Backreferences and look-around, which no engine matches in linear
+  time. They fail with `unsupported_pattern`.
+- Scripts, such as `\p{Greek}`, and every other property `core/unicode`
+  holds no table for: the Emoji properties, Math, and the grapheme, word
+  and sentence break properties as classes. They fail with
+  `unsupported_pattern` too.
+- Texts that are not UTF-8, and classes that could match part of a
+  scalar.
+- Several patterns searched as one set, match kinds other than
+  leftmost-first, a search that stops before the text's end, and a line
+  terminator other than `\n`, or `\r\n` under the flag `R`.
+- Patterns compiled when the program is built. Landin runs nothing at
+  compile time, so a pattern is compiled each time the program runs.
+
+### Engines and linear time
+
+A compiled pattern is a program over the text's bytes, and several
+engines can run it. `compile` prepares those that suit the pattern, and
+each search uses the cheapest that can answer it, as RE2 and Rust's
+`regex` do:
+
+| Engine | `regex.engine` | What it does |
+|---|---|---|
+| Pike VM | `pike_vm` | Runs every thread of the program in step over the text. It answers every search and finds the groups, and is the slowest. |
+| Lazy DFA | `lazy_dfa` | Finds where a match ends, and run backward over the reversed pattern, where it begins. It builds its states as a search needs them, in a cache of bounded size. |
+| One-pass DFA | `one_pass_dfa` | Finds the groups of a match in one pass, for a pattern in which the next byte always decides the one way on, as in `a[bc]d`, and not where one branch's text begins another's, as `a` begins `ab`. |
+| Literal prefilter | `literal_prefilter` | Skips to where a match can begin, for a pattern whose every match begins with one of a few fixed texts, as `(?i)hello` does. |
+
+The lazy DFA clears its cache when it fills. It gives a search up to the
+Pike VM when that happens too often, and when a Unicode word boundary
+meets a byte past ASCII. The answer is the same either way; only the
+time differs.
+
+The options' engine is `regex.automatic` unless `with_engine` sets one
+of the four above. An engine that was asked for and cannot answer a
+search leaves it to the Pike VM.
+
+A search takes time linear in the text: at most the text's length times
+the compiled program's size, which the size limit bounds. That holds for
+patterns such as `(a*)*b` that take a backtracking engine exponential
+time.
+
+The bound is for one search. Walking every match of a text, with
+`next_match`, `matches` or `replace_all`, can take time quadratic in the
+text for some patterns, as it can in RE2 and in Rust's `regex`. With
+`a+b|a` over a long run of "a", each match is one "a", and each search
+first reads to the end of the text looking for a `b`.
+
+Four calls measure a compiled pattern, for tests and tuning:
+
+| Call | What it gives |
+|---|---|
+| `program_size(expression)` | The size of the compiled program, in the instructions and edges the size limit counts. |
+| `prepared(expression)` | Three `bool`s, `lazy`, `one_pass` and `literals`: which engines were prepared beside the Pike VM. |
+| `work(expression)` | A count of the work the pattern's searches have done since it was compiled: the threads the Pike VM stepped, the bytes the DFAs and the prefilter read, and the instructions the lazy DFA's new states reached. |
+| `fallbacks(expression)` | How many searches the lazy DFA has left to the Pike VM since the pattern was compiled. |
+
+### Conformance and size
+
+The fixtures are the `regex-*` ones under
+`compiler/tests/fixtures/runtime/`, and they run on every hosted target:
+
+- `regex-rust-suite` runs the cases of the test suite of Rust's `regex`
+  crate, release 1.12.2, that this module can state, comparing every
+  match and its groups. `scripts/regex_tests.py` writes them from the
+  pinned crate archive, and the header of the fixture's `cases.ldn`
+  counts those taken and those left out of the suite's 1,184. The ones
+  left out are sets of patterns, other match and search kinds, bounds,
+  line terminators, texts that are not UTF-8, the cases of `regex-lite`,
+  and the properties listed above as left out.
+- `regex-engines-agree` checks the lazy DFA, the one-pass DFA and the
+  literal prefilter against the Pike VM, every match and group, over
+  patterns and texts from a seeded generator.
+- `regex-linear-time` searches patterns that are exponential for a
+  backtracking engine, or for a DFA built in full, over a text and over
+  one twice as long, and holds the work `regex.work` counts to linear
+  growth.
+
+A program that compiles a pattern links the parser, the compiler and
+every engine: about 140 KB of Thumb code at `size/auto`, even under
+`lean()`. That is past the 32 KiB Cortex-M0 profile, which records it as
+a size limit, so firmware runs `regex-linear-time`, over shorter texts,
+and the first example below on the Cortex-M7 corpus lane, whose map has
+4 MiB. Both compile with `lean()` into an arena over a static buffer.
+
+`core/unicode` gives a class its scalars a run at a time, through
+`unicode.category_run_end` and `unicode.property_run_end`, so compiling
+`\p{L}` or `\w` takes a few thousand steps and not one for each scalar.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-regex/main.ldn)
+
+The program compiles `(?<key>[a-z]+)=([0-9]+)` with `lean()` options and
+a 2 KiB cache into an arena, reads a match and its numbered and named
+groups, counts the matches with `for`, and replaces each from the
+template `$2:${key}`. It runs on the Cortex-M7 corpus lane as on the
+hosted targets.
+
+[Executable example](../compiler/tests/fixtures/runtime/regex-api/main.ldn)
+
+The program runs over a hosted heap. It shows a pattern for each failure
+of `compile`, the forms of a replacement template and what a missing
+group gives, a walk's empty matches, a search from a position, an
+anchored walk, and Unicode classes and case.
 
 ## core/io
 
@@ -1472,10 +1761,8 @@ writer did not take, so the next flush writes each byte once.
 
 `format` refuses a text larger than the whole buffer with
 `mem.out_of_memory`. Its values are `text.formattable`'s types, as
-`text.format`'s are: integers, `bool`, `utf8`, `[]u8` and OS strings.
-Floats are not formattable yet. To print one, scale it to an integer and
-print the parts, as `append_hundredths` in [core/text](../core/text) does
-for two decimals.
+`text.format`'s are: integers, floats, `bool`, `utf8`, `[]u8` and OS
+strings, and its placeholders take `text.format`'s specifications.
 
 There are no destructors: bytes still waiting when the program ends are
 never written. So flush in two places:
@@ -2296,6 +2583,96 @@ every target; [their description](../compiler/tests/big/README.md#the-fixtures) 
 how they are written.
 
 [Executable example](../compiler/tests/fixtures/runtime/big-limbs/main.ldn)
+
+## core/dense
+
+Dense vectors and matrices over `f32` and `f64`, as linear algebra sees
+them: a vector or a matrix is a view over the caller's storage, and every
+routine computes on views without allocating. On the views are the
+element-wise operations, reductions and norms, and the products of the
+BLAS's three levels.
+
+| Call | What it does |
+|---|---|
+| `dense.vector_over`, `dense.strided_over` | A vector of a whole slice, or of every `step`-th element of one. |
+| `dense.rows_over`, `dense.columns_over`, `dense.matrix_over` | A matrix laid out by rows, by columns as the BLAS lays it out, or with any steps, such as a leading dimension larger than its rows. |
+| `dense.transposed`, `dense.block`, `dense.segment` | The transpose, a block of a matrix and a stretch of a vector, over the same storage. |
+| `dense.row`, `dense.column`, `dense.diagonal`, `dense.as_row`, `dense.as_column` | A matrix's row, column or diagonal as a vector, and a vector as a matrix of one row or column. |
+| `dense.get`, `dense.set`, `dense.element`, `dense.set_element` | One element of a vector, or of a matrix by row and column. |
+| `dense.fill`, `dense.copy`, `dense.swap`, `dense.scale`, `dense.add_scaled` | Element-wise operations on vectors; `add_scaled` is the BLAS's `axpy`. |
+| `dense.add`, `dense.subtract`, `dense.multiply_elements`, `dense.divide_elements` | Element by element, into a third vector. |
+| `dense.fill_matrix`, `dense.set_identity`, `dense.copy_matrix`, `dense.scale_matrix`, `dense.add_matrices` | The same for matrices; `add_matrices` is `α·A + β·B`. |
+| `dense.sum`, `dense.sum_magnitudes`, `dense.dot`, `dense.largest_magnitude` | Reductions: `asum`, `dot` and `iamax`. |
+| `dense.norm_two`, `dense.norm_infinity` | A vector's Euclidean norm, which overflows only when the norm does, and its greatest magnitude. |
+| `dense.matrix_norm_one`, `dense.matrix_norm_infinity`, `dense.matrix_norm_frobenius`, `dense.matrix_norm_max` | A matrix's norms. |
+| `dense.rotation`, `dense.rotate`, `dense.modified_rotation`, `dense.rotate_modified` | Plane rotations: `rotg`, `rot`, `rotmg` and `rotm`. |
+| `dense.multiply_vector`, `dense.add_outer` | `y ← α·A·x + β·y`, `gemv`, and `A ← α·x·yᵀ + A`, `ger`. |
+| `dense.multiply_symmetric_vector`, `dense.add_symmetric_outer`, `dense.add_symmetric_outers` | `symv`, `syr` and `syr2`, on one triangle. |
+| `dense.multiply_triangular_vector`, `dense.solve_triangular_vector` | `x ← A·x` and `x ← A⁻¹·x` in place for a triangular `A`: `trmv` and `trsv`. |
+| `dense.multiply`, `dense.product_scratch` | `C ← α·A·B + β·C`, `gemm`, packed for the cache into a scratch `product_scratch` long. |
+| `dense.multiply_symmetric`, `dense.add_symmetric_product`, `dense.add_symmetric_products` | `symm`, `syrk` and `syr2k`. |
+| `dense.multiply_triangular`, `dense.solve_triangular` | `trmm` and `trsm`: a triangular product or solve with many right-hand sides, in place. |
+
+A `dense.vector(f64)` is a slice, a length and a step; a
+`dense.matrix(f64)` is a slice, its rows and columns, and a step for
+each, so the element in row `i` and column `j` is
+`values[i * row_step + j * column_step]`. A matrix laid out by rows and
+one laid out by columns are read alike, and a transposed operand is a
+transposed view: no routine takes the BLAS's `TRANS` flag. A triangle,
+`dense.upper` or `dense.lower`, is the view's own, so the upper triangle
+of a transposed view is the lower triangle of its storage. The diagonal
+of a triangular matrix is `dense.stored` or `dense.unit`, and a square
+operand multiplies on the `dense.left` or `dense.right`.
+
+```landin
+    --  A is 2 by 3 laid out by rows; Aᵀ·(1, 1) sums its columns.
+    mut a_values: [6]f32 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    a := dense.rows_over(a_values[0..<6], 2, 3)
+    mut ones_values: [2]f32 = [1.0, 1.0]
+    ones := dense.vector_over(ones_values[0..<2])
+    dense.multiply_vector(y, 1.0, dense.transposed(a), ones, 0.0)
+```
+
+A view holds a writable slice, so storage that is only readable, a
+constant table, is copied into writable storage first. A routine writes
+only the view its signature names `into`. Views that one routine writes
+and another reads must not overlap, as in the BLAS, unless the routine
+says it works in place. A view whose extent passes its storage, or
+operands whose shapes disagree, is a mistake in the program: it stops the
+program, and the report names the call. When `beta` is 0 the output is
+not read, so a NaN there does not survive, and when `alpha` is 0 the
+operands are not read. An empty product is the mathematics' zero: a
+product with no columns gives `β·y`, where the reference BLAS returns
+early and leaves `y` as it was. A step is never negative, so the BLAS's
+negative increments have no counterpart.
+
+`dense.multiply` packs its operands into `scratch`, storage the caller
+gives, as Goto and van de Geijn describe: a panel of `B` in slivers two
+columns wide, kept in the outer cache, and blocks of `A` in slivers four
+rows high, kept in the inner one, multiplied by a kernel that holds its
+eight sums in registers. `dense.product_scratch(rows, columns, depth)` is
+the length it is fastest with, at most 294,912 elements. A shorter scratch
+cuts smaller blocks, and one that holds less than eight elements per row
+of the depth, an empty slice included, multiplies without packing. On one
+core of an AMD EPYC 7302 the `f64` product of two 1000 by 1000 matrices
+takes 0.41 seconds, 4.9 GFLOP/s at `--optimize speed`. OpenBLAS 0.3.33
+takes 0.049 seconds, an eighth of that, with the vector instructions
+refine does not emit yet. [The timing](../compiler/tests/dense/README.md) says how it is
+measured.
+
+The other third-level routines are loops over the second level's and the
+vectors', not blocked. Every routine is written from the mathematics:
+`norm_two` and `rotation` by Blue's scaling in Anderson's form, which
+neither overflows nor underflows unless the result does. The `dense-blas-*`
+fixtures translate the reference BLAS's own test programs and hold every
+test ratio under their threshold of 16 at both widths, on every hosted
+target and on the Cortex-M7 and Xtensa emulators. They are past the
+32 KiB of Cortex-M0 and of the RV32 lanes, which run the small consumer
+and record the rest as image limits.
+Banded and packed storage, complex elements, extended-precision
+accumulation and arrays of more than two dimensions are not here.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-dense/main.ldn)
 
 ## core/line
 

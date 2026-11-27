@@ -21,7 +21,7 @@ executes them on Cortex-M0.
 
 The shared freestanding modules are `core/arena`, `core/atomic`,
 `core/big` with its submodule `core/big/limbs`, `core/cache`,
-`core/cmp`, `core/complex`,
+`core/cmp`, `core/complex`, `core/dense`,
 `core/diag`,
 `core/failure`, `core/fault`, `core/fibre` with its submodule
 `core/fibre/stacks`, `core/io` with its submodules `core/io/fake` and
@@ -365,8 +365,9 @@ that lends each line until the next read, as a directory lends its
 names. The comparison concepts
 `equatable`, `hashable` and `ordered` live in `core/cmp`, apart from the map
 and the sort that consume them (D273). It ships `equatable` and `hashable` for the integer
-scalars, `bool` and `[]u8` and `ordered` for the integer scalars, and
-`core/text` all three for `utf8` (D270), `core/time` all three for
+scalars, `bool` and `[]u8` and `ordered` for the integer scalars and, by
+IEEE 754's totalOrder, for `f32` and `f64` (D2815), and `core/text` all
+three for `utf8` (D270), `core/time` all three for
 `time.duration` and `time.instant` and `core/net` `equatable` and
 `hashable` for `net.address` (D1031): a later key type declares its
 evidence in its own module; another reading goes on a `distinct`

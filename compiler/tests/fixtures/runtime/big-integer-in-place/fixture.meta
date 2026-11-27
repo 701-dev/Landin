@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/big multiplies a hundred-limb value by one limb in place and divides it by that limb a thousand times in an 8 KiB arena, so neither the product nor the division's scratch takes a block a step
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
+constructs: 0150, 0570, 0900, 1290

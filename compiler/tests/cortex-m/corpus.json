@@ -1686,6 +1686,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/benchmark-game-pidigits": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/benchmark-game-reverse-complement": {
       "codes": [
         "L0015"
@@ -1727,6 +1733,11 @@
           "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 51168 of this lane's 32 KiB, over by 18400."
         }
       }
+    },
+    "runtime/big-integer-in-place": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's multiplication through Toom-3 and its division take the image to 65,776 bytes of flash, over the 32 KiB profile by 33,008: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/big-integer-modular": {
       "mode": "execute",
@@ -1814,7 +1825,17 @@
       "reason": "runtime/core-io-buffered-writer flushes through core/io.memory, failing writes included, here."
     },
     "runtime/buffered-writer-format": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 46,832 of this lane's 32 KiB, over by 14,064, since a placeholder takes Rust's format specification."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 46,576 of this lane's 32 KiB, over by 13,808, since a placeholder takes Rust's format specification."
+        }
+      }
     },
     "runtime/by-value-records-stay-independent": {
       "mode": "execute"
@@ -2009,6 +2030,9 @@
       "mode": "execute"
     },
     "runtime/cmp-bytes-ordered": {
+      "mode": "execute"
+    },
+    "runtime/cmp-float-total-order": {
       "mode": "execute"
     },
     "runtime/cmp-siphash-vectors": {
@@ -2328,14 +2352,16 @@
     },
     "runtime/core-self-append": {
       "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the program's own conformances, a nested format and a placeholder's parsing and padding take the image to 39,160 bytes of flash, over the 32 KiB profile by 6,392, and to 37,216 on the AN505's map, since a placeholder takes Rust's format specification: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit at 20,636 bytes and execute the whole fixture, its results checked; this image limit is not runtime evidence.",
       "lanes": {
         "esp32c3": {
           "mode": "limit",
-          "reason": "D698: since D1567 the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 48484 of this lane's 32 KiB, over by 15716."
+          "reason": "D698: RV32's image fits this lane's 32 KiB at size and speed, at 31,556 bytes for size/off; at none/off it needs FLASH 58,980, over by 26,212."
         },
         "sifive-e": {
           "mode": "limit",
-          "reason": "D698: since D1567 the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 48228 of this lane's 32 KiB, over by 15460."
+          "reason": "D698: RV32's image fits this lane's 32 KiB at size and speed, at 31,300 bytes for size/off; at none/off it needs FLASH 58,724, over by 25,956."
         }
       }
     },
@@ -2377,22 +2403,49 @@
     },
     "runtime/core-text-format": {
       "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder took 31,100 bytes of flash at none/off; since a placeholder takes Rust's format specification its parsing, padding and radixes take it to 47,580, over the 32 KiB profile by 14,812: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit at 26,092 bytes and execute the whole fixture, its results checked; runtime/core-text-format-firmware runs a format at every profile; this image limit is not runtime evidence.",
       "lanes": {
         "esp32c3": {
           "mode": "limit",
-          "reason": "D698: Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
+          "reason": "D698: RV32's text outgrows this lane's 32 KiB map at every profile since a placeholder takes Rust's format specification: FLASH 72,908 at none/off, 41,812 at size/off and 40,252 at speed/auto; the reference and the AN505 run size and speed."
         },
         "sifive-e": {
           "mode": "limit",
-          "reason": "D698: Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
+          "reason": "D698: RV32's text outgrows this lane's 32 KiB map at every profile since a placeholder takes Rust's format specification: FLASH 72,148 at none/off, 41,052 at size/off and 39,492 at speed/auto; the reference and the AN505 run size and speed."
         }
       }
     },
     "runtime/core-text-format-firmware": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 38,868 of this lane's 32 KiB, over by 6,100, since a placeholder takes Rust's format specification."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 38,612 of this lane's 32 KiB, over by 5,844, since a placeholder takes Rust's format specification."
+        }
+      }
     },
     "runtime/core-text-format-onto-offsets": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 39,352 of this lane's 32 KiB, over by 6,584, since a placeholder takes Rust's format specification."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 39,096 of this lane's 32 KiB, over by 6,328, since a placeholder takes Rust's format specification."
+        }
+      }
+    },
+    "runtime/core-text-format-spec": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Every part of a placeholder's specification over integers, floats, text and a program's own types, with both float writers, takes the image to 46,788 bytes of flash at size/off, over the 32 KiB profile by 14,020, and 85,196 at none/off. Each profile still attempts execution; the mps2-an500 lane and the Xtensa lanes execute it; this image limit is not runtime evidence."
     },
     "runtime/core-text-parse-signed": {
       "mode": "execute"
@@ -2612,6 +2665,31 @@
     },
     "runtime/deferred-call-drops-its-result": {
       "mode": "execute"
+    },
+    "runtime/dense-blas-level-1": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat1's tables and checks at both widths, with libgcc's soft double, is past the 32 KiB profile: 89,376 bytes of flash at size/auto, over by 56,608. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/dense-blas-level-2": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat2's generator, reference computation and checks of seven routines at both widths, with libgcc's soft double, is past the 32 KiB profile: 79,384 bytes of flash at size/auto, over by 46,616, and 12,336 bytes of RAM, over by 48. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/dense-blas-level-3-f32": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat3's generator, reference computation and checks of six routines at f32 is past the 32 KiB profile: 42,076 bytes of flash at size/auto, over by 9,308. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the fixture's every sixth case; this image limit is not runtime evidence."
+    },
+    "runtime/dense-blas-level-3-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat3's generator, reference computation and checks of six routines at f64, with libgcc's soft double, is past the 32 KiB profile: 48,492 bytes of flash at size/auto, over by 15,724. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the fixture's every sixth case; this image limit is not runtime evidence."
+    },
+    "runtime/dense-views-and-norms": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding the checks of views, element-wise operations and norms at both widths, with libgcc's soft double, is past the 32 KiB profile: 52,812 bytes of flash at size/auto, over by 20,044. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
     },
     "runtime/derived-address-empty-slice-traps": {
       "mode": "execute"
@@ -3171,6 +3249,26 @@
     "runtime/float-operations-by-arguments": {
       "mode": "execute"
     },
+    "runtime/float-text-parse": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Its table of texts, halfway decimals up to 800 digits long among them, with the parser's exact path, takes the image to 153,140 bytes of flash at size/off, over the 32 KiB profile by 120,372; the parser alone is about 21 KiB at size/off, soft double included (compiler/tests/float-text/README.md). Each profile still attempts execution; the mps2-an500 lane and the Xtensa lanes execute it; this image limit is not runtime evidence."
+    },
+    "runtime/float-text-rounded": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Its table of 130 edge values at two precisions, each with both rounded texts, many of them hundreds of digits long, takes the image to 58,852 bytes of flash at size/off, over the 32 KiB profile by 26,084, and 92,836 at none/off; the rounded writers alone are about 12 KiB at size/auto (compiler/tests/float-text/README.md). Each profile still attempts execution; the mps2-an500 lane and the Xtensa lanes execute it; this image limit is not runtime evidence."
+    },
+    "runtime/float-text-shortest": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Its table of 223 edge values with their two texts each, the shortest writer and ten thousand drawn values' digest take the image to 41,612 bytes of flash at size/off, over the 32 KiB profile by 8,844, and 72,876 at none/off; the shortest writer alone is about 12 KiB at size/off (compiler/tests/float-text/README.md). Each profile still attempts execution; the mps2-an500 lane and the Xtensa lanes execute it; this image limit is not runtime evidence."
+    },
+    "runtime/float-text-single": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Its tables of f32 texts and readings, with the shortest and rounded writers, the parser and a format, take the image to 56,744 bytes of flash at size/off, over the 32 KiB profile by 23,976, and 103,256 at none/off. Each profile still attempts execution; the mps2-an500 lane and the Xtensa lanes execute it; this image limit is not runtime evidence."
+    },
     "runtime/float-to-bool-conversions": {
       "mode": "execute"
     },
@@ -3243,7 +3341,17 @@
       "mode": "execute"
     },
     "runtime/generic-closed-parameter-takes-context": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 34,864 of this lane's 32 KiB, over by 2,096, since a placeholder takes Rust's format specification."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 34,608 of this lane's 32 KiB, over by 1,840, since a placeholder takes Rust's format specification."
+        }
+      }
     },
     "runtime/generic-composed-evidence": {
       "mode": "execute"
@@ -3492,7 +3600,23 @@
       "reason": "Firmware has no standard output to print to. runtime/io-write-format-memory writes through write_format here."
     },
     "runtime/io-write-format-memory": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the chain from io.write_format through format_onto's store, a placeholder's padding and an integer's text into the memory file overruns the 4 KiB stack reservation on the reference and on the AN505, since a placeholder takes Rust's format specification: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto observe at most 2,552 bytes of stack at 17,228 bytes of flash and execute the whole fixture, its results checked; this limit is not runtime evidence.",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: RV32's image fits this lane's 32 KiB at size and speed, observing at most 3,296 bytes of stack; at none/off it needs FLASH 47,568, over by 14,800."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: RV32's image fits this lane's 32 KiB at size and speed, observing at most 3,296 bytes of stack; at none/off it needs FLASH 47,312, over by 14,544."
+        },
+        "mps2-an505": {
+          "mode": "limit",
+          "reason": "D698: at none/off the Cortex-M33's frames for io.write_format's chain through format_onto's store, a placeholder's padding and an integer's text into the memory file overrun the 4 KiB reservation at run time, in memory_write_some, though the build report's deepest stack is within it; size and speed fit and execute the whole fixture."
+        }
+      }
     },
     "runtime/kqueue-events": {
       "codes": [
@@ -3625,6 +3749,19 @@
         }
       }
     },
+    "runtime/library-shared-dense": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 41504 of this lane's 32 KiB, over by 8736."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 43336 of this lane's 32 KiB, over by 10568."
+        }
+      }
+    },
     "runtime/library-shared-diag": {
       "mode": "execute"
     },
@@ -3666,6 +3803,11 @@
     },
     "runtime/library-shared-random": {
       "mode": "execute"
+    },
+    "runtime/library-shared-regex": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "A program that compiles one pattern with regex.lean() links core/regex's parser, compiler and four engines: 153,196 bytes of flash at size/auto, overflowing the 32 KiB profile by 120,428, and an arena of 16 KiB beside them (D2680). Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
     },
     "runtime/library-shared-region": {
       "mode": "execute"
@@ -5435,6 +5577,35 @@
     "runtime/reference-place-updates": {
       "mode": "execute"
     },
+    "runtime/regex-api": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-engines-agree": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-linear-time": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Each search compiles its pattern with regex.lean(), linking core/regex's parser, compiler and four engines: 149,532 bytes of flash at size/auto, overflowing the 32 KiB profile by 116,764, beside a 64 KiB arena and a 4 KiB text (D2680). Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/regex-redux-patterns": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-rust-suite": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/region-beside-parent": {
       "mode": "execute"
     },
@@ -6023,6 +6194,9 @@
     "runtime/unicode-category": {
       "mode": "execute"
     },
+    "runtime/unicode-category-runs": {
+      "mode": "execute"
+    },
     "runtime/unicode-graphemes": {
       "mode": "execute"
     },
@@ -6042,6 +6216,9 @@
       "reason": "It holds the source column of 3,017 lines of NormalizationTest.txt and reads all four forms' tables: the image is 91,200 bytes at size/auto, over Cortex-M0's 32 KiB of flash by 58,432, so no profile executes it there; this image limit is not runtime evidence."
     },
     "runtime/unicode-properties": {
+      "mode": "execute"
+    },
+    "runtime/unicode-property-runs": {
       "mode": "execute"
     },
     "runtime/unicode-sentences": {
@@ -6204,6 +6381,9 @@
     "runtime/widened-operands-keep-their-homes": {
       "mode": "execute"
     },
+    "runtime/widening-operand-outlives-product": {
+      "mode": "execute"
+    },
     "runtime/windows-events-child-wait": {
       "codes": [
         "L0015"
@@ -6263,7 +6443,17 @@
       "reason": "Firmware has no standard input. runtime/word-count-memory executes the same counting routine over core/io.memory here."
     },
     "runtime/word-count-memory": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 49,660 of this lane's 32 KiB, over by 16,892, since a placeholder takes Rust's format specification."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 48,900 of this lane's 32 KiB, over by 16,132, since a placeholder takes Rust's format specification."
+        }
+      }
     },
     "runtime/word-count-no-input": {
       "codes": [

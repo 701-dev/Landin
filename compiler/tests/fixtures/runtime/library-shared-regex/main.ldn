@@ -1,0 +1,53 @@
+import core/arena
+import core/regex
+import core/text
+
+--  A little of core/regex, as small as Cortex-M0 holds: a pattern
+--  compiled with `lean` options into an arena, a match and its group, a
+--  walk over the matches and a replacement.  The engines' code is past
+--  the 32 KiB Cortex-M0 profile, so firmware runs it on the M7 lane's
+--  map, with room for an arena as large as a hosted one.
+arena_size: usize = 16384
+
+mut backing: [arena_size]u8 = zeroed
+
+exercise: () -> (ok: bool) =
+    ok = false
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    settings := regex.with_cache_size(regex.lean(), 2048)
+    mut pattern := regex.compile_with(memory, "(?<key>[a-z]+)=([0-9]+)",
+                                      settings) else begin
+                                          return
+                                      end
+    defer regex.release(pattern, memory)
+    haystack: utf8 = "a=1, bc=23, d=x"
+    found := regex.captures(pattern, haystack) else begin
+        return
+    end
+    return when text.offset(found.begins) <> 0 or text.offset(found.ends) <> 3
+    number := regex.group(pattern, 2) else begin
+        return
+    end
+    return when text.offset(number.begins) <> 2
+    key: usize = regex.group_named(pattern, "key") else 0
+    return when key <> 1
+    mut count: usize = 0
+    for each in regex.matches(addr pattern, haystack) do
+        _ = each
+        inc count
+    end for
+    return when count <> 2
+    mut storage: [64]u8 = zeroed
+    mut out := text.over(storage)
+    replaced: usize = regex.replace_all(pattern, haystack, "$2:${key}", out)
+        else 0
+    ok = replaced == 2 and text.equal(utf8(text.used(out)), "1:a, 23:bc, d=x")
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    if exercise() then
+        code = 42
+    end if
+end main

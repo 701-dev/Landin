@@ -235,6 +235,8 @@ RUNNING_EXAMPLES = [
      "main.ldn"),
     ("Benchmark Game binary-trees",
      "compiler/tests/fixtures/runtime/benchmark-game-binary-trees/main.ldn"),
+    ("Benchmark Game pidigits",
+     "compiler/tests/fixtures/runtime/benchmark-game-pidigits/main.ldn"),
 ]
 
 #  A firmware example is a program a reader copies too, and no host runs
@@ -259,7 +261,7 @@ READING_EXAMPLES = {"Word count", "Line numbers",
 ARGUMENT_EXAMPLES = {"Adding up the arguments",
                      "Benchmark Game fannkuch-redux",
                      "Benchmark Game Mandelbrot", "Benchmark Game FASTA",
-                     "Benchmark Game binary-trees"}
+                     "Benchmark Game binary-trees", "Benchmark Game pidigits"}
 
 #  A routine a published example shares with the fixtures that run it where
 #  the example cannot: the same declarations, byte for byte, in each.
@@ -304,6 +306,8 @@ BENCHMARK_GAME_ORACLES = {
         "549dcdcc7df2685145e6cbdfd682469bd9c12ff1beec93c270f8ba447acd4855",
     "compiler/tests/fixtures/runtime/benchmark-game-binary-trees/output.txt":
         "b7f92c56b5d8aeb0a4d698842d1d87a57b4909865c3c84e5e10313e16663c3cb",
+    "compiler/tests/fixtures/runtime/benchmark-game-pidigits/output.txt":
+        "dbf95cc20ad23ff1a385d30436f0c63b5ae7f41bb1003cf204f5e4888b74a39c",
 }
 
 #  Every word the language reserves. Kept here rather than imported from
@@ -11036,8 +11040,11 @@ PROCESS_SECTION_BUDGETS = {
     #  main added in the same weeks, and again when trains, boards beside
     #  the gate and main's verdict joined the promotion rule, and again
     #  when the token waited for a passed gate and branches that are no
-    #  item rode trains, beside main's flake-tools row of the same day.
-    "The mechanical gate": 52800,
+    #  item rode trains, beside main's flake-tools row of the same day;
+    #  and again when the failure causes and the selection in shadow
+    #  joined it, and when board legs taken by identity and the daily
+    #  schedule did.
+    "The mechanical gate": 58000,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,
@@ -12023,7 +12030,9 @@ def check_failure_words(full_run):
     is written out by hand, so a new atom in a `!` set or a `fail` would
     otherwise reach a program with no words, and a program passing it on
     would be refused.  This holds the set to the atoms core's signatures
-    and `fail` statements name, in both directions.
+    and `fail` statements name, in both directions.  A module that keeps
+    its atoms' words in a `public words` of its own, whose arms name them,
+    is excused them (D2683).
     """
     if not full_run:
         return []
@@ -12079,6 +12088,33 @@ def check_failure_words(full_run):
         for member in aliases.get(spelled, [spelled]):
             if member in atoms:
                 raised_atoms.setdefault(member, where)
+    #  D2683: a module may keep its atoms' words itself, in a `public words`
+    #  of its own whose arms name them, so that core/failure need not import
+    #  it; each atom its arms name is held there instead.
+    kept = set()
+    arm = re.compile(r"^\s+(" + name + r")\s*:\s*\"")
+    for here, directories, files in os.walk(core):
+        module = os.path.relpath(here, core).split(os.sep)[-1]
+        if module == "failure":
+            continue
+        for file in sorted(files):
+            if not file.endswith(".ldn"):
+                continue
+            with io.open(os.path.join(here, file), encoding="utf-8") as source:
+                inside = False
+                for line in source.read().splitlines():
+                    if line.startswith("public words: "):
+                        inside = True
+                    elif inside and line.startswith("end words"):
+                        inside = False
+                    elif inside:
+                        found = arm.match(line)
+                        if found:
+                            spelled = found.group(1)
+                            if "." not in spelled:
+                                spelled = module + "." + spelled
+                            if spelled.startswith(module + "."):
+                                kept.add(spelled)
     with io.open(words, encoding="utf-8") as source:
         text = source.read()
     found = re.search(r"^public reason: type = (.*?)\n\n", text,
@@ -12089,7 +12125,7 @@ def check_failure_words(full_run):
     listed = {part.strip() for part in found.group(1).split("|")
               if part.strip()}
     out = []
-    for member in sorted(set(raised_atoms) - listed):
+    for member in sorted(set(raised_atoms) - listed - kept):
         relative, n = raised_atoms[member]
         out.append((FAILURE_WORDS, line,
                     "%s fails with %s (%s:%d), which failure.reason does not "
@@ -12142,7 +12178,8 @@ def check_library_module_names(full_run):
 #  one is an input in D1954's order.  Every other library concept is a
 #  capability, so a new evidence concept is named here.
 LIBRARY_EVIDENCE_CONCEPTS = ("scalar", "exchangeable", "equatable",
-                             "hashable", "ordered", "formattable", "task")
+                             "hashable", "ordered", "formattable", "task",
+                             "floating")
 
 #  The parameter names core/README.md fixes for a capability (D269).
 LIBRARY_CAPABILITY_NAMES = ("memory", "host")

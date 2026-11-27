@@ -560,8 +560,11 @@ run records and what the gate checks for each target.
   stackful fibres on every native target.
 - **The library:** `core` modules of allocators, containers, text, I/O,
   time, networking, random numbers, atomic cells, the elementary
-  mathematical functions, complex numbers, Unicode text and integers and
-  rationals of any size, each provider with a fake for testing, and
+  mathematical functions, complex numbers, dense linear algebra's vectors
+  and matrices, Unicode text, integers and rationals of any size, regular
+  expressions, and floats written and read as text, with a template's
+  placeholders taking Rust's format specification, each provider with a
+  fake for testing, and
   `hosted` providers over POSIX, among them threads started as a group a
   function joins. A Linux executable links no C library unless
   `--link=libc` asks for one.
@@ -598,7 +601,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R22.20 — Float text (planned).**
+**Next roadmap item: R22.21 — n-body and spectral-norm ported (planned).**
 
 ## Questions, bugs and ideas
 

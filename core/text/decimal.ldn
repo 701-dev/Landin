@@ -1,0 +1,446 @@
+--  Decimal text read as a float, rounded once to nearest with ties to
+--  even.  A short decimal of a moderate exponent is an exact integer and
+--  an exact power of ten, which one float multiplication or division
+--  rounds correctly (Clinger's fast path); every other is computed exactly
+--  in big/limbs, as a quotient of integers whose top bits are rounded,
+--  as core/big rounds a conversion (D2598).  The digits kept are enough
+--  that no halfway point between two floats falls among those dropped, so
+--  the dropped ones count only as "a little more".
+
+import core/big/limbs
+
+--  What the scan of a decimal found: its sign, whether it named an
+--  infinity or a NaN, and its digits: `count` significant ones, the
+--  first at byte `first` of the source, with `point` the byte its point
+--  is at, or the source's length when it has none, and `place` the power
+--  of ten just above the first digit, so that the value is 0.d1d2... times
+--  10^`place`.
+scan_value: type = struct
+    negative: bool
+    infinite: bool
+    not_a_number: bool
+    count: usize
+    first: usize
+    point: usize
+    place: i64
+end scan_value
+
+--  The format a decimal is rounded to: the bits of its significand with
+--  the hidden one, its least and greatest normal exponents, the most
+--  significant digits kept, and the powers of ten beyond which every
+--  value is zero or too great.
+target_value: type = struct
+    precision: u32
+    least: i64
+    most: i64
+    kept: usize
+    lowest: i64
+    highest: i64
+end target_value
+
+--  Halfway points between `f64`s have at most 767 significant digits and
+--  between `f32`s 112, so a few more decide every rounding.
+double_target: target_value = (precision: 53, least: -1022, most: 1023,
+                               kept: 780, lowest: -324, highest: 310)
+single_target: target_value = (precision: 24, least: -126, most: 127,
+                               kept: 120, lowest: -46, highest: 40)
+
+--  Whether `source`, from `at`, spells `word` in either case.
+spells: (source: []u8, at: usize, word: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof source - at <> lenof word
+    for letter, offset in word do
+        byte: u8 = source[at + offset]
+        lower: u8 = if byte >= u8('A') and byte <= u8('Z') then byte + 32
+                    else byte end if
+        return when lower <> letter
+    end for
+    yes = true
+end spells
+
+is_digit: (byte: u8) -> (yes: bool) =
+    yes = byte >= u8('0') and byte <= u8('9')
+end is_digit
+
+--  Scan `source` as an optional `-`, then digits with an optional point,
+--  at least one digit on either side of it, and an optional exponent:
+--  `e` or `E`, an optional sign, digits; or `inf`, `infinity` or `nan` in
+--  either case.  Anything else is `invalid_number`.
+scanned: (source: []u8) -> (result: scan_value) ! invalid_number =
+    length: usize = lenof source
+    mut at: usize = 0
+    negative: bool = length > 0 and source[0] == u8('-')
+    if negative then inc at end if
+    if spells(source, at, "inf") or spells(source, at, "infinity") then
+        result = (negative: negative, infinite: true, not_a_number: false,
+                  count: 0, first: 0, point: length, place: 0)
+        return
+    end if
+    if spells(source, at, "nan") then
+        result = (negative: negative, infinite: false, not_a_number: true,
+                  count: 0, first: 0, point: length, place: 0)
+        return
+    end if
+    mut digits: usize = 0
+    mut point: usize = length
+    mut first: usize = length
+    mut count: usize = 0
+    --  Digits from the first significant one, and the ones before the
+    --  point counted from it, less the zeros after a point before it.
+    mut before: i64 = 0
+    while at < length do
+        byte: u8 = source[at]
+        if is_digit(byte) then
+            inc digits
+            if first == length and byte <> u8('0') then first = at end if
+            if first < length then
+                inc count
+                if point == length then inc before end if
+            elsif point < length then
+                dec before
+            end if
+        elsif byte == u8('.') and point == length then
+            point = at
+        else
+            break
+        end if
+        inc at
+    end while
+    fail invalid_number when digits == 0
+    mut exponent: i64 = 0
+    if at < length then
+        fail invalid_number when source[at] <> u8('e') and source[at] <> u8('E')
+        inc at
+        mut lowering: bool = false
+        if at < length and (source[at] == u8('+') or source[at] == u8('-')) then
+            lowering = source[at] == u8('-')
+            inc at
+        end if
+        fail invalid_number when at >= length
+        while at < length do
+            byte: u8 = source[at]
+            fail invalid_number when not is_digit(byte)
+            --  Past a million the value is zero or too great already.
+            if exponent < 1000000 then
+                exponent = exponent * 10 + i64(byte - u8('0'))
+            end if
+            inc at
+        end while
+        if lowering then exponent = 0 - exponent end if
+    end if
+    --  Trailing zeros are no part of the significant digits.
+    mut significant: usize = count
+    while significant > 0 and digit_of(source, first, point, significant - 1)
+                              == 0 do
+        dec significant
+    end while
+    result = (negative: negative, infinite: false, not_a_number: false,
+              count: significant, first: first, point: point,
+              place: before + exponent)
+end scanned
+
+--  The significant digit `index` of a scan that begins at `first`, with
+--  its point at `point`.
+digit_of: (source: []u8, first: usize, point: usize, index: usize)
+          -> (digit: u32) =
+    mut at: usize = first + index
+    if point >= first and at >= point then inc at end if
+    digit = u32(source[at] - u8('0'))
+end digit_of
+
+--  The `count` significant digits from `start`, nineteen at most, as an
+--  integer.
+digits_value: (source: []u8, found: scan_value, start: usize, count: usize)
+              -> (value: u64) =
+    value = 0
+    for index in start..<start + count do
+        value = value * 10 + u64(digit_of(source, found.first, found.point, index))
+    end for
+end digits_value
+
+powers_of_ten_64: [23]f64 = [1.0, 1.0e1, 1.0e2, 1.0e3, 1.0e4, 1.0e5, 1.0e6,
+                             1.0e7, 1.0e8, 1.0e9, 1.0e10, 1.0e11, 1.0e12,
+                             1.0e13, 1.0e14, 1.0e15, 1.0e16, 1.0e17, 1.0e18,
+                             1.0e19, 1.0e20, 1.0e21, 1.0e22]
+
+powers_of_ten_32: [11]f32 = [1.0, 1.0e1, 1.0e2, 1.0e3, 1.0e4, 1.0e5, 1.0e6,
+                             1.0e7, 1.0e8, 1.0e9, 1.0e10]
+
+--  The 64 bits of `digits` from bit `offset` up, those past its end zero.
+bits_from: (digits: []u32, offset: usize) -> (bits: u64) =
+    bits = 0
+    first: usize = offset / 32
+    shift: u64 = u64(offset % 32)
+    for step in usize(0)..<3 do
+        at: usize = first + step
+        if at < lenof digits then
+            limb: u64 = u64(digits[at])
+            if step == 0 then
+                bits = limb >> shift
+            else
+                bits = bits | (limb << (32 * u64(step) - shift))
+            end if
+        end if
+    end for
+end bits_from
+
+--  Whether any bit of `digits` below bit `offset` is set.
+set_below: (digits: []u32, offset: usize) -> (yes: bool) =
+    yes = false
+    whole: usize = offset / 32
+    for at in usize(0)..<whole do
+        if at < lenof digits and digits[at] <> 0 then
+            yes = true
+            return
+        end if
+    end for
+    part: u32 = u32(offset % 32)
+    if part > 0 and whole < lenof digits then
+        yes = digits[whole] & ((u32(1) << part) - 1) <> 0
+    end if
+end set_below
+
+--  The bits of the float of `format` nearest `top` times 2^`power`, ties
+--  to even, its sign clear: `top` has its high bit set, and `sticky` says
+--  whether the exact value is a little above it.
+nearest: (top: u64, sticky: bool, power: i64, format: target_value)
+         -> (bits: u64) =
+    leading: i64 = power + 63
+    hidden: u64 = u64(1) << u64(format.precision - 1)
+    infinity: u64 = u64(2 * format.most + 1) << u64(format.precision - 1)
+    if leading > format.most then
+        bits = infinity
+        return
+    end if
+    mut kept: i64 = i64(format.precision)
+    if leading < format.least then
+        kept = kept - (format.least - leading)
+    end if
+    if kept <= 0 then
+        --  Below half the least subnormal, zero; at half, a tie to zero;
+        --  above it, the least subnormal.
+        bits = if kept == 0 and (top > 0x8000000000000000 or sticky) then 1
+               else 0 end if
+        return
+    end if
+    drop: u64 = 64 - u64(kept)
+    mut mantissa: u64 = top >> drop
+    rest: u64 = top & ((u64(1) << drop) - 1)
+    half: u64 = u64(1) << (drop - 1)
+    if rest > half or (rest == half and (sticky or mantissa & 1 == 1)) then
+        inc mantissa
+    end if
+    if leading < format.least then
+        --  A subnormal's bits are its significand; one rounded up to the
+        --  hidden bit's place is the least normal, whose bits these are.
+        bits = mantissa
+        return
+    end if
+    mut exponent: i64 = leading
+    if mantissa == hidden << 1 then
+        mantissa = hidden
+        inc exponent
+        if exponent > format.most then
+            bits = infinity
+            return
+        end if
+    end if
+    bits = (u64(exponent - format.least + 1) << u64(format.precision - 1))
+           | (mantissa - hidden)
+end nearest
+
+--  The bits of the float of `format` nearest the integer `digits` times
+--  2^`power`, a little more when `sticky`.
+nearest_of: (digits: []u32, sticky: bool, power: i64, format: target_value)
+            -> (bits: u64) =
+    count: usize = limbs.significant(digits)
+    bits = 0
+    return when count == 0
+    length: usize = 32 * count - usize(limbs.leading_zeros(digits[count - 1]))
+    if length <= 64 then
+        top: u64 = bits_from(digits, 0) << u64(64 - length)
+        bits = nearest(top, sticky, power - i64(64 - length), format)
+    else
+        offset: usize = length - 64
+        below: bool = sticky or set_below(digits, offset)
+        bits = nearest(bits_from(digits, offset), below, power + i64(offset),
+                       format)
+    end if
+end nearest_of
+
+--  Multiply the `length` limbs of `number` by `factor` in place and say
+--  how many it then has.
+times_limb: (number: []mut u32, length: usize, factor: u32) -> (count: usize) =
+    high: u32 = limbs.multiply_limb(number[0..<length], number[0..<length], factor)
+    count = length
+    if high <> 0 then
+        number[length] = high
+        inc count
+    end if
+end times_limb
+
+--  5^`power` times the `length` limbs of `number`, in place, and how many
+--  limbs it then has.
+times_five: (number: []mut u32, length: usize, power: i64) -> (count: usize) =
+    count = length
+    mut left: i64 = power
+    while left > 0 do
+        step: i64 = if left >= 13 then 13 else left end if
+        count = times_limb(number, count, u32(five_factors[usize(step)]))
+        left -= step
+    end while
+end times_five
+
+--  Move the `length` limbs of `number` up by `shift` bits in place and
+--  give how many limbs it then has, without high zero limbs.
+moved_up: (number: []mut u32, length: usize, shift: i64) -> (count: usize) =
+    whole: usize = usize(shift) / 32
+    if whole > 0 then
+        mut at: usize = length
+        while at > 0 do
+            dec at
+            number[at + whole] = number[at]
+            number[at] = 0
+        end while
+    end if
+    wide: usize = length + whole + 1
+    number[wide - 1] = 0
+    out: u32 = limbs.shift_left(number[0..<wide], number[0..<wide],
+                                u32(shift % 32))
+    _ = out
+    count = limbs.significant(number[0..<wide])
+end moved_up
+
+--  The float bits nearest a scan's value, by exact arithmetic in the
+--  caller's limbs: `number` and `divisor` each long enough for the kept
+--  digits or the power of five moved up past the other, `remainder` as
+--  `divisor`, `quotient` four limbs and `scratch` both lengths and one
+--  more.
+exactly: (source: []u8, found: scan_value, format: target_value,
+          number: []mut u32, divisor: []mut u32, quotient: []mut u32,
+          remainder: []mut u32, scratch: []mut u32) -> (bits: u64) =
+    taken: usize = if found.count > format.kept then format.kept
+                   else found.count end if
+    --  The digits dropped end in one that is not zero.
+    mut sticky: bool = taken < found.count
+    limbs.clear(number)
+    mut length: usize = 1
+    mut index: usize = 0
+    while index < taken do
+        chunk: usize = if taken - index >= 9 then 9 else taken - index end if
+        value: u64 = digits_value(source, found, index, chunk)
+        mut scale: u32 = 1
+        for step in usize(0)..<chunk do
+            _ = step
+            scale *= 10
+        end for
+        length = times_limb(number, length, scale)
+        carry: u32 = limbs.add_limb(number[0..<length], number[0..<length],
+                                    u32(value))
+        if carry <> 0 then
+            number[length] = carry
+            inc length
+        end if
+        index += chunk
+    end while
+    --  The value is the integer of the digits kept times 10^`scale`.
+    scale: i64 = found.place - i64(taken)
+    if scale >= 0 then
+        length = times_five(number, length, scale)
+        bits = nearest_of(number[0..<length], sticky, scale, format)
+        return
+    end if
+    limbs.clear(divisor)
+    divisor[0] = 1
+    size: usize = times_five(divisor, 1, 0 - scale)
+    numerator: usize = limbs.significant(number[0..<length])
+    number_bits: i64 = i64(32 * numerator
+                           - usize(limbs.leading_zeros(number[numerator - 1])))
+    divisor_bits: i64 = i64(32 * size
+                            - usize(limbs.leading_zeros(divisor[size - 1])))
+    --  The quotient is to have 65 or 66 bits: a numerator too short is
+    --  moved up, and a divisor too short for a long one is, which keeps the
+    --  quotient four limbs long whatever the digits.
+    shift: i64 = divisor_bits - number_bits + 66
+    wide: usize = moved_up(number, numerator, if shift > 0 then shift else 0 end if)
+    across: usize = moved_up(divisor, size, if shift < 0 then 0 - shift else 0 end if)
+    limbs.divide(quotient, remainder, number[0..<wide], divisor[0..<across],
+                 scratch)
+    count: usize = wide - across + 1
+    if limbs.significant(remainder[0..<across]) <> 0 then sticky = true end if
+    bits = nearest_of(quotient[0..<count], sticky, scale - shift, format)
+end exactly
+
+--  The bits of the `f64` nearest the decimal `source`, its sign included,
+--  or a refusal: what `parse_f64` returns.
+f64_bits: (source: []u8) -> (bits: u64) ! invalid_number | number_overflow =
+    found: scan_value = try scanned(source)
+    sign: u64 = if found.negative then 0x8000000000000000 else 0 end if
+    if found.not_a_number then
+        bits = 0x7ff8000000000000
+        return
+    end if
+    if found.infinite then
+        bits = sign | 0x7ff0000000000000
+        return
+    end if
+    bits = sign
+    return when found.count == 0 or found.place <= double_target.lowest
+    fail number_overflow when found.place >= double_target.highest
+    scale: i64 = found.place - i64(found.count)
+    if found.count <= 15 and scale >= -22 and scale <= 22 then
+        whole: f64 = f64(digits_value(source, found, 0, found.count))
+        value: f64 = if scale >= 0 then whole * powers_of_ten_64[usize(scale)]
+                     else whole / powers_of_ten_64[usize(0 - scale)] end if
+        view: ptr u64 = ptr(usize(addr value))
+        bits = sign | view.val
+        return
+    end if
+    mut number: [86]u32 = zeroed
+    mut divisor: [86]u32 = zeroed
+    mut quotient: [4]u32 = zeroed
+    mut remainder: [86]u32 = zeroed
+    mut scratch: [173]u32 = zeroed
+    magnitude: u64 = exactly(source, found, double_target, number[0..<86],
+                             divisor[0..<86], quotient[0..<4],
+                             remainder[0..<86], scratch[0..<173])
+    fail number_overflow when magnitude == 0x7ff0000000000000
+    bits = sign | magnitude
+end f64_bits
+
+--  The bits of the `f32` nearest the decimal `source`, rounded once from
+--  the decimal, never through an `f64`.
+f32_bits: (source: []u8) -> (bits: u32) ! invalid_number | number_overflow =
+    found: scan_value = try scanned(source)
+    sign: u32 = if found.negative then 0x80000000 else 0 end if
+    if found.not_a_number then
+        bits = 0x7fc00000
+        return
+    end if
+    if found.infinite then
+        bits = sign | 0x7f800000
+        return
+    end if
+    bits = sign
+    return when found.count == 0 or found.place <= single_target.lowest
+    fail number_overflow when found.place >= single_target.highest
+    scale: i64 = found.place - i64(found.count)
+    if found.count <= 7 and scale >= -10 and scale <= 10 then
+        whole: f32 = f32(u32(digits_value(source, found, 0, found.count)))
+        value: f32 = if scale >= 0 then whole * powers_of_ten_32[usize(scale)]
+                     else whole / powers_of_ten_32[usize(0 - scale)] end if
+        view: ptr u32 = ptr(usize(addr value))
+        bits = sign | view.val
+        return
+    end if
+    mut number: [17]u32 = zeroed
+    mut divisor: [17]u32 = zeroed
+    mut quotient: [4]u32 = zeroed
+    mut remainder: [17]u32 = zeroed
+    mut scratch: [35]u32 = zeroed
+    magnitude: u64 = exactly(source, found, single_target, number[0..<17],
+                             divisor[0..<17], quotient[0..<4],
+                             remainder[0..<17], scratch[0..<35])
+    fail number_overflow when magnitude == 0x7f800000
+    bits = sign | u32(magnitude)
+end f32_bits

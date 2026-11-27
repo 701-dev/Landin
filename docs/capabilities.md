@@ -107,9 +107,10 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   its expected output by [the board tools](../environments/boards/README.md),
   which record a RAM run, loaded into SRAM without writing flash, and a
   boot check from power-on separately (D593-D596, D647-D655, D901, D902).
-  The gate runs both on the maintainer's rig on every push to `main`,
-  weekly and by dispatch, never for a branch, and never reuses physical
-  evidence (D904, D905).
+  The gate runs both on the maintainer's rig on a push to `main`, daily
+  and by dispatch, never for a branch, and takes a passed run's legs only
+  when its images, harness, records and board jobs are the same bytes
+  (D904, D905, D1647, D2774, D2775).
   The derived linker script is written as `OUT.ld`, or alone with its
   limits by `--emit=linker-script` (D589), a developer's own is linked with
   `--linker-script=FILE` and held to a contract of five clauses, among
@@ -927,10 +928,11 @@ injector as arguments, as providers.
   caller's allocator (D2532).
 - **Comparison.** The comparison concepts are a module of their own,
   `core/cmp`, with library-supplied evidence for integer keys and ordering,
-  Boolean and byte slice keys, and UTF-8 keys and ordering. Every shipped
-  hash is SipHash-1-3 keyed by a seed, and a map hashes under the seed it
-  is made with: a hosted program draws one from its entropy, and firmware
-  gives one (D1360).
+  Boolean and byte slice keys, UTF-8 keys and ordering, and `f32` and
+  `f64` ordering by IEEE 754's totalOrder (D2815). Every shipped hash is
+  SipHash-1-3 keyed by a seed, and a map hashes under the seed it is made
+  with: a hosted program draws one from its entropy, and firmware gives
+  one (D1360).
 - **Text.** Byte-oriented and validated text. Positions over `utf8` step
   a whole scalar and keep its byte offset, and searches for text or a
   scalar return where the match begins, so the parts around it are
@@ -942,12 +944,20 @@ injector as arguments, as providers.
   always holds UTF-8 and lends it as one `utf8` view with no scan (D948).
   `compiler.utf8_unvalidated` makes such a view of bytes valid by
   construction, admitted only inside `unchecked` (D949).
-  `text.format` fills a template's `{}` with any value that has
-  `formattable` evidence, checked against its values when it runs, and
+  `text.format` fills a template's placeholders with any value that has
+  `formattable` evidence, checked against its values when it runs, each
+  `{}` or Rust's `{:spec}`: fill, alignment, sign, `#`, zero padding, a
+  width in scalars, precision and a radix or exponent kind, which a
+  conformance reads through `text.placeholder` (D2758, D2759).
   `io.write_format` writes one to a file in a single call, through a
   128-byte store on its own stack that goes out whenever it fills, so a
-  value of any length is printed on every target (D527). Every width
-  parses back from bytes, and no locale is consulted.
+  value of any length is printed on every target (D527). Floats are
+  written as the shortest text that reads back, spelled as a Landin
+  literal, by Ryu's method from 620 bytes of tables (D2754, D2755), or
+  rounded once to places after the point or the first digit, byte for
+  byte C's `printf` (D2756), and are parsed rounded once, an `f32` at its
+  own width, every `f32` checked exhaustively (D2757). Every width parses
+  back from bytes, and no locale is consulted.
 - **Bytes.** Byte slices copy, with overlap allowed either way, fill,
   compare and search with their lengths checked.
 - **Failures and panics.** Bulk cleanup, panic dispatch, the
@@ -997,6 +1007,17 @@ injector as arguments, as providers.
   tables its routines reach, which stay in flash; NFKC and NFKD alone do
   not fit Cortex-M0's 32 KiB profile. Scripts, line breaking, collation,
   locale-tailored case and encodings other than UTF-8 are not covered.
+- **Regular expressions.** `core/regex` compiles a pattern when the
+  program runs, with the caller's allocator, and searches `utf8` in time
+  linear in the text: the syntax and leftmost-first meaning of Rust's
+  `regex` crate, without backreferences and look-around, with groups,
+  walks over every match and replacement from a template. A Pike VM, a
+  lazy DFA, a one-pass DFA and a literal prefilter are chosen per
+  pattern. `lean` options link none of Unicode's tables; the engines are
+  still about 140 KB of Thumb code, past the 32 KiB Cortex-M0 profile,
+  so firmware runs it on the Cortex-M7 corpus lane. It passes the 897
+  cases of the `regex` crate's test suite that it can state; scripts and
+  the other properties `core/unicode` lacks are not covered.
 - **Complex numbers.** `core/complex` has `complex.number(f32)` and
   `complex.number(f64)`, a struct of a `real` and an `imaginary` part, and
   named routines generic over both: the arithmetic, the conjugate and the
@@ -1009,7 +1030,21 @@ injector as arguments, as providers.
   runs (D2636). On Cortex-M0 the arithmetic, `sqrt`, `atan` and `atanh` fit
   at `f32`; the larger functions pass 32 KiB and run on the Cortex-M7
   emulator lane instead.
-
+- **Dense vectors and matrices.** `core/dense` has `dense.vector` and
+  `dense.matrix`, views over the caller's storage generic over `f32` and
+  `f64`, with a step for rows and one for columns, so either layout, a
+  transpose and a block are views of the same storage (D2694-D2697); the
+  element-wise operations, reductions and norms; and the BLAS's three
+  levels on them, plane rotations, matrix-vector products and rank-one
+  updates, symmetric and triangular products and solves, symmetric rank-k
+  updates, and the matrix product, packed into the caller's scratch and
+  blocked for the cache (D2700). Nothing allocates and nothing is ported
+  (D2702). The reference BLAS's test programs, translated, hold every test
+  ratio under their threshold of 16 at both widths on every hosted target
+  and on the Cortex-M7 and Xtensa emulators; past 32 KiB, they are image
+  limits on Cortex-M0 and RV32. The `f64` product at n=1000 takes 8.2
+  times OpenBLAS's time on one core, without vector instructions (D2703).
+  Banded and packed storage and complex elements are not covered.
 - **Big numbers.** `core/big` has integers and rationals of any size over
   the caller's allocator, and `core/big/limbs` the natural numbers in
   caller-supplied slices of `u32` limbs beneath them, which allocates
@@ -1282,7 +1317,7 @@ process ignores SIGPIPE and gives its children the default back.
   level and of the nine optimization and specialization profiles, and the
   instructions each executes under QEMU on RV64 and the Cortex-M machines,
   and fails on any change its commit does not record in the committed
-  baselines. The weekly schedule and a dispatch also time the hosted
+  baselines. The daily schedule and a dispatch also time the hosted
   workloads natively, the candidate's images against its base's on one
   processor, and the firmware workloads by each board's cycle counter on
   the rig. [Measuring generated code](measurement.md) is the contract,
@@ -1375,7 +1410,7 @@ Add `--target=darwin-arm64` for native macOS output, then open
   [`examples.md`](../examples.md)
   runs on every hosted target against its recorded output: everyday tools,
   the printing and failure lessons, the classic exercises from FizzBuzz to
-  merge sort, the sensor-polling program, and five Benchmark Game ports at
+  merge sort, the sensor-polling program, and six Benchmark Game ports at
   correctness scale. Its firmware example builds for Cortex-M0 and is held
   to its serial output on the emulator.
 
@@ -1385,7 +1420,7 @@ The recurring gate runs Linux, macOS and Windows programs natively, FreeBSD
 programs in accelerated VMs, where it also builds and tests `refine` on
 FreeBSD x86-64, and Cortex-M firmware under QEMU, with separate runtime,
 C ABI and debugger verdicts; RV64 Linux runs under QEMU's user emulation, as
-above. On a push to `main`, weekly and by dispatch it also runs all eight
+above. On a push to `main`, daily and by dispatch it also runs all eight
 board ports on the physical rig, each RAM run followed by its boot check.
 The gate's scripts job holds every workflow to the pinned actionlint, which
 runs the pinned shellcheck over every `run:` script. The

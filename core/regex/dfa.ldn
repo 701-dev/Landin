@@ -1,0 +1,648 @@
+--  The lazy DFA: the program's threads at a position as one state, built
+--  only when a search first needs it and kept in a cache of bounded size,
+--  as RE2's and Rust's `regex` are.  A state is the ordered list of the
+--  instructions its threads stepped to, before any split or look is
+--  followed, and what the byte before it was; the threads' closure is
+--  taken when the byte after is known, and with it every look that holds
+--  there, so that it visits the program in the order the Pike VM does and
+--  finds the same match.  A match is therefore seen one byte late.  When the
+--  cache fills it is cleared and the search goes on; when that happens
+--  too often, or the search meets a byte past ASCII while a Unicode word
+--  boundary needs judging, it gives up, and the Pike VM answers instead.
+--  Each byte costs one table lookup once its state is built, and a state
+--  is built in time linear in the program, so a search stays linear.
+
+import core/mem
+import core/vec
+
+--  What came before a position, as the looks read it: nothing, the start
+--  of the text (its end, searching backward), a \n, a \r, a byte of
+--  [0-9A-Za-z_] or any other byte.  A state's flags hold one of these,
+--  and `match_flag` when a match ended just before the byte that led to
+--  it.
+before_text: u8 = 0
+before_newline: u8 = 1
+before_return: u8 = 2
+before_word: u8 = 3
+before_other: u8 = 4
+match_flag: u8 = 8
+--  Set on the unanchored search's start state, where a search may skip
+--  ahead to the next place a literal prefix occurs.
+start_flag: u8 = 16
+
+dead_state: u32 = 0
+unknown_state: u32 = 0xffff_ffff
+quit_state: u32 = 0xffff_fffe
+
+--  The byte value standing for the end of the text in a look.
+end_of_text: usize = 256
+
+--  How many times one search may clear the cache before it gives up.
+clear_limit: usize = 8
+
+--  What a DFA search found.
+dfa_none: u8 = 0
+dfa_found: u8 = 1
+dfa_gave_up: u8 = 2
+
+dfa_state: type = struct
+    first: u32
+    count: u32
+    flags: u8
+end dfa_state
+
+--  One sparse set of instructions, as the Pike VM keeps its threads.
+work_set: type = struct
+    dense: vec.list(u32)
+    sparse: vec.list(u32)
+end work_set
+
+dfa_cache: type = struct
+    usable: bool
+    longest: bool
+    classes: vec.list(u8)
+    stride: usize
+    quit_from: usize
+    table: vec.list(u32)
+    states: vec.list(dfa_state)
+    pool: vec.list(u32)
+    hash: vec.list(u32)
+    state_count: usize
+    pool_used: usize
+    resolved: work_set
+    stepped: work_set
+    stack: vec.list(u32)
+    starts: [10]u32
+    clears: usize
+    unanchored_seed: u32
+    work: u64
+end dfa_cache
+
+new_work_set: () -> (result: work_set) =
+    result = (dense: vec.new(item: u32), sparse: vec.new(item: u32))
+end new_work_set
+
+new_dfa_cache: () -> (result: dfa_cache) =
+    result = (usable: false, longest: false, classes: vec.new(item: u8),
+              stride: 0, quit_from: 256, table: vec.new(item: u32),
+              states: vec.new(item: dfa_state), pool: vec.new(item: u32),
+              hash: vec.new(item: u32), state_count: 0, pool_used: 0,
+              resolved: new_work_set(), stepped: new_work_set(),
+              stack: vec.new(item: u32), starts: zeroed, clears: 0,
+              unanchored_seed: nothing, work: 0)
+end new_dfa_cache
+
+release_dfa_cache: (provider: type is mem.allocator, inout cache: dfa_cache,
+                    memory: provider) -> none =
+    vec.release(cache.classes, memory)
+    vec.release(cache.table, memory)
+    vec.release(cache.states, memory)
+    vec.release(cache.pool, memory)
+    vec.release(cache.hash, memory)
+    vec.release(cache.resolved.dense, memory)
+    vec.release(cache.resolved.sparse, memory)
+    vec.release(cache.stepped.dense, memory)
+    vec.release(cache.stepped.sparse, memory)
+    vec.release(cache.stack, memory)
+    cache.usable = false
+end release_dfa_cache
+
+--  Size the cache for `code` within about `budget` bytes, and work out
+--  its byte classes.  A budget too small for a useful cache leaves it
+--  unusable, and the Pike VM answers every search.
+size_dfa_cache: (provider: type is mem.allocator, inout cache: dfa_cache,
+                 memory: provider, code: program, budget: usize,
+                 longest: bool) -> none ! mem.out_of_memory =
+    cache.longest = longest
+    cache.unanchored_seed = if longest then nothing else code.unanchored end if
+    states: usize = vec.length(code.insts)
+    mut marks: [257]bool = zeroed
+    marks[0] = true
+    for item in vec.used(code.insts) do
+        if item.kind == inst_range then
+            marks[usize(item.low)] = true
+            marks[usize(item.high) + 1] = true
+        end if
+    end for
+    for item in vec.used(code.edges) do
+        marks[usize(item.low)] = true
+        marks[usize(item.high) + 1] = true
+    end for
+    line_looks: u32 = u32(1) << u32(look_start_line) | u32(1) << u32(look_end_line)
+                      | u32(1) << u32(look_start_line_crlf)
+                      | u32(1) << u32(look_end_line_crlf)
+    if code.looks & line_looks <> 0 then
+        marks[10] = true
+        marks[11] = true
+        marks[13] = true
+        marks[14] = true
+    end if
+    unicode_words: bool = code.looks >> u32(look_word_unicode) <> 0
+    if code.looks >> u32(look_word_ascii) <> 0 then
+        for bound in word_bounds do marks[usize(bound)] = true end for
+    end if
+    if unicode_words then marks[0x80] = true end if
+    mut class: u8 = 0
+    try vec.reserve(cache.classes, memory, 256)
+    for byte in usize(0)..<256 do
+        if byte > 0 and marks[byte] then inc class end if
+        try vec.push(cache.classes, memory, class)
+    end for
+    cache.stride = usize(class) + 1
+    cache.quit_from = 256
+    if unicode_words then
+        cache.quit_from = usize(vec.get(cache.classes, 0x80) else class)
+    end if
+    listed: usize = if states < 64 then states else 64 end if
+    per_state: usize = cache.stride * 4 + 20 + 4 * listed
+    mut limit: usize = budget / per_state
+    return when limit < 8
+    --  A program of n instructions seldom needs more than a few states
+    --  per instruction; the budget bounds a larger one.
+    if limit > 16 * states + 64 then limit = 16 * states + 64 end if
+    mut pool_size: usize = limit * listed
+    if pool_size < 2 * states + 8 then pool_size = 2 * states + 8 end if
+    mut slots: usize = 16
+    while slots < 2 * limit do slots = slots * 2 end while
+    try fill(cache.table, memory, limit * cache.stride, unknown_state)
+    blank: dfa_state = (first: 0, count: 0, flags: 0)
+    try fill(cache.states, memory, limit, blank)
+    try fill(cache.pool, memory, pool_size, u32(0))
+    try fill(cache.hash, memory, slots, unknown_state)
+    try fill(cache.resolved.dense, memory, states, u32(0))
+    try fill(cache.resolved.sparse, memory, states, u32(0))
+    try fill(cache.stepped.dense, memory, states, u32(0))
+    try fill(cache.stepped.sparse, memory, states, u32(0))
+    try fill(cache.stack, memory, 2 * states + 2, u32(0))
+    cache.usable = true
+    clear_dfa(cache)
+end size_dfa_cache
+
+--  The bytes where a word byte's class begins or ends: 0-9, A-Z, _ and
+--  a-z.
+word_bounds: [8]u8 = [0x30, 0x3a, 0x41, 0x5b, 0x5f, 0x60, 0x61, 0x7b]
+
+--  Empty the cache but for the dead state, number zero.
+clear_dfa: (inout cache: dfa_cache) -> none =
+    for slot in vec.used(cache.table) do slot = unknown_state end for
+    for slot in vec.used(cache.hash) do slot = unknown_state end for
+    for slot in cache.starts do slot = unknown_state end for
+    states: []mut dfa_state = vec.used(cache.states)
+    states[0] = (first: 0, count: 0, flags: 0)
+    cache.state_count = 1
+    cache.pool_used = 0
+    --  The dead state goes to itself on every byte.
+    table: []mut u32 = vec.used(cache.table)
+    for index in usize(0)..<cache.stride do table[index] = dead_state end for
+end clear_dfa
+
+--  What the byte `byte` is to the looks after it.
+kind_of: (byte: u8) -> (kind: u8) =
+    kind = if byte == 10 then before_newline
+           elsif byte == 13 then before_return
+           elsif ascii_word(u32(byte)) then before_word
+           else before_other end if
+end kind_of
+
+--  Whether look `kind` holds between what `before` says came before and
+--  `next`, the byte after or `end_of_text`.  A Unicode word look is
+--  judged as an ASCII one: a search gives up before it meets a byte past
+--  ASCII while one needs judging.
+dfa_look_holds: (kind: u8, before: u8, next: usize) -> (yes: bool) =
+    if kind == look_start_text then
+        yes = before == before_text
+    elsif kind == look_end_text then
+        yes = next == end_of_text
+    elsif kind == look_start_line then
+        yes = before == before_text or before == before_newline
+    elsif kind == look_end_line then
+        yes = next == end_of_text or next == 10
+    elsif kind == look_start_line_crlf then
+        yes = before == before_text or before == before_newline
+              or before == before_return and next <> 10
+    elsif kind == look_end_line_crlf then
+        yes = next == end_of_text or next == 13
+              or next == 10 and before <> before_return
+    else
+        word_before: bool = before == before_word
+        word_after: bool = next < 128 and ascii_word(u32(next))
+        family: u8 = if kind < look_word_unicode then kind - look_word_ascii
+                     else kind - look_word_unicode end if
+        yes = word_look_holds(family, word_before, word_after)
+    end if
+end dfa_look_holds
+
+--  Add to `set`, after its first `count`, every instruction `start`
+--  reaches through splits, saves and the looks that hold between what
+--  `before` says and `next`, in priority order, as the Pike VM's
+--  `add_thread` visits them; give the new count.
+closure: (set: work_set, count: usize, stack: []mut u32, insts: []inst,
+          start: u32, before: u8, next: usize) -> (result: usize) =
+    dense: []mut u32 = vec.used(set.dense)
+    sparse: []mut u32 = vec.used(set.sparse)
+    result = count
+    mut top: usize = 1
+    stack[0] = start
+    while top > 0 do
+        dec top
+        mut id: u32 = stack[top]
+        loop do
+            here: u32 = sparse[usize(id)]
+            break when usize(here) < result and dense[usize(here)] == id
+            sparse[usize(id)] = u32(result)
+            dense[result] = id
+            inc result
+            item: inst = insts[usize(id)]
+            if item.kind == inst_split then
+                stack[top] = item.arg
+                inc top
+                id = item.next
+            elsif item.kind == inst_save or item.kind == inst_goto then
+                id = item.next
+            elsif item.kind == inst_look then
+                break when not dfa_look_holds(u8(item.arg), before, next)
+                id = item.next
+            else
+                break
+            end if
+        end loop
+    end while
+end closure
+
+--  Resolve state `state`'s looks against `next`, into `resolved`, and give
+--  how many instructions that reached.
+resolve_state: (inout cache: dfa_cache, insts: []inst, state: u32,
+                next: usize) -> (count: usize) =
+    held: dfa_state = state_at(cache, state)
+    pool: []u32 = vec.used(cache.pool)
+    stack: []mut u32 = vec.used(cache.stack)
+    before: u8 = held.flags & 7
+    count = 0
+    for index in usize(held.first)..<usize(held.first + held.count) do
+        count = closure(cache.resolved, count, stack, insts, pool[index],
+                        before, next)
+    end for
+end resolve_state
+
+--  Whether a match ends at the position of state `state` when `next`
+--  follows it.
+accepts: (inout cache: dfa_cache, insts: []inst, state: u32, next: usize)
+         -> (yes: bool) =
+    count: usize = resolve_state(cache, insts, state, next)
+    dense: []u32 = vec.used(cache.resolved.dense)
+    yes = false
+    for id in dense[0..<count] do
+        if insts[usize(id)].kind == inst_match then
+            yes = true
+            return
+        end if
+    end for
+end accepts
+
+--  Add `id` to the first `count` of `set` unless it is there; give the
+--  new count.
+seed: (set: work_set, count: usize, id: u32) -> (result: usize) =
+    dense: []mut u32 = vec.used(set.dense)
+    sparse: []mut u32 = vec.used(set.sparse)
+    result = count
+    here: u32 = sparse[usize(id)]
+    return when usize(here) < count and dense[usize(here)] == id
+    sparse[usize(id)] = u32(count)
+    dense[count] = id
+    result = count + 1
+end seed
+
+--  The state after `state` on `byte`, built and cached: `quit_state` when
+--  the cache cannot hold it.
+step_state: (inout cache: dfa_cache, code: program, state: u32, byte: u8)
+            -> (target: u32) =
+    insts: []inst = vec.used(code.insts)
+    edges: []edge = vec.used(code.edges)
+    count: usize = resolve_state(cache, insts, state, usize(byte))
+    cache.work += u64(count)
+    resolved: []u32 = vec.used(cache.resolved.dense)
+    mut matched: bool = false
+    mut stepped: usize = 0
+    for id in resolved[0..<count] do
+        item: inst = insts[usize(id)]
+        if item.kind == inst_match then
+            matched = true
+            break when not cache.longest
+        elsif item.kind == inst_range then
+            if byte >= item.low and byte <= item.high then
+                stepped = seed(cache.stepped, stepped, item.next)
+            end if
+        elsif item.kind == inst_sparse then
+            for at in usize(item.next)..<usize(item.next + item.arg) do
+                target_edge: edge = edges[at]
+                if byte >= target_edge.low and byte <= target_edge.high then
+                    stepped = seed(cache.stepped, stepped, target_edge.next)
+                end if
+            end for
+        end if
+    end for
+    flags: u8 = kind_of(byte) | (if matched then match_flag else 0 end if)
+    before_clear: usize = cache.clears
+    target = intern(cache, insts, stepped, flags)
+    return when target == quit_state or cache.clears <> before_clear
+    class: usize = class_of(cache, byte)
+    table: []mut u32 = vec.used(cache.table)
+    table[usize(state) * cache.stride + class] = target
+end step_state
+
+--  The state of the first `count` instructions of `stepped`, with `flags`: one already cached, or a new one.  It clears the
+--  cache when that is full, and gives `quit_state` when it has been
+--  cleared too often or the state is too large for it.
+intern: (inout cache: dfa_cache, insts: []inst, count: usize,
+         given_flags: u8) -> (target: u32) =
+    mut flags: u8 = given_flags
+    if count == 1 and flags & match_flag == 0 then
+        dense_view: []u32 = vec.used(cache.stepped.dense)
+        if dense_view[0] == cache.unanchored_seed then
+            flags = flags | start_flag
+        end if
+    end if
+    mut hash: u32 = 2166136261 ^ u32(flags)
+    mut listed: usize = 0
+    hash_slots: usize = vec.length(cache.hash)
+    mut slot: usize = 0
+    begin
+        dense: []u32 = vec.used(cache.stepped.dense)
+        _ = insts
+        for id in dense[0..<count] do
+            hash = (hash ^ id) *% 16777619
+        end for
+        listed = count
+        if listed == 0 and flags & match_flag == 0 then
+            target = dead_state
+            return
+        end if
+        slot = usize(hash) & (hash_slots - 1)
+        loop do
+            held: u32 = hash_at(cache, slot)
+            break when held == unknown_state
+            if state_equals(cache, held, dense[0..<count], flags) then
+                target = held
+                return
+            end if
+            slot = (slot + 1) & (hash_slots - 1)
+        end loop
+    end
+    if cache.state_count >= vec.length(cache.states)
+      or cache.pool_used + listed > vec.length(cache.pool)
+      or 2 * cache.state_count >= hash_slots then
+        inc cache.clears
+        target = quit_state
+        return when cache.clears > clear_limit
+          or listed > vec.length(cache.pool)
+        clear_dfa(cache)
+        slot = usize(hash) & (hash_slots - 1)
+        while hash_at(cache, slot) <> unknown_state do
+            slot = (slot + 1) & (hash_slots - 1)
+        end while
+    end if
+    target = u32(cache.state_count)
+    dense: []u32 = vec.used(cache.stepped.dense)
+    pool: []mut u32 = vec.used(cache.pool)
+    first: usize = cache.pool_used
+    mut used: usize = first
+    for id in dense[0..<count] do
+        pool[used] = id
+        inc used
+    end for
+    cache.pool_used = used
+    states: []mut dfa_state = vec.used(cache.states)
+    states[usize(target)] = (first: u32(first), count: u32(listed),
+                             flags: flags)
+    hashes: []mut u32 = vec.used(cache.hash)
+    hashes[slot] = target
+    inc cache.state_count
+end intern
+
+state_equals: (cache: dfa_cache, state: u32, ids: []u32, flags: u8)
+              -> (yes: bool) =
+    held: dfa_state = state_at(cache, state)
+    yes = false
+    return when held.flags <> flags or usize(held.count) <> lenof ids
+    pool: []u32 = vec.used(cache.pool)
+    first: usize = usize(held.first)
+    for id, index in ids do
+        return when pool[first + index] <> id
+    end for
+    yes = true
+end state_equals
+
+--  The start state for a search whose position follows what `before`
+--  says, from instruction `start`; `slot` names its entry in the cache's
+--  list of start states.
+start_state: (inout cache: dfa_cache, code: program, start: u32, before: u8,
+              slot: usize) -> (state: u32) =
+    state = cache.starts[slot]
+    return when state <> unknown_state
+    insts: []inst = vec.used(code.insts)
+    count: usize = seed(cache.stepped, 0, start)
+    state = intern(cache, insts, count, before)
+    if state <> quit_state then cache.starts[slot] = state end if
+end start_state
+
+--  What the byte before `at` is to the looks, or `quit_state`'s meaning
+--  as `before_text` with `quit` set when the search must give up there.
+before_position: (cache: dfa_cache, bytes: []u8, at: usize)
+                 -> (before: u8, quit: bool) =
+    quit = false
+    before = before_text
+    return when at == 0
+    byte: u8 = bytes[at - 1]
+    before = kind_of(byte)
+    quit = class_of(cache, byte) >= cache.quit_from
+end before_position
+
+--  Search forward from `origin` for where the leftmost-first match ends,
+--  or with `earliest` for where any match first ends.
+dfa_forward: (inout cache: dfa_cache, code: program, literals: literal_set,
+              bytes: []u8, origin: usize, anchored: bool, earliest: bool)
+             -> (outcome: u8, ends: usize) =
+    outcome = dfa_gave_up
+    ends = 0
+    return when not cache.usable
+    cache.clears = 0
+    (before: first_before, quit: quit_at_start) := before_position(cache,
+                                                                   bytes,
+                                                                   origin)
+    return when quit_at_start
+    start: u32 = if anchored then code.start else code.unanchored end if
+    slot: usize = usize(first_before) * 2 + (if anchored then 1 else 0 end if)
+    mut state: u32 = start_state(cache, code, start, first_before, slot)
+    return when state == quit_state
+    mut found: bool = false
+    mut at: usize = origin
+    skipping: bool = literals.usable and not anchored
+    mut skipped_at: usize = unset
+    loop do
+        mut pending: bool = false
+        mut skip: bool = false
+        begin
+            --  Run over the bytes whose transitions are built; the views
+            --  end before a new state is built.
+            classes: []u8 = vec.used(cache.classes)
+            table: []u32 = vec.used(cache.table)
+            states: []dfa_state = vec.used(cache.states)
+            while at < lenof bytes do
+                if skipping and at <> skipped_at
+                  and states[usize(state)].flags & start_flag <> 0 then
+                    skip = true
+                    break
+                end if
+                class: usize = usize(classes[usize(bytes[at])])
+                return when class >= cache.quit_from
+                target: u32 = table[usize(state) * cache.stride + class]
+                if target == unknown_state then
+                    pending = true
+                    break
+                end if
+                state = target
+                inc at
+                inc cache.work
+                if states[usize(state)].flags & match_flag <> 0 then
+                    found = true
+                    ends = at - 1
+                    if earliest then
+                        outcome = dfa_found
+                        return
+                    end if
+                end if
+                break when state == dead_state
+            end while
+        end
+        if skip then
+            --  Nothing has begun: go to where a literal prefix next
+            --  occurs, and start there afresh.
+            (at: next_at, length: _) := next_literal(literals, bytes, at)
+            cache.work += u64(if next_at > lenof bytes then lenof bytes - at
+                              else next_at - at end if) + 1
+            if next_at > lenof bytes then
+                at = lenof bytes
+                state = dead_state
+                break
+            end if
+            skipped_at = next_at
+            if next_at > at then
+                at = next_at
+                (before: skip_before, quit: skip_quit) := before_position(
+                    cache, bytes, at)
+                return when skip_quit
+                state = start_state(cache, code, code.unanchored, skip_before,
+                                    usize(skip_before) * 2)
+                return when state == quit_state
+            end if
+            continue
+        end if
+        break when not pending
+        target: u32 = step_state(cache, code, state, bytes[at])
+        return when target == quit_state
+        state = target
+        inc at
+        entered: dfa_state = state_at(cache, state)
+        if entered.flags & match_flag <> 0 then
+            found = true
+            ends = at - 1
+            if earliest then
+                outcome = dfa_found
+                return
+            end if
+        end if
+        break when state == dead_state
+    end loop
+    if at >= lenof bytes and state <> dead_state then
+        if accepts(cache, vec.used(code.insts), state, end_of_text) then
+            found = true
+            ends = lenof bytes
+        end if
+    end if
+    outcome = if found then dfa_found else dfa_none end if
+end dfa_forward
+
+--  Search backward from `ends` to `origin` with the reversed program for
+--  the earliest position a match ending at `ends` begins at.
+dfa_reverse: (inout cache: dfa_cache, code: program, bytes: []u8,
+              ends: usize, origin: usize) -> (outcome: u8, begins: usize) =
+    outcome = dfa_gave_up
+    begins = 0
+    return when not cache.usable
+    cache.clears = 0
+    mut first_before: u8 = before_text
+    if ends < lenof bytes then
+        byte: u8 = bytes[ends]
+        return when class_of(cache, byte) >= cache.quit_from
+        first_before = kind_of(byte)
+    end if
+    mut state: u32 = start_state(cache, code, code.start, first_before,
+                                 usize(first_before) * 2 + 1)
+    return when state == quit_state
+    mut found: bool = false
+    mut at: usize = ends
+    loop do
+        mut pending: bool = false
+        begin
+            classes: []u8 = vec.used(cache.classes)
+            table: []u32 = vec.used(cache.table)
+            states: []dfa_state = vec.used(cache.states)
+            while at > origin do
+                class: usize = usize(classes[usize(bytes[at - 1])])
+                return when class >= cache.quit_from
+                target: u32 = table[usize(state) * cache.stride + class]
+                if target == unknown_state then
+                    pending = true
+                    break
+                end if
+                state = target
+                dec at
+                inc cache.work
+                if states[usize(state)].flags & match_flag <> 0 then
+                    found = true
+                    begins = at + 1
+                end if
+                break when state == dead_state
+            end while
+        end
+        break when not pending
+        target: u32 = step_state(cache, code, state, bytes[at - 1])
+        return when target == quit_state
+        state = target
+        dec at
+        entered: dfa_state = state_at(cache, state)
+        if entered.flags & match_flag <> 0 then
+            found = true
+            begins = at + 1
+        end if
+        break when state == dead_state
+    end loop
+    if at == origin and state <> dead_state then
+        mut next: usize = end_of_text
+        if origin > 0 then
+            byte: u8 = bytes[origin - 1]
+            return when class_of(cache, byte) >= cache.quit_from
+            next = usize(byte)
+        end if
+        if accepts(cache, vec.used(code.insts), state, next) then
+            found = true
+            begins = origin
+        end if
+    end if
+    outcome = if found then dfa_found else dfa_none end if
+end dfa_reverse
+
+state_at: (cache: dfa_cache, state: u32) -> (held: dfa_state) =
+    states: []dfa_state = vec.used(cache.states)
+    held = states[usize(state)]
+end state_at
+
+class_of: (cache: dfa_cache, byte: u8) -> (class: usize) =
+    classes: []u8 = vec.used(cache.classes)
+    class = usize(classes[usize(byte)])
+end class_of
+
+hash_at: (cache: dfa_cache, slot: usize) -> (held: u32) =
+    hashes: []u32 = vec.used(cache.hash)
+    held = hashes[slot]
+end hash_at

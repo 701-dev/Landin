@@ -359,6 +359,28 @@ class FailureWords(unittest.TestCase):
         self.assertTrue(any("mem.ordered" in why for why in said), said)
 
 
+    def test_a_module_that_keeps_its_own_words_is_excused(self):
+        own = (FAILING_MODULE + "\npublic words: (problem: missing) -> "
+               "(phrase: []u8) =\n    phrase = match problem\n"
+               "        missing: \"missing\"\n    end match\nend words\n")
+        self.assertEqual(
+            faults(checker.check_failure_words,
+                   written={"core/mem/mem.ldn": own,
+                            checker.FAILURE_WORDS:
+                                self.words("mem.out_of_memory")}), [])
+
+    def test_an_atom_its_own_words_leave_out_is_reported(self):
+        own = (FAILING_MODULE + "\npublic words: (problem: ordered) -> "
+               "(phrase: []u8) =\n    phrase = match problem\n"
+               "        ordered: \"ordered\"\n    end match\nend words\n")
+        said = reasons(checker.check_failure_words,
+                       written={"core/mem/mem.ldn": own,
+                                checker.FAILURE_WORDS:
+                                    self.words("mem.out_of_memory")})
+        self.assertTrue(any("mem.missing" in why and "no words" in why
+                            for why in said), said)
+
+
 class CoreModulePlaces(unittest.TestCase):
     """A new core module is told every place it is missing from at once."""
 

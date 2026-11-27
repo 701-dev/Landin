@@ -1,0 +1,339 @@
+--  The Pike VM: every thread of the program in step over the haystack,
+--  one byte at a time, each carrying its own capture slots, in priority
+--  order so that the first to match is the leftmost-first match.  Each
+--  byte costs at most one visit of each instruction, so a search takes
+--  time linear in the haystack times the program, whatever the pattern.
+--  It is the engine every other one is checked against, and the one that
+--  answers what the others cannot.
+
+import core/mem
+import core/vec
+
+--  A slot no save has written.
+unset: usize = 0xffff_ffff
+
+--  The threads at one position: a sparse set of instructions, in the
+--  order they were reached, and the capture slots of each.
+thread_list: type = struct
+    dense: vec.list(u32)
+    sparse: vec.list(u32)
+    slots: vec.list(usize)
+end thread_list
+
+explore_frame: u8 = 0
+restore_frame: u8 = 1
+
+frame: type = struct
+    kind: u8
+    id: u32
+    slot: u32
+    value: usize
+end frame
+
+--  The Pike VM's storage for one program, sized when it is compiled, so
+--  that a search allocates nothing.
+pike_cache: type = struct
+    current: thread_list
+    following: thread_list
+    stack: vec.list(frame)
+    scratch: vec.list(usize)
+    found: vec.list(usize)
+    slot_count: usize
+    work: u64
+end pike_cache
+
+new_thread_list: () -> (result: thread_list) =
+    result = (dense: vec.new(item: u32), sparse: vec.new(item: u32),
+              slots: vec.new(item: usize))
+end new_thread_list
+
+new_pike_cache: () -> (result: pike_cache) =
+    result = (current: new_thread_list(), following: new_thread_list(),
+              stack: vec.new(item: frame), scratch: vec.new(item: usize),
+              found: vec.new(item: usize), slot_count: 0, work: 0)
+end new_pike_cache
+
+release_thread_list: (provider: type is mem.allocator,
+                      inout list: thread_list, memory: provider) -> none =
+    vec.release(list.dense, memory)
+    vec.release(list.sparse, memory)
+    vec.release(list.slots, memory)
+end release_thread_list
+
+release_pike_cache: (provider: type is mem.allocator,
+                     inout cache: pike_cache, memory: provider) -> none =
+    release_thread_list(cache.current, memory)
+    release_thread_list(cache.following, memory)
+    vec.release(cache.stack, memory)
+    vec.release(cache.scratch, memory)
+    vec.release(cache.found, memory)
+end release_pike_cache
+
+--  Push `value` `count` times.
+fill: (item: type, provider: type is mem.allocator,
+       inout list: vec.list(item), memory: provider, count: usize,
+       value: item) -> none ! mem.out_of_memory =
+    try vec.reserve(list, memory, vec.length(list) + count)
+    for index in usize(0)..<count do
+        _ = index
+        try vec.push(list, memory, value)
+    end for
+end fill
+
+size_thread_list: (provider: type is mem.allocator, inout list: thread_list,
+                   memory: provider, states: usize, slot_count: usize)
+                  -> none ! mem.out_of_memory =
+    try fill(list.dense, memory, states, u32(0))
+    try fill(list.sparse, memory, states, u32(0))
+    try fill(list.slots, memory, states * slot_count, unset)
+end size_thread_list
+
+--  Size the cache for a program of `states` instructions and searches
+--  that keep `slot_count` slots.
+size_pike_cache: (provider: type is mem.allocator, inout cache: pike_cache,
+                  memory: provider, states: usize, slot_count: usize)
+                 -> none ! mem.out_of_memory =
+    try size_thread_list(cache.current, memory, states, slot_count)
+    try size_thread_list(cache.following, memory, states, slot_count)
+    blank: frame = (kind: explore_frame, id: 0, slot: 0, value: 0)
+    try fill(cache.stack, memory, 2 * states + 2, blank)
+    try fill(cache.scratch, memory, slot_count, unset)
+    try fill(cache.found, memory, slot_count, unset)
+    cache.slot_count = slot_count
+end size_pike_cache
+
+--  The working views of one thread list: its sparse set and its slots,
+--  and how many instructions it holds.
+thread_views: type = struct
+    dense: []mut u32
+    sparse: []mut u32
+    slots: []mut usize
+    count: usize
+end thread_views
+
+--  Search `bytes` from `origin` for the leftmost-first match, and write its
+--  first `wanted` slots, at most the cache's slot count, to the start of
+--  the cache's `found`.  `anchored` asks for a match that begins at
+--  `origin`, and `earliest` for the end of the first match seen, which is
+--  enough to say whether there is one.  No byte at or past `stop` is
+--  read but by the looks: a search already knows its match ends there.
+pike_search: (inout cache: pike_cache, code: program, source: unicode_source,
+              bytes: []u8, origin: usize, stop: usize, anchored: bool,
+              earliest: bool, wanted: usize) -> (matched: bool) =
+    matched = false
+    insts: []inst = vec.used(code.insts)
+    edges: []edge = vec.used(code.edges)
+    stride: usize = cache.slot_count
+    width: usize = if wanted < stride then wanted else stride end if
+    found: []mut usize = vec.used(cache.found)
+    stack: []mut frame = vec.used(cache.stack)
+    scratch: []mut usize = vec.used(cache.scratch)
+    mut now: thread_views = (dense: vec.used(cache.current.dense),
+                             sparse: vec.used(cache.current.sparse),
+                             slots: vec.used(cache.current.slots), count: 0)
+    mut later: thread_views = (dense: vec.used(cache.following.dense),
+                               sparse: vec.used(cache.following.sparse),
+                               slots: vec.used(cache.following.slots),
+                               count: 0)
+    mut at: usize = origin
+    loop do
+        if not matched and (not anchored or at == origin)
+          and at_boundary(bytes, at) then
+            for slot in scratch[0..<width] do slot = unset end for
+            now.count = add_thread(now.dense, now.sparse, now.slots, now.count,
+                                   stack, scratch, stride, width, insts,
+                                   source, bytes, code.start, at)
+        end if
+        break when now.count == 0 and (matched or anchored or at >= stop)
+        cache.work += u64(now.count) + 1
+        --  Step every thread over the byte at `at`, in priority order; a
+        --  match ends the threads after it.
+        later.count = 0
+        for index in usize(0)..<now.count do
+            id: u32 = now.dense[index]
+            item: inst = insts[usize(id)]
+            base: usize = usize(id) * stride
+            if item.kind == inst_match then
+                for slot in usize(0)..<width do
+                    found[slot] = now.slots[base + slot]
+                end for
+                if width > 1 then found[1] = at end if
+                matched = true
+                return when earliest
+                break
+            end if
+            continue when at >= stop
+            byte: u8 = bytes[at]
+            if item.kind == inst_range then
+                if byte >= item.low and byte <= item.high then
+                    copy_slots(now.slots, base, scratch[0..<width])
+                    later.count = add_thread(later.dense, later.sparse,
+                                             later.slots, later.count, stack,
+                                             scratch, stride, width, insts,
+                                             source, bytes, item.next, at + 1)
+                end if
+            elsif item.kind == inst_sparse then
+                for step in usize(item.next)..<usize(item.next + item.arg) do
+                    target: edge = edges[step]
+                    if byte >= target.low and byte <= target.high then
+                        copy_slots(now.slots, base, scratch[0..<width])
+                        later.count = add_thread(later.dense, later.sparse,
+                                                 later.slots, later.count,
+                                                 stack, scratch, stride, width,
+                                                 insts, source, bytes,
+                                                 target.next, at + 1)
+                    end if
+                end for
+            end if
+        end for
+        held: thread_views = now
+        now = later
+        later = held
+        break when at >= stop
+        inc at
+    end loop
+end pike_search
+
+--  Copy a thread's slots from `base` of `source` into the scratch.
+copy_slots: (source: []usize, base: usize, scratch: []mut usize) -> none =
+    for slot, index in scratch do
+        slot = source[base + index]
+    end for
+end copy_slots
+
+--  Whether `at` begins a scalar of `bytes`, or is its end.
+at_boundary: (bytes: []u8, at: usize) -> (yes: bool) =
+    yes = at >= lenof bytes or bytes[at] < 0x80 or bytes[at] >= 0xc0
+end at_boundary
+
+--  Add to the list of `count` instructions the threads `start` reaches at
+--  `at` through splits, saves and the looks that hold there, in priority
+--  order, each with the first `width` slots as the scratch holds them
+--  once the saves on its way have changed them, and give the new count.
+add_thread: (dense: []mut u32, sparse: []mut u32, slots: []mut usize,
+             count: usize, stack: []mut frame, scratch: []mut usize,
+             stride: usize, width: usize, insts: []inst,
+             source: unicode_source, bytes: []u8, start: u32, at: usize)
+            -> (result: usize) =
+    result = count
+    mut top: usize = 1
+    stack[0] = (kind: explore_frame, id: start, slot: 0, value: 0)
+    while top > 0 do
+        dec top
+        popped: frame = stack[top]
+        if popped.kind == restore_frame then
+            scratch[usize(popped.slot)] = popped.value
+            continue
+        end if
+        mut id: u32 = popped.id
+        loop do
+            here: u32 = sparse[usize(id)]
+            break when usize(here) < result and dense[usize(here)] == id
+            sparse[usize(id)] = u32(result)
+            dense[result] = id
+            inc result
+            item: inst = insts[usize(id)]
+            if item.kind == inst_split then
+                stack[top] = (kind: explore_frame, id: item.arg, slot: 0,
+                              value: 0)
+                inc top
+                id = item.next
+            elsif item.kind == inst_save then
+                if usize(item.arg) < width then
+                    stack[top] = (kind: restore_frame, id: 0, slot: item.arg,
+                                  value: scratch[usize(item.arg)])
+                    inc top
+                    scratch[usize(item.arg)] = at
+                end if
+                id = item.next
+            elsif item.kind == inst_look then
+                break when not look_holds(u8(item.arg), source, bytes, at)
+                id = item.next
+            elsif item.kind == inst_goto then
+                id = item.next
+            else
+                base: usize = usize(id) * stride
+                for slot in usize(0)..<width do
+                    slots[base + slot] = scratch[slot]
+                end for
+                break
+            end if
+        end loop
+    end while
+end add_thread
+
+--  Whether the look `kind` holds at `at` in `bytes`.
+look_holds: (kind: u8, source: unicode_source, bytes: []u8, at: usize)
+            -> (yes: bool) =
+    count: usize = lenof bytes
+    if kind == look_start_text then
+        yes = at == 0
+    elsif kind == look_end_text then
+        yes = at >= count
+    elsif kind == look_start_line then
+        yes = at == 0 or bytes[at - 1] == u8('\n')
+    elsif kind == look_end_line then
+        yes = at >= count or bytes[at] == u8('\n')
+    elsif kind == look_start_line_crlf then
+        yes = at == 0 or bytes[at - 1] == u8('\n')
+              or bytes[at - 1] == u8('\r')
+                 and (at >= count or bytes[at] <> u8('\n'))
+    elsif kind == look_end_line_crlf then
+        yes = at >= count or bytes[at] == u8('\r')
+              or bytes[at] == u8('\n') and (at == 0 or bytes[at - 1] <> u8('\r'))
+    else
+        mut before: bool = false
+        mut after: bool = false
+        if kind < look_word_unicode then
+            before = at > 0 and ascii_word(u32(bytes[at - 1]))
+            after = at < count and ascii_word(u32(bytes[at]))
+        else
+            before = at > 0 and unicode_word(source, scalar_before(bytes, at))
+            after = at < count and unicode_word(source, scalar_at(bytes, at))
+        end if
+        family: u8 = if kind < look_word_unicode then kind - look_word_ascii
+                     else kind - look_word_unicode end if
+        yes = word_look_holds(family, before, after)
+    end if
+end look_holds
+
+--  Whether the word look of `family`, an offset from `\b`'s kind, holds
+--  between a scalar that is a word scalar or not and one after it.
+word_look_holds: (family: u8, before: bool, after: bool) -> (yes: bool) =
+    yes = if family == 0 then before <> after
+          elsif family == 1 then before == after
+          elsif family == 2 then not before and after
+          elsif family == 3 then before and not after
+          elsif family == 4 then not before
+          else not after end if
+end word_look_holds
+
+--  The scalar that begins at `at`, which is a scalar's start.
+scalar_at: (bytes: []u8, at: usize) -> (scalar: u32) =
+    lead: u8 = bytes[at]
+    mut length: usize = 1
+    if lead < 0x80 then
+        scalar = u32(lead)
+    elsif lead < 0xe0 then
+        scalar = u32(lead & 0x1f)
+        length = 2
+    elsif lead < 0xf0 then
+        scalar = u32(lead & 0x0f)
+        length = 3
+    else
+        scalar = u32(lead & 0x07)
+        length = 4
+    end if
+    for index in usize(1)..<length do
+        scalar = scalar << 6 | u32(bytes[at + index] & 0x3f)
+    end for
+end scalar_at
+
+--  The scalar that ends at `at`, which is a scalar's start or the end.
+scalar_before: (bytes: []u8, at: usize) -> (scalar: u32) =
+    mut begins: usize = at - 1
+    while begins > 0 and bytes[begins] >= 0x80 and bytes[begins] < 0xc0 do
+        dec begins
+    end while
+    scalar = scalar_at(bytes, begins)
+end scalar_before

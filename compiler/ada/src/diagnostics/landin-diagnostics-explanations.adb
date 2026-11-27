@@ -950,16 +950,16 @@ package body Landin.Diagnostics.Explanations is
             when Catalogue.Unsatisfied_Constraint =>
                "A type given for a formal lacks a conformance the formal"
                & " requires [1290]. The refusal names the type and the con"
-               & "cept as the program writes them, `f64` and `text.formatt"
-               & "able`, and for a concept that refines others, those the "
-               & "type does conform to. An `any C` provides C and every co"
-               & "ncept C refines, and no other (D492): erase the provider"
-               & " as an `any` of the wanted concept where it is made. Its"
-               & " address is not erased again; pass the `any C` itself. A"
-               & " conformance that hands its entries on `through` a field"
-               & ", or a routine's result, needs that type to conform to t"
-               & "he concept itself, and is refused at the name after `thr"
-               & "ough` when it does not (D1363).",
+               & "cept as the program writes them, `[2]f64` and `text.form"
+               & "attable`, and for a concept that refines others, those t"
+               & "he type does conform to. An `any C` provides C and every"
+               & " concept C refines, and no other (D492): erase the provi"
+               & "der as an `any` of the wanted concept where it is made. "
+               & "Its address is not erased again; pass the `any C` itself"
+               & ". A conformance that hands its entries on `through` a fi"
+               & "eld, or a routine's result, needs that type to conform t"
+               & "o the concept itself, and is refused at the name after `"
+               & "through` when it does not (D1363).",
             when Catalogue.Compiler_Conformance_Reserved =>
                "The compiler owns `zeroable` and its conformances, and t"
                & "he conformance by which an `any C` provides C and the co"

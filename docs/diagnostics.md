@@ -1214,7 +1214,7 @@ i32 is ordered ()
 
 A type given for a formal lacks a conformance the formal requires [1290].
 The refusal names the type and the concept as the program writes them,
-`f64` and `text.formattable`, and for a concept that refines others, those
+`[2]f64` and `text.formattable`, and for a concept that refines others, those
 the type does conform to. An `any C` provides C and every concept C
 refines, and no other (D492):
 erase the provider as an `any` of the wanted concept where it is made.

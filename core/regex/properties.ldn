@@ -1,0 +1,167 @@
+--  The names \p takes: the general categories and their groups, by short
+--  and long name, and the binary properties core/unicode holds.  A name
+--  is matched loosely, as Unicode's UAX44-LM3 says: case, spaces,
+--  underscores and hyphens are ignored, so `\p{Letter}`, `\p{letter}` and
+--  `\p{L}` are one.  `gc=` or `General_Category=` may come before a
+--  category.
+
+import core/text
+
+property_entry: type = struct
+    name: utf8
+    categories: u32
+    flags: u8
+end property_entry
+
+all_categories: u32 = 0x3fff_ffff
+
+properties: [74]property_entry = [
+    (name: "l", categories: letters_mask, flags: 0),
+    (name: "letter", categories: letters_mask, flags: 0),
+    (name: "lc", categories: cased_letters_mask, flags: 0),
+    (name: "casedletter", categories: cased_letters_mask, flags: 0),
+    (name: "lu", categories: 0x1, flags: 0),
+    (name: "uppercaseletter", categories: 0x1, flags: 0),
+    (name: "ll", categories: 0x2, flags: 0),
+    (name: "lowercaseletter", categories: 0x2, flags: 0),
+    (name: "lt", categories: 0x4, flags: 0),
+    (name: "titlecaseletter", categories: 0x4, flags: 0),
+    (name: "lm", categories: 0x8, flags: 0),
+    (name: "modifierletter", categories: 0x8, flags: 0),
+    (name: "lo", categories: 0x10, flags: 0),
+    (name: "otherletter", categories: 0x10, flags: 0),
+    (name: "m", categories: marks_mask, flags: 0),
+    (name: "mark", categories: marks_mask, flags: 0),
+    (name: "combiningmark", categories: marks_mask, flags: 0),
+    (name: "mn", categories: 0x20, flags: 0),
+    (name: "nonspacingmark", categories: 0x20, flags: 0),
+    (name: "mc", categories: 0x40, flags: 0),
+    (name: "spacingmark", categories: 0x40, flags: 0),
+    (name: "me", categories: 0x80, flags: 0),
+    (name: "enclosingmark", categories: 0x80, flags: 0),
+    (name: "n", categories: numbers_mask, flags: 0),
+    (name: "number", categories: numbers_mask, flags: 0),
+    (name: "nd", categories: 0x100, flags: 0),
+    (name: "decimalnumber", categories: 0x100, flags: 0),
+    (name: "digit", categories: 0x100, flags: 0),
+    (name: "nl", categories: 0x200, flags: 0),
+    (name: "letternumber", categories: 0x200, flags: 0),
+    (name: "no", categories: 0x400, flags: 0),
+    (name: "othernumber", categories: 0x400, flags: 0),
+    (name: "p", categories: punctuation_mask, flags: 0),
+    (name: "punctuation", categories: punctuation_mask, flags: 0),
+    (name: "punct", categories: punctuation_mask, flags: 0),
+    (name: "pc", categories: 0x800, flags: 0),
+    (name: "connectorpunctuation", categories: 0x800, flags: 0),
+    (name: "pd", categories: 0x1000, flags: 0),
+    (name: "dashpunctuation", categories: 0x1000, flags: 0),
+    (name: "ps", categories: 0x2000, flags: 0),
+    (name: "openpunctuation", categories: 0x2000, flags: 0),
+    (name: "pe", categories: 0x4000, flags: 0),
+    (name: "closepunctuation", categories: 0x4000, flags: 0),
+    (name: "pi", categories: 0x8000, flags: 0),
+    (name: "initialpunctuation", categories: 0x8000, flags: 0),
+    (name: "pf", categories: 0x10000, flags: 0),
+    (name: "finalpunctuation", categories: 0x10000, flags: 0),
+    (name: "po", categories: 0x20000, flags: 0),
+    (name: "otherpunctuation", categories: 0x20000, flags: 0),
+    (name: "s", categories: symbols_mask, flags: 0),
+    (name: "symbol", categories: symbols_mask, flags: 0),
+    (name: "sm", categories: 0x40000, flags: 0),
+    (name: "mathsymbol", categories: 0x40000, flags: 0),
+    (name: "sc", categories: 0x80000, flags: 0),
+    (name: "currencysymbol", categories: 0x80000, flags: 0),
+    (name: "sk", categories: 0x100000, flags: 0),
+    (name: "modifiersymbol", categories: 0x100000, flags: 0),
+    (name: "so", categories: 0x200000, flags: 0),
+    (name: "othersymbol", categories: 0x200000, flags: 0),
+    (name: "z", categories: separators_mask, flags: 0),
+    (name: "separator", categories: separators_mask, flags: 0),
+    (name: "zs", categories: 0x400000, flags: 0),
+    (name: "spaceseparator", categories: 0x400000, flags: 0),
+    (name: "zl", categories: 0x800000, flags: 0),
+    (name: "lineseparator", categories: 0x800000, flags: 0),
+    (name: "zp", categories: 0x1000000, flags: 0),
+    (name: "paragraphseparator", categories: 0x1000000, flags: 0),
+    (name: "c", categories: others_mask, flags: 0),
+    (name: "other", categories: others_mask, flags: 0),
+    (name: "cc", categories: 0x2000000, flags: 0),
+    (name: "control", categories: 0x2000000, flags: 0),
+    (name: "cntrl", categories: 0x2000000, flags: 0),
+    (name: "cf", categories: 0x4000000, flags: 0),
+    (name: "format", categories: 0x4000000, flags: 0)
+]
+
+more_properties: [21]property_entry = [
+    (name: "cs", categories: 0x8000000, flags: 0),
+    (name: "surrogate", categories: 0x8000000, flags: 0),
+    (name: "co", categories: 0x10000000, flags: 0),
+    (name: "privateuse", categories: 0x10000000, flags: 0),
+    (name: "cn", categories: 0x20000000, flags: 0),
+    (name: "unassigned", categories: 0x20000000, flags: 0),
+    (name: "any", categories: all_categories, flags: 0),
+    (name: "assigned", categories: all_categories & ~0x20000000, flags: 0),
+    (name: "alphabetic", categories: 0, flags: alphabetic_flag),
+    (name: "alpha", categories: 0, flags: alphabetic_flag),
+    (name: "whitespace", categories: 0, flags: white_space_flag),
+    (name: "wspace", categories: 0, flags: white_space_flag),
+    (name: "space", categories: 0, flags: white_space_flag),
+    (name: "uppercase", categories: 0, flags: uppercase_flag),
+    (name: "upper", categories: 0, flags: uppercase_flag),
+    (name: "lowercase", categories: 0, flags: lowercase_flag),
+    (name: "lower", categories: 0, flags: lowercase_flag),
+    (name: "cased", categories: 0, flags: cased_flag),
+    (name: "caseignorable", categories: 0, flags: case_ignorable_flag),
+    (name: "ci", categories: 0, flags: case_ignorable_flag),
+    (name: "ascii", categories: 0, flags: 0)
+]
+
+--  The categories and flags a property name names, or whether it is
+--  `ASCII`.  A name core/unicode holds no table for, a script's among
+--  them, is `unsupported_pattern`.
+property_named: (name: []u8) -> (categories: u32, flags: u8, ascii: bool)
+                ! invalid_pattern | unsupported_pattern =
+    categories = 0
+    flags = 0
+    ascii = false
+    mut loose: [48]u8 = zeroed
+    mut count: usize = 0
+    mut value_at: usize = 0
+    for byte in name do
+        if byte == u8('=') or byte == u8(':') then
+            fail invalid_pattern when value_at <> 0
+            value_at = count
+            continue
+        end if
+        continue when byte == u8(' ') or byte == u8('_') or byte == u8('-')
+        fail unsupported_pattern when count == lenof loose
+        loose[count] = if byte >= u8('A') and byte <= u8('Z') then byte | 0x20
+                       else byte end if
+        inc count
+    end for
+    fail invalid_pattern when count == 0
+    mut value: []u8 = loose[0..<count]
+    if value_at > 0 then
+        key: []u8 = loose[0..<value_at]
+        fail unsupported_pattern when not same_bytes(key, "gc")
+          and not same_bytes(key, "generalcategory")
+        value = loose[value_at..<count]
+    end if
+    for entry in properties do
+        if same_bytes(text.bytes(entry.name), value) then
+            categories = entry.categories
+            flags = entry.flags
+            return
+        end if
+    end for
+    for entry in more_properties do
+        if same_bytes(text.bytes(entry.name), value) then
+            categories = entry.categories
+            flags = entry.flags
+            ascii = categories == 0 and flags == 0
+            fail unsupported_pattern when value_at > 0 and categories == 0
+            return
+        end if
+    end for
+    fail unsupported_pattern
+end property_named

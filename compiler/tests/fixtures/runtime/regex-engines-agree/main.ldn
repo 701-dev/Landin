@@ -1,0 +1,318 @@
+--  Every engine of core/regex against the Pike VM, as RE2's tester checks
+--  its engines: patterns and haystacks drawn from a seeded generator, and
+--  for each pair every match a walk finds, with its groups, compared,
+--  unanchored and anchored.  The lazy DFA, the one-pass DFA and the
+--  literal prefilter must each have answered for some of them, and the
+--  lazy DFA must have left few searches to the Pike VM.  Long searches
+--  with patterns of many DFA states and a small cache make the DFA clear
+--  its cache mid-search, and give up.
+
+import core/mem
+import core/regex
+import core/text
+import hosted/heap
+
+pattern_count: usize = 100
+haystack_count: usize = 8
+
+--  xorshift32.
+next_random: (inout state: u32) -> (value: u32) =
+    mut x: u32 = state
+    x = x ^ (x << 13)
+    x = x ^ (x >> 17)
+    x = x ^ (x << 5)
+    state = x
+    value = x
+end next_random
+
+--  A pattern being written.
+draft: type = struct
+    bytes: [160]u8
+    count: usize
+end draft
+
+put: (inout into: draft, piece: []u8) -> none =
+    for byte in piece do
+        if into.count < lenof into.bytes then
+            into.bytes[into.count] = byte
+            inc into.count
+        end if
+    end for
+end put
+
+atoms: [16]utf8 = ["a", "b", "c", "a", "b", ".", "[ab]", "[^a]", "\\w",
+                   "\\b", "\\B", "^", "$", "é", "(?i:b)", "\\d"]
+repetitions: [6]utf8 = ["*", "+", "?", "{1,2}", "{0,2}", "{2}"]
+
+write_alternation: (inout random: u32, inout into: draft, depth: u32)
+                   -> none =
+    branches: u32 = if next_random(random) % 4 == 0 then 2 else 1 end if
+    for branch in u32(0)..<branches do
+        if branch > 0 then put(into, "|") end if
+        items: u32 = 1 + next_random(random) % 3
+        for item in u32(0)..<items do
+            _ = item
+            write_item(random, into, depth)
+        end for
+    end for
+end write_alternation
+
+write_item: (inout random: u32, inout into: draft, depth: u32) -> none =
+    pick: u32 = next_random(random) % 20
+    if pick >= 16 and depth < 3 then
+        put(into, if pick % 2 == 0 then "(" else "(?:" end if)
+        write_alternation(random, into, depth + 1)
+        put(into, ")")
+    else
+        put(into, text.bytes(atoms[usize(pick % 16)]))
+    end if
+    if next_random(random) % 3 == 0 then
+        put(into, text.bytes(repetitions[usize(next_random(random) % 6)]))
+        if next_random(random) % 3 == 0 then put(into, "?") end if
+    end if
+end write_item
+
+alphabet: [8]utf8 = ["a", "b", "c", "é", "\n", " ", "B", "1"]
+
+--  Every match of `expression` in `haystack` with every group, as begin
+--  and end pairs, `0xffff_ffff` for a group that took no part, written
+--  into `into`; and how many words that took.
+walk: (inout expression: regex.regex, haystack: utf8, into: []mut usize)
+      -> (count: usize) =
+    count = 0
+    mut at := regex.walk_start()
+    loop do
+        found := regex.next_match(expression, haystack, at, true) else begin
+            break
+        end
+        _ = found
+        for group in usize(0)..<regex.group_count(expression) do
+            got := regex.group(expression, group) else begin
+                if count + 2 <= lenof into then
+                    into[count] = 0xffff_ffff
+                    into[count + 1] = 0xffff_ffff
+                    count += 2
+                end if
+                continue
+            end
+            if count + 2 <= lenof into then
+                into[count] = text.offset(got.begins)
+                into[count + 1] = text.offset(got.ends)
+                count += 2
+            end if
+        end for
+    end loop
+end walk
+
+--  What the checks saw: the lazy DFA's searches and fallbacks are the
+--  `lazy_dfa` engine's own.
+tally: type = struct
+    failures: usize
+    compared: usize
+    lazy: usize
+    one_pass: usize
+    literals: usize
+    fallbacks: usize
+    searches: usize
+    clears: usize
+end tally
+
+engines: [5]regex.engine = [regex.lazy_dfa, regex.one_pass_dfa,
+                            regex.literal_prefilter, regex.automatic,
+                            regex.automatic]
+
+check_pattern: (provider: type is mem.allocator, memory: provider,
+                pattern: utf8, haystacks: []utf8, anchored: bool,
+                inout seen: tally) -> none =
+    mut reference_settings := regex.with_engine(regex.defaults(),
+                                                regex.pike_vm)
+    if anchored then
+        reference_settings = regex.with_anchored(reference_settings)
+    end if
+    mut reference := regex.compile_with(memory, pattern, reference_settings)
+        else (problem)
+        _ = problem
+        for which in engines do
+            settings := regex.with_engine(regex.defaults(), which)
+            mut other := regex.compile_with(memory, pattern, settings)
+                else (other_problem)
+                _ = other_problem
+                continue
+            end
+            regex.release(other, memory)
+            inc seen.failures
+        end for
+        return
+    end
+    defer regex.release(reference, memory)
+    for which, index in engines do
+        --  A cache of 64 KiB holds every state these patterns reach, and is
+        --  quicker to allocate than the default's; the one-pass engine
+        --  keeps the default, whose half bounds its table.
+        mut settings := regex.with_engine(regex.defaults(), which)
+        if which <> regex.one_pass_dfa then
+            settings = regex.with_cache_size(settings, 64 * 1024)
+        end if
+        --  The last engine's cache is too small for the DFA to keep its
+        --  states, so that it clears them and gives up.
+        if index == 4 then settings = regex.with_cache_size(settings, 4096)
+        end if
+        if anchored then settings = regex.with_anchored(settings) end if
+        mut other := regex.compile_with(memory, pattern, settings) else begin
+            inc seen.failures
+            continue
+        end
+        defer regex.release(other, memory)
+        (lazy: lazy, one_pass: one_pass, literals: literals) :=
+            regex.prepared(other)
+        if lazy then inc seen.lazy end if
+        if one_pass then inc seen.one_pass end if
+        if literals then inc seen.literals end if
+        for haystack in haystacks do
+            mut want: [128]usize = zeroed
+            mut got: [128]usize = zeroed
+            wanted: usize = walk(reference, haystack, want)
+            found: usize = walk(other, haystack, got)
+            inc seen.compared
+            if index == 0 then inc seen.searches end if
+            if wanted <> found then
+                inc seen.failures
+                continue
+            end if
+            for value, at in want[0..<wanted] do
+                if value <> got[at] then
+                    inc seen.failures
+                    break
+                end if
+            end for
+        end for
+        if index == 0 then seen.fallbacks += regex.fallbacks(other) end if
+    end for
+end check_pattern
+
+--  Patterns with groups that are one-pass, each of which must get a
+--  one-pass table.
+one_pass_patterns: [6]utf8 = ["a(b|c)d", "([0-9]+)-([0-9]+)", "^(a+)(b*)$",
+                              "x([a-c]+)y(z?)", "(?:(a)|(b))c", "(é+)(1|B)"]
+
+check_one_pass: (provider: type is mem.allocator, memory: provider,
+                 haystacks: []utf8, inout seen: tally) -> none =
+    for pattern in one_pass_patterns do
+        settings: regex.options = regex.with_engine(regex.defaults(),
+                                                    regex.one_pass_dfa)
+        mut probe := regex.compile_with(memory, pattern, settings) else begin
+            inc seen.failures
+            continue
+        end
+        (lazy: _, one_pass: one_pass, literals: _) := regex.prepared(probe)
+        regex.release(probe, memory)
+        if not one_pass then inc seen.failures end if
+        check_pattern(memory, pattern, haystacks, false, seen)
+        check_pattern(memory, pattern, haystacks, true, seen)
+    end for
+end check_one_pass
+
+--  Patterns whose DFAs have many states, over haystacks long enough to
+--  fill a small cache, so that it is cleared and built again, and given
+--  up on, mid-search.
+crowded: [4]utf8 = ["(?-u)[ab]*a[ab]{6}", "(?-u)(?:[ab]*a){3}[ab]{3}(b)?",
+                    "(?-u)([ab]+)b[ab]{5}a", "(?-u)(?:a|b)*?ab[ab]{4}(\\w)"]
+
+check_crowded: (provider: type is mem.allocator, memory: provider,
+                inout random: u32, inout seen: tally) -> none =
+    mut storage: [1024]u8 = zeroed
+    for pattern in crowded do
+        for round in usize(0)..<2 do
+            _ = round
+            for byte in storage do
+                byte = if next_random(random) % 2 == 0 then u8('a')
+                       else u8('b') end if
+            end for
+            haystack := text.from_bytes(storage) else begin
+                inc seen.failures
+                return
+            end
+            reference_settings := regex.with_engine(regex.defaults(),
+                                                    regex.pike_vm)
+            mut reference := regex.compile_with(memory, pattern,
+                                                reference_settings) else begin
+                                                    inc seen.failures
+                                                    return
+                                                end
+            defer regex.release(reference, memory)
+            settings := regex.with_cache_size(regex.defaults(), 24 * 1024)
+            mut other := regex.compile_with(memory, pattern, settings)
+                else begin
+                    inc seen.failures
+                    return
+                end
+            defer regex.release(other, memory)
+            mut want: [1024]usize = zeroed
+            mut got: [1024]usize = zeroed
+            wanted: usize = walk(reference, haystack, want)
+            found: usize = walk(other, haystack, got)
+            inc seen.compared
+            if wanted <> found then
+                inc seen.failures
+                continue
+            end if
+            for value, at in want[0..<wanted] do
+                if value <> got[at] then
+                    inc seen.failures
+                    break
+                end if
+            end for
+            if regex.fallbacks(other) > 0 then inc seen.clears end if
+        end for
+    end for
+end check_crowded
+
+public main: () -> (code: i32) =
+    code = 1
+    memory := heap.new()
+    mut random: u32 = 0x2260_2260
+    mut seen: tally = (failures: 0, compared: 0, lazy: 0, one_pass: 0,
+                       literals: 0, fallbacks: 0, searches: 0, clears: 0)
+    mut storage: [8][16]u8 = zeroed
+    for round in usize(0)..<pattern_count do
+        mut into: draft = (bytes: zeroed, count: 0)
+        flags: u32 = next_random(random) % 8
+        if flags == 0 then put(into, "(?m)") end if
+        if flags == 1 then put(into, "(?s)") end if
+        if flags == 2 then put(into, "(?U)") end if
+        write_alternation(random, into, 0)
+        pattern := text.from_bytes(into.bytes[0..<into.count]) else begin
+            return
+        end
+        mut haystacks: [8]utf8 = [8 of ""]
+        for slot, index in haystacks do
+            mut used: usize = 0
+            length: u32 = next_random(random) % 9
+            for step in u32(0)..<length do
+                _ = step
+                piece: []u8 = text.bytes(alphabet[usize(next_random(random) %
+                                                        8)])
+                if used + lenof piece <= 16 then
+                    for byte in piece do
+                        storage[index][used] = byte
+                        inc used
+                    end for
+                end if
+            end for
+            slot = text.from_bytes(storage[index][0..<used]) else begin
+                return
+            end
+        end for
+        check_pattern(memory, pattern, haystacks, round % 4 == 3, seen)
+        if round == 0 then check_one_pass(memory, haystacks, seen) end if
+    end for
+    check_crowded(memory, random, seen)
+    return when seen.failures <> 0
+    return when seen.lazy < pattern_count or seen.one_pass < 12
+      or seen.literals < 50
+    --  Only a search that meets a byte past ASCII where a Unicode word
+    --  boundary is judged makes the DFA give up here, and a crowded
+    --  cache in some of the long searches.
+    return when seen.fallbacks * 3 > seen.searches or seen.clears == 0
+    code = 42
+end main

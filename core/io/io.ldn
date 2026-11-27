@@ -380,7 +380,7 @@ format_store: usize = 128
 --- program's own that asks for more room at once than the 128 bytes, or
 --- right-aligns a piece of a value longer than them that was already written,
 --- is `io_failed` too, since its text cannot be written.  The values are
---- `text.formattable`'s types; floats are not formattable yet.  For many
+--- `text.formattable`'s types and the placeholders `text.format`'s.  For many
 --- writes to one file, a `buffered_writer` gathers them into fewer.
 public write_format: (provider: type is writer, host: provider,
                       opened: file, template: utf8,

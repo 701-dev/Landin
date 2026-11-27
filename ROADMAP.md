@@ -25,7 +25,8 @@ that make a release quick to reach. Optimization runs beside all of it.
 Outside it, and staying outside: a build tool and package manager, the
 Companion tool and ecosystem family's; self-hosting and separate
 compilation, Scale and self-hosting's; a browser or WebAssembly target;
-dates and times in the library; and every release or version decision, each
+dates and times in the library, which the Broader standard library
+family below takes first; and every release or version decision, each
 of which needs an explicit decision of its own. Landin does not assume
 SemVer.
 
@@ -88,7 +89,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -1511,8 +1512,8 @@ every live row into its file. R17.10 reviews each moved row against
 those its authority covers and puts the rest it would retire to the
 maintainer as questions. It provides the SR allocation script and files the
 rows-to-be in `roadmap/inputs/rows-to-be.md`. The rows that describe R22's
-additions (`SR-96` math, SR-97 float text, SR-98 locale and Unicode, SR-100
-regular expressions, SR-285 format width and radix) become `scheduled` on
+additions (`SR-96` math, `SR-97` float text, SR-98 locale and Unicode, `SR-100`
+regular expressions, `SR-285` format width and radix) become `scheduled` on
 the R22 items that take them.
 Exit evidence: every row typed and under the cap; the allocation script and
 its control; the cap and age rule refused in a control.
@@ -3220,8 +3221,9 @@ publishes the FreeBSD arm64 archive, `SR-1892` holds that work.
 What a newcomer expects to find, written against the library R20 left: a
 mathematical basis broad enough that people in most fields need no
 foreign library first, float text, Unicode, encodings, locale formatting
-and regular expressions, the five programs the Benchmarks Game comparison
-lacks, and at the end a measured basis for the library's optimization
+and regular expressions, bits and byte order, random draws, sockets by
+name, command-line arguments, text's everyday calls, the five programs
+the Benchmarks Game comparison lacks, and at the end a measured basis for the library's optimization
 with a continuous lane, as R16 has for code generation.
 
 Placement, data and evidence for each are in `library-inventory.md`'s
@@ -3464,7 +3466,7 @@ soft float recorded on Cortex-M0 on the rig.
 
 ### R22.15 — Dense vectors and matrices
 
-Status: planned
+Status: complete
 Depends on: R22.10
 
 The dense array as linear algebra sees it: a vector or matrix as a view
@@ -3486,6 +3488,54 @@ lazily fused expressions, which need templates Landin does not have.
 Exit evidence: the cases of BLAS's own test programs translated as a
 fixture, every test ratio under their threshold of 16, on every target;
 the `f64` matrix product at n=1000 timed against OpenBLAS on one core.
+
+Done: `core/dense` holds `vector(item)` and `matrix(item)` over
+`math.floating`, views over the caller's storage with a step for rows and
+one for columns, so either layout, a leading dimension, a transpose and a
+block are views of one storage (D2694); a view holds a writable slice and
+a routine writes only its `into` (D2695); steps are unsigned, so the
+BLAS's negative increments have no counterpart (D2696); a transposed
+operand is a transposed view and a triangle the view's own, with
+`upper`/`lower`, `stored`/`unit` and `left`/`right` atoms in place of the
+BLAS's flags (D2697). A shape mismatch or a view past its storage stops
+the program at the call (D2698); `beta` 0 reads no output, `alpha` 0 no
+operand, and an empty product is `beta` times the output where the
+reference BLAS returns early (D2699). The element-wise operations,
+reductions and norms, the rotations, the second level and the third are
+written from the mathematics (D2702); `norm_two` and `rotation` scale as
+Anderson's Algorithm 978 does, and `modified_rotation` keeps its rescaled
+entries where the reference resets them on a second pass (D2701). The
+product packs `b`'s panels and `a`'s blocks into a scratch the caller
+gives, `product_scratch` long, and multiplies with a 4 by 2 register
+kernel, which beat a 4 by 4 one that spilled its sums; a short scratch
+cuts smaller blocks and none multiplies unpacked (D2700). `dblat1`,
+`dblat2` and `dblat3` of Reference-LAPACK 3.12.1 are translated, their
+licence in each fixture's NOTICE and named in `LICENSE`, into
+`runtime/dense-blas-level-1`, `-level-2`, `-level-3-f64` and
+`-level-3-f32`: every case at both widths, laid out by columns with a
+leading dimension and again by rows, every test ratio under 16, the
+largest 2.3, on every hosted target; firmware runs every eighth case of
+level 2 and every sixth of level 3 in its 20 seconds, and the five large
+fixtures, past the 32 KiB of Cortex-M0 and the RV32 lanes, are image
+limits there and run on the Cortex-M7 and Xtensa lanes. `runtime/dense-views-and-norms` and `runtime/library-shared-dense`
+check the rest exactly. `scripts/dense_timing.py` times the `f64` product
+at n=1000 on one Zen 2 core: 0.41 s against OpenBLAS 0.3.33's 0.049 s,
+8.2 times, mostly vector instructions refine does not emit (D2703).
+Found and fixed: a trap given a `caller` parameter whose type `site` is
+declared nowhere stopped checking on an internal defect, pinned by
+`negative/compiler-unreachable-undeclared-site`; and `check.py`'s
+parameter-order control counted a `math.floating` operand as a
+capability. Level 2's own check on the Cortex-M7 lane met the Cortex-M
+backend freeing a deferred widening's operand home (D2120) while the
+widening was still read, `k * ((k + 1) * k)` giving 4 for 2 at size;
+R22.13 fixed the same on main first, and the merge keeps its fix with
+`runtime/widening-operand-outlives-product` beside its fixture. Filed: `SR-1978`, the scalar kernel's loop and the missing
+vector instructions, and `SR-1979`, an `if` expression's or a literal
+range's type taken from a literal or an atom with no note of the written
+type that fixes it. It landed in R22.36's train: gate run 45920421418,
+passed on its second attempt after the first failed only in SR-1882's
+cancellation race and SR-1940's stack-switch step, and boards run
+45920432106.
 
 ### R22.16 — Linear systems and least squares
 
@@ -3576,13 +3626,13 @@ times recorded.
 
 ### R22.20 — Float text
 
-Status: planned
+Status: complete
 Depends on: R22.13
 
 Shortest round-trip writing, correctly rounded fixed-precision writing
-and correctly rounded parsing of `f32` and `f64` in `core/text`, SR-97,
+and correctly rounded parsing of `f32` and `f64` in `core/text`, `SR-97`,
 with floats made `formattable`; the parser's slow path uses R22.13's
-lower layer. With them SR-285: width, padding, alignment, radix and a
+lower layer. With them `SR-285`: width, padding, alignment, radix and a
 float's precision inside a template's `{}`, Rust's format specification
 the reference and the spelling decided here. It uses hexadecimal float
 literals as R19.10 left them (SC-29). From R20: the byte-sink shape
@@ -3592,6 +3642,45 @@ Exit evidence: every `f32` round-tripped exhaustively and `f64` against
 an oracle; fixed-precision output byte-equal to C's `printf` over an
 oracle set; `docs/from-c.md`'s `printf` entry written with the template;
 image size on Cortex-M0 measured.
+
+Done: `core/text` writes a float as the shortest text that reads back,
+spelled as a Landin float literal, `1.0`, `0.1`, `1.0e16` (D2754), by
+Ryu's method written from the paper, its 668 powers of five computed from
+28 bases and two-bit corrections, 620 bytes where the table would be
+10.7 KB (D2755); rounded once to places after the point or after the
+first digit, byte for byte C's `printf` (D2756); and reads decimal text
+rounded once, by Clinger's fast path or exactly over a power of five in
+`core/big/limbs` (D2757), an `f32` at its own width throughout. `f32` and
+`f64` are `formattable`, and a placeholder takes Rust's format
+specification, fill, alignment, `+`, `#`, `0`, a width in scalars,
+precision and the kinds `x`, `X`, `o`, `b`, `e` and `E`, without named,
+positional or counted arguments (D2758); a conformance reads it from the
+builder through `text.placeholder`, so `formattable` and every
+conformance written against it are unchanged, and the template pads
+what a conformance wrote (D2759). The byte sink stays R20's builder with
+`mem.out_of_memory`, and no hexadecimal float literal was needed: the
+powers of ten an `f64` holds exactly are decimal literals. `scripts/float_text.py`
+writes the powers and the four `float-text-*` fixtures from Python's
+`repr`, its exact fractions and C's `snprintf`; with
+`runtime/core-text-format-spec` they pass on every hosted target and
+the firmware lanes that hold them. Every one of the 4,278,190,080 finite
+`f32`s reads back from its shortest text, which is the nearest decimal of
+its length or that decimal's neighbour inside the interval, and no
+decimal a digit shorter reads back, checked against the exact digits,
+and a million drawn `f64`s agree with Python's `repr`, `printf` and
+Python's exact parse (compiler/tests/float-text/README.md). `docs/from-c.md`'s
+`printf` entry is the template, and two examples print with `{:.1}`.
+On Cortex-M0 at `size/auto`, over a program that appends one integer,
+`append_f64` is 12.5 KiB, `append_f64_fixed` 11.8, `parse_f64` 21.7 with
+soft double's arithmetic, and a float's `format` 28.4; formatting an
+integer went from 2.6 KiB to 8.2 with the specification's parsing and
+padding, so eight format fixtures' corpus rows record limits at
+`none/off` and RV32's 32 KiB maps, with their sizes, and
+`compiler/tests/float-text/README.md` holds the figures. Settled: `SR-97`, `SR-285`. The renamed
+`negative/format-array-names-its-type` keeps D880's pin now that an
+`f64` is formattable. Met on the way: SR-1939's grammar defect again,
+in `core/text/shortest.ldn`, and restated; filed: SR-2012, L0102's
+`else begin return end` that L0329 then refuses in an `if` arm.
 
 ### R22.21 — n-body and spectral-norm ported
 
@@ -3623,13 +3712,33 @@ recorded with the map's share measured.
 
 ### R22.23 — pidigits ported
 
-Status: planned
+Status: complete
 Depends on: R22.13
 
 Gibbons' spigot over R22.13's integers, with no GMP.
 
 Exit evidence: the game's output for 30 digits as a runtime fixture,
 pinned and published as R22.21's are; 10,000 digits timed.
+
+Done: `runtime/benchmark-game-pidigits` runs the game's step-by-step
+spigot over `core/big`, both extractions kept, and prints the game's
+30-digit file byte for byte, its digest pinned in `check.py`; it is in
+`examples.md` and in `workloads.json`'s hosted set, timed at 500 digits.
+10,000 digits, the output equal to Python's, took 9.5 s on the EPYC
+host, 4.5 of them the system's: a product written over an operand above
+64 limbs and every division's scratch each took a block of their own,
+which the hosted heap maps and unmaps. `big.multiply` by one limb now
+works in place and a division takes its scratch from the remainder's
+block (D2735, pinned by `runtime/big-integer-in-place` in an 8 KiB
+arena), and the run takes 4.6 s, 0.02 of it the system's, against 0.49 s
+for the game's C program over GMP; 56% of it is Algorithm D's
+normalizing passes for a quotient of a limb or two, so `SR-1928` is
+restated rather than met. Met on the way and fixed: `compiler/tests/README.md`
+counted twenty-three examples where the gate runs thirty, and `measure.py
+time` refused a hosted workload the base's tree has no fixture for, so the
+commit adding one failed every dispatch's timing; it is now named new.
+Landed on R22.33's train: gate 45932328693, boards 45927672738 and
+45933311148.
 
 ### R22.24 — Tools that say what they need
 
@@ -3852,7 +3961,7 @@ control it names.
 
 ### R22.33 — Boards reused on identical images
 
-Status: planned
+Status: complete
 Depends on: none
 
 A promotion's boards taken from the last passed boards run when every
@@ -3881,6 +3990,25 @@ does not; a dispatch whose images match a passed run's taking it and one
 whose images differ running the legs, both named runs; the nightly run's
 first pass; process.md's "Physical boards and promotion" and AGENTS.md's
 gate paragraph saying the rule.
+
+Done: `board-bundles` writes the board identity as its annotation, digests
+of the bundles' files less what names the tree or the build's clock, of the
+timing bundle when the event times, of the blobs under
+`environments/boards/` and `compiler/tests/board/` with the hardware
+records apart, and of the board jobs' text less comments, and
+`gate_inputs.py legs` takes the legs of a passed run under a week old whose
+identity matches part for part, naming each part that differed (D2774); the
+aggregate reads the taken run's evidence, held to its run id, and compares
+its cycles. The schedule runs daily and leaves out a commit a passed
+schedule run already ran (D2775). Two board-bundles artifacts of different
+commits, runs 45840509189 and 45855853447, give one identity. Boards run
+45893119145 ran every leg and passed; dispatch 45906315984 on the same
+head took its legs and passed in 13 minutes. On the train with R22.23,
+boards 45927672738 refused that run's legs, its harness alone differing,
+and ran them, and 45933311148 on the next commit took 45927672738's legs,
+timing images included; the train's gate is 45932328693. `item.py boards` met no
+`SR-1988` of its own: the item fixes that landed first record a queued
+dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
 
@@ -3938,7 +4066,7 @@ process.md naming stale records.
 
 ### R22.36 — Failure causes recorded, and the selection in shadow
 
-Status: planned
+Status: active
 Depends on: none
 
 Why a gate job failed is recorded nowhere: the gate-time study of
@@ -3974,6 +4102,26 @@ period, with the outside signatures that re-ran; the lane table and its
 control; every gate's summary naming the lanes it would have skipped;
 and the measured miss rate, the defects that only skipped lanes showed,
 set against the study's replay of November, 1.7 a week.
+
+Landed, the shadow period to run: `scripts/gate_history.py`, the lane
+table `.github/gate-lanes.json` with its control, the causes of the
+1,025 failed jobs from 2026-09-21 in `.github/gate-causes.jsonl`, the
+`inputs` job's selection and the aggregate's record of it and of the
+outside signatures, and `gate-rerun.yml` (D2794-D2798). Against the
+study's readers the rule with its signatures agreed on 96.5% of its
+defects and found 97.3% of theirs, on the logs the signatures came from.
+On the history to that day it samples `arm64-compiler`,
+`arm64-compiler-checks`, `build-modes`, `darwin-host`,
+`darwin-debug-build`, `rv64-qemu`, the three determinism hosts and
+`freebsd-arm64-runtime`; the study's replay sampled the same but
+`rv64-qemu` and `darwin-debug-build`. No lane is keyed by its emission
+yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
+the table's `shadow` entry, which the weekly `table --write` keeps.
+Its own gate run 45902780283 and boards run 45902794687 passed; it landed
+with R22.15 as one train on gate run 45920421418, passed on its second
+attempt after two known flakes (SR-1882, SR-1940), and boards run
+45920432106. The shadow period, the causes it records and the measured
+miss rate remain for the item to close.
 
 ### R22.37 — The selected gate applied
 
@@ -4054,10 +4202,178 @@ the buffer conventions.
 Exit evidence: the WHATWG test data pass on every target the namespace
 admits.
 
+### R22.41 — Bits and byte order
+
+Status: planned
+Depends on: R20
+
+Counting and moving bits, and integers read and written in a stated byte
+order, for a program that reads a file format or a wire protocol. First
+the bit operations of Go's `math/bits` and Rust's integer methods: ones
+counted, leading and trailing zeros, the length in bits, rotation, bytes
+and bits reversed, a product's high word and a sum's carry, at each
+unsigned width. They are written once from shifts and replace the private
+copies in `core/big` and `core/random`. Selecting `popcnt`, `lzcnt` or
+`rbit` for them is R16's lane. Then a reader and a writer over a caller's
+byte slice: `u16` to `u64` and the signed widths in little or big order,
+and LEB128 varints. A read with too few bytes fails rather than traps, as
+reads do with Go's `encoding/binary` and Rust's `byteorder` and
+`bytes::Buf`. Last, union, intersection, difference and an emptiness test
+over a set, [0730]'s packed struct of `bool`, which already names its
+bits, so that flags outside a register need no masks, as with Rust's
+`bitflags`. Whether those set operations need a language rule or are
+library functions is this item's first question. From R20: placement and
+the failure names.
+
+Leaves out: a shared, counted byte buffer, which manual memory has no use
+for; growth stays `text.builder`'s and `mem.storage(u8)`'s.
+
+Exit evidence: each bit operation checked exhaustively at `u8` and `u16`
+and against an oracle at `u32` and `u64` on every target; every width
+round-tripped in both orders, short input and malformed or overlong
+varints refused; `core/big` and `core/random` on the library's operations
+with their fixtures unchanged; an example program in `examples.md` that
+reads a binary format; image size on Cortex-M0 measured.
+
+### R22.42 — Random draws programs use
+
+Status: planned
+Depends on: R20
+
+What `core/random`'s generator lacks, set against Rust's `rand` and Go's
+`math/rand/v2`: a uniform `f32` or `f64` in [0, 1) from the generator's
+high bits; an unbiased value in a signed or inclusive integer range; an
+element picked from a slice, k drawn without replacement and a choice
+weighted by the caller's weights; bytes filled from the generator; normal
+and exponential draws by a method the item states; and xoshiro256**'s
+`jump`, so that threads or fibres take independent streams from one
+seed. The generator stays as it is, and nothing here is cryptographic: a
+key still comes from `io.fill_random`, which is Rust's `getrandom`. From
+R20: placement, and how a draw takes a range.
+
+Leaves out: other generators and distributions beyond the two, until a
+program needs one.
+
+Exit evidence: the same sequences on every target from one seed; each
+draw's distribution checked by a stated test over a pinned sample, the
+floats' bits and the ranges' bounds exhaustively at small widths; `jump`
+against the reference implementation's; the example program D1956 gave
+`core/random` drawing through them; image size on Cortex-M0 measured.
+
+### R22.43 — Sockets by name, with their options
+
+Status: planned
+Depends on: R20, R21.70
+
+What `core/net` lacks beside Rust's `socket2` and `mio` and Go's `net`.
+`hosted/events` already does `mio`'s work, switching fibres over epoll,
+kqueue and Windows' own wait, and each addition here waits through it as
+the existing calls do. First a resolver, `SR-99`'s, retired while no
+consumer asked for it. It uses the system's resolver where that is the
+authority: the C library on Darwin, FreeBSD and Linux under
+`--link=libc`, and Windows' own. A static Linux program gets its own,
+reading `/etc/hosts` and `/etc/resolv.conf` and speaking DNS over UDP
+with TCP after a truncated answer. Beside the resolver comes a connection
+to a host and port that tries each address the name gives in turn, as
+Go's `Dial` does. Then the socket options `socket2` sets: reuse of an
+address and a port, keepalive and its interval, buffer sizes, broadcast,
+multicast membership and hops, IPv6 only, the unicast hop limit and
+linger. Last, Unix-domain stream and datagram sockets in the `network`
+concept where the system has them, which today only `platform/posix`
+gives. The fake network gains each. From R20: placement, and which
+options are a provider's entries.
+
+Leaves out: TLS and HTTP, which are the successor families'; raw sockets.
+
+Exit evidence: each option set and read back on every hosted target; the
+resolver against an unknown name, a name only `/etc/hosts` knows and a
+server that does not answer, both the system's and the static Linux one;
+a multicast exchange and a Unix-domain exchange on one host; the fake
+network's tests for each; an example program in `examples.md` that
+connects by name; `docs/library.md`'s table of routes without the
+resolver's row, and its dates row pointing at no missing record, SR-2112.
+
+### R22.44 — Command-line arguments parsed
+
+Status: planned
+Depends on: R20
+
+A parser over the program's arguments, `io.argument`'s OS strings, with
+what Rust's `clap`, Go's `flag` and Swift's `swift-argument-parser` give:
+short and long options, `--name=value` and `--name value`, clustered short
+flags, `--` to end the options, a repeated or counted flag, values typed
+through `core/text`'s parses with a path kept as an OS string unconverted,
+required and default values, positionals with one trailing list, and
+subcommands. It writes the usage and `--help` text and refuses an argument
+by naming it and what was expected. With no compile-time execution (RP3),
+the program declares its options as a table of values, not by derivation;
+nothing allocates but from an allocator the caller passes, and it parses
+any list of byte slices, so a test or a firmware command line uses it
+too. From R20: placement, and the failure names.
+
+Leaves out: values from environment variables or configuration files,
+and shell completions.
+
+Exit evidence: a fixture for each form and each refusal; the help text
+pinned byte for byte; the example programs that read their arguments by
+hand moved to it; image size on Cortex-M0 measured.
+
+### R22.45 — Text's everyday calls
+
+Status: planned
+Depends on: R20, R22.30
+
+What `core/text` lacks beside Go's `strings` and `strconv`, Rust's `str`
+and Zig's `std.mem`, on Unicode text first. Over `utf8`, by scalars and
+never inside one: a test whether text starts or ends with another, the
+last place it occurs, how many times it occurs without overlap, as Go's
+`Count` counts, trimming White_Space or a given scalar from either end,
+walks over the parts between a scalar or a text, over the fields between
+runs of White_Space and over lines, joining parts with a separator,
+replacing each occurrence, and repeating text. White_Space is Unicode's
+property, 25 scalars written in `core/text` and held to the database by
+R22.30's generator check, so these calls carry no table. Byte forms of
+the searches beside them over `[]u8`, as Rust's `memchr` gives, since
+`find` takes only `utf8`.
+
+Case is `core/unicode`'s, which already has the simple and full mappings
+and folding. This item adds comparing two texts without case, equality, a
+prefix and a suffix, by full case folding scalar by scalar with no
+buffer, so "Straße" equals "STRASSE", and the canonical caseless match,
+with normalization, beside it; case conversion stays `append_upper` and
+`append_lower`. The calls are locale-free, and the default folding is
+wrong for Turkish, Azerbaijani and Lithuanian; R22.50 tailors it (Q-410). Where a 32 KiB image
+cannot carry the case tables, an ASCII variant beside each, named as
+one, folds only A to Z. Which caseless searches beyond the prefix and
+suffix are worth their cost, given `core/regex`'s case-insensitive
+patterns, is this item's to decide.
+
+Parsing in any radix from 2 to 36 with an optional `0x`, `0o` or `0b`
+prefix, and parsing `true` and `false`; a quoted form that writes text
+with its escapes as a Landin literal spells them, as Go's
+`strconv.Quote` and Rust's `{:?}` do; and `append_i8`, `append_i16` and
+their unsigned partners, which parsing has. A walk uses the
+end-of-iteration form R22.30 settled, and each call that writes text
+appends whole or nothing to a builder. From R20: placement and the
+failure names.
+
+Leaves out: collation and splitting by other properties, which a program
+does with `core/unicode` and `core/regex`; a replacement that allocates a
+new string, since the builder is the caller's.
+
+Exit evidence: a fixture for each call, its edges included (empty text,
+an empty separator, a match at either end, overlapping occurrences,
+scalars of every width); caseless equality against the Unicode
+database's case folding over every scalar, and the canonical match against
+the normalization test's pairs; the radix parses against an oracle at
+every width, prefix and radix; the quoted form read back as a literal by
+`refine`; the example programs that write these by hand moved to them;
+image size on Cortex-M0 measured for the Unicode and the ASCII forms.
+
 ### R22.50 — Locale formatting
 
 Status: planned
-Depends on: R22.20, R22.30
+Depends on: R22.20, R22.30, R22.45
 
 Numbers and text formatted for a locale, an explicit value from a BCP 47
 identifier and never global state, from generated CLDR data a program
@@ -4065,15 +4381,19 @@ uses in part: SR-98's locale half, with R22.20's template width and
 precision applied to a locale's digits and separators. From R20: a
 locale is an explicit value (D1955), and the host's preferred one is read
 through `hosted/system`; how formatting evidence takes one is this item's.
-Exit evidence: CLDR's own test data pass for the locales generated; a
-program that uses one locale carries only its data.
+With the same locale value it tailors case mapping, folding and
+caseless comparison for Turkish, Azerbaijani and Lithuanian, which
+`core/unicode` and R22.45 leave at Unicode's defaults (Q-410).
+Exit evidence: CLDR's own test data pass for the locales generated; the
+tailored cases pass the Unicode database's special casing for the three
+languages; a program that uses one locale carries only its data.
 
 ### R22.60 — Regular expressions
 
-Status: planned
+Status: complete
 Depends on: R22.30
 
-`core/regex`, SR-100: patterns compiled at run time with the caller's
+`core/regex`, `SR-100`: patterns compiled at run time with the caller's
 allocator and matched in linear time; Unicode classes from R22.30's
 tables; a match's position and captures, iteration over the matches, and
 replacing every match from a template. Built on the established
@@ -4092,6 +4412,30 @@ target and on Cortex-M0; Rust's `regex` test suite passing for the
 supported syntax, regex-redux's patterns among the cases; every engine
 checked against the Pike VM on generated patterns and inputs, as RE2's
 tester does.
+
+Done: `core/regex` reads the `regex` crate's syntax, less backreferences
+and look-around, with four failure atoms (D2674), compiles it to a byte
+program whose classes are UTF-8 tries (D2675) into storage its searches
+reuse, allocating nothing after `compile` (D2677), and chooses per
+pattern among a literal prefilter, a lazy DFA run forward and reversed,
+the one-pass DFA and the Pike VM (D2678); a DFA state holds its threads'
+step targets, so its closure keeps the Pike VM's order (D2679). Walks,
+`for` over `matches` and `replace_all` follow the crate's empty-match
+rule (D2681), and `(?i)` takes each scalar's simple folding orbit
+(D2682). Unicode's tables come through the options' function values, so
+`lean()` links none (D2676), and `core/unicode` gains
+`category_run_end` and `property_run_end`, from per-block tables its
+generator writes, so `\w` compiles a run at a time. The crate 1.12.2's
+suite, pinned by hash, passes all 897 cases the library can state
+(`runtime/regex-rust-suite`), and regex-redux's patterns count and
+replace over the game's FASTA as Python's `re` does
+(`runtime/regex-redux-patterns`);
+`runtime/regex-engines-agree` checks every engine against the Pike VM on
+seeded generated patterns, and `runtime/regex-linear-time` pins linear
+work on ten adversarial patterns on every hosted target and on the
+Cortex-M7 corpus lane (D2680): the engines are 140 KB of Thumb code, so
+the 32 KiB ARMv6-M profile records a size limit, which Q-336 asks about
+and SR-1968 records. `SR-100` is taken.
 
 ### R22.61 — A finished `for` no longer holds its source
 
@@ -4296,7 +4640,7 @@ tree queries against brute force; on every target.
 ### R22.80 — The library measured
 
 Status: planned
-Depends on: R22.18, R22.40, R22.50, R22.63, R22.73, R22.75, R22.76
+Depends on: R22.18, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.63, R22.73, R22.75, R22.76
 
 The basis of R22's continuous lane, as R16.10 is of R16's: the time and
 size of the library's own code measured, held in the gate and ranked.
@@ -4631,7 +4975,14 @@ waits for its activation.
   orchestration. A build description between Zig's build program and a
   makefile was discussed when this roadmap was written and left out of it.
 - **Broader standard library:** library facilities beyond what the prototypes
-  needed.
+  needed. The maintainer chose on 2026-11-27 what the next roadmap's library
+  takes first: dates, calendars and time zones over `core/time`; logging;
+  base64, hex, UUIDs and URLs with their percent encoding; and
+  cryptographic hashes, cryptography and TLS bound from an existing
+  library, since Landin writes no cryptography of its own. Serialization
+  and JSON join them, with their shape and formats still open with the
+  maintainer. An HTTP client and server may follow, which nothing decides
+  yet.
 - **Competitive optimization:** optimization beyond correct deterministic
   baseline code.
 - **Language evolution:** parked constructs, watches and proposals whose

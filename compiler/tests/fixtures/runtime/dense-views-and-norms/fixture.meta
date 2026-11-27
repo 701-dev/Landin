@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/dense's views over shared storage, its element-wise operations, reductions and matrix norms give exact results on small integer matrices at f64 and f32, with a NaN that beta 0 keeps out
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 0170, 0290

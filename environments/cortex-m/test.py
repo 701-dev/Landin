@@ -235,7 +235,7 @@ class ProbeFailures(unittest.TestCase):
                     Image(path)
 
     def test_freestanding_module_and_linker_closure(self):
-        from freestanding import MODULES, imports, linker_closure, programs
+        from freestanding import MODULES, OUTSIZED, imports, linker_closure, programs
         self.assertEqual(imports('import core/mem\nimport platform/cortex_m\n'), {'core/mem', 'platform/cortex_m'})
         self.assertEqual(imports('import core/io'), {'core/io'})
         self.assertEqual(imports('import core/io/fake'), {'core/io/fake'})
@@ -264,7 +264,7 @@ class ProbeFailures(unittest.TestCase):
             #  One per core module freestanding.py lists, so a new module is
             #  added there alone.
             {'library-shared-'+module.split('/')[1] for module in MODULES
-             if module.startswith('core/')})
+             if module.startswith('core/') and module not in OUTSIZED})
 
     def test_shared_library_inventory_requires_each_small_consumer(self):
         from freestanding import MODULES, ROOT

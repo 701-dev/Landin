@@ -19215,11 +19215,12 @@ unqualified, as before.
 declaration that made its identity, which names the library's private
 `cell_value` for the public `cell` a program wrote; and recovering the
 spelling from the source text at the refused node, which knows nothing of a
-type that reached it by deduction, the `f64` an `any(addr ratio)` erased
-among them.
+type that reached it by deduction, the `[2]f64` an `any(addr ratios)`
+erased among them.
 
-**Pinned by** `negative/format-float-names-its-type`, whose refusal names
-`f64` and `text.formattable`; `negative/any-construction-qualifies-library-concepts`,
+**Pinned by** `negative/format-array-names-its-type`, whose refusal names
+`[2]f64` and `text.formattable` (an `f64` before floats were
+formattable); `negative/any-construction-qualifies-library-concepts`,
 whose list holds the program's own `display` and the library's
 `text.formattable`; `negative/atomic-builtin-on-cell-names-its-operations`,
 whose pointer is `ptr mut atomic.cell(u32)`; `negative/r630-optional`'s
@@ -27189,6 +27190,163 @@ which was not asked for; and keeping the files in the key.
 `test_cycles_baselines_do_not_count_and_other_baselines_do` and its
 `DocumentReaders` case.
 
+### D2794 — The gate records why a job failed, by rule and by outside signature
+
+**The tour said** nothing. Why a gate job failed was recorded nowhere: the
+gate-time study of 2026-11-26 rebuilt it from 1,024 job logs read by eight
+readers, and found that a rule agreed with them on 90% of the jobs it
+called defects and found 97% of theirs. The maintainer accepted the
+recording that day.
+
+**Chosen:** `scripts/gate_history.py` gives each failed attempt of a job
+one cause. It is `outside` when the job's log matches an outside
+signature of `.github/gate-lanes.json`, a regular expression with its
+example, which the aggregate `gate` job reads from the failed jobs' logs
+and records on the run as a `gate-causes` annotation. It is also `outside`
+when a later attempt, or a run of the identical tree, passed the same job;
+`defect` when the branch's next push changed the tree; `pending` before
+that push; and `unresolved` when it pushed the same tree. The history is
+read by GraphQL into a cache outside the tree, and `table --write` writes
+every cause into `.github/gate-causes.jsonl`. Seventeen signatures came
+from the study's outside failures, none of which matches any of its 860
+defect jobs. A probe's DMI timeout, which the maintainer named and no run
+had met, is an eighteenth. With them the rule agreed with the readers on
+96.5% of its defects and found 97.3% of theirs, on the same logs the
+signatures were fitted to.
+
+**The reason:** a cause recorded as the run ends needs nobody to read a
+log later. Only the next push can say whether the tree was at fault, so
+the rule reads it from the history rather than guessing at the run.
+
+**The alternatives:** asking a reader of each failure, which is what the
+study cost; classifying by log alone, which no signature does for a defect;
+and keeping the causes in an artifact, which expires.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Causes` cases and
+`Lanes.test_signatures_match_their_examples`.
+
+### D2795 — The lane table declares each lane's inputs and keeps its figures, in the tree
+
+**The tour said** nothing. The study's selection reads each lane's
+frequency from the history and narrows by the paths a change reaches.
+
+**Chosen:** `.github/gate-lanes.json` groups every job the aggregate needs
+into lanes, a matrix's legs together and the determinism manifests by
+host. Each lane declares by hand its jobs, the lanes it needs, the paths
+whose change reaches it (named sets such as `build` and `library`), the
+targets whose emitted code it alone runs, and whether it checks the
+evidence itself (the release builds' comparisons and their clean builds).
+`table --write` keeps the rest from the history: when the lane was first
+seen, the median of its job-minutes over the window's complete gates, and
+the last day it was the only lane with a defect job in a run. The two
+branches that demonstrated a failure on purpose count for nothing. No lane
+declares emission targets yet. The determinism manifests digest only the
+positive fixtures, and every lane that runs emitted code also runs the
+runtime, ABI or firmware corpus, or programs of its own. The emission part
+of the rule is written and tested, and selects nothing until a manifest
+covers what a lane runs, which a register row records.
+
+**The reason:** a table in the tree makes the same tree select the same
+lanes, and a lane's inputs are known best by whoever changes the lane, in
+the same change; `Lanes` fails when a gate job is in no lane.
+
+**The alternatives:** a path map apart from the frequencies, which two
+files would let drift; reading `needs` and paths from the workflow, which
+says what a job runs but not what it reads; and declaring emission lanes
+over the positive manifest, which would key a lane by code it does not
+run.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Lanes` cases.
+
+### D2796 — The selected gate is computed beside every complete gate and skips nothing
+
+**The tour said** nothing. The maintainer accepted the selection's values
+on 2026-11-26, and that it runs in shadow before it is applied.
+
+**Chosen:** the `inputs` job's last step, when the software lanes run and
+no pass is reused, finds the base. That is the newest successful push run
+on this commit's history whose `determinism / agree` passed, asked by
+GraphQL with the job's own token. The step lists the paths changed since
+the base and selects by D2795's table. It keeps a lane that runs always,
+a physical one, one that checks the evidence, one under four weeks old,
+one under five job-minutes and one that was alone in the last eight weeks.
+It keeps one whose inputs the change reaches, and every lane a kept lane
+needs. An emission lane is left to the aggregate, which settles it from
+this run's and the base run's x86-64 manifests. Any other lane runs on one
+tree in four, drawn from a hash of the tree and the lane's name, so each
+lane is drawn apart. The step writes the selection to the summary; the
+aggregate writes the final one, the lanes skipped and their job-minutes,
+and records it as a `gate-shadow` annotation. Both steps
+`continue-on-error`, and no job's condition reads them, so a failure there
+selects every lane and changes nothing that runs.
+
+**The reason:** shadow mode measures the rule on the gates that run
+anyway, at a few seconds of the `inputs` job, so its misses are known
+before it may skip anything.
+
+**The alternatives:** one draw for all sampled lanes, which runs all of
+them on one gate in four and none on the rest; the merge base with `main`
+as the base, which a reused main push gives no manifests for; and
+computing everything at the end, which the applied selection could
+not use before its lanes start.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Selection` and
+`Wiring.test_the_selection_never_fails_or_skips_a_job`.
+
+### D2797 — A branch run that failed only outside the change is re-run once
+
+**The tour said** nothing. From 7 to 17 runs a week failed for outside
+causes alone, and each was re-run by hand or by a new push.
+
+**Chosen:** `.github/workflows/gate-rerun.yml` runs when a gate run
+completes. When the run failed on its first attempt and was a push to a
+branch other than `main` of this repository, it reads the failed jobs'
+logs. If every failed job matches a signature marked `rerun` and the branch
+still points at the run's commit, it re-runs the failed jobs once and names
+the run, the jobs and the signatures in its summary. The re-run's aggregate
+names its attempt and who started it. A signature a second attempt cannot
+pass, such as a stale image, is marked so and not re-run. `main`'s gate is
+investigated, never re-run blindly.
+
+**The reason:** a failure every one of whose jobs is a known outside cause
+says nothing of the tree, and one more attempt is cheaper than an agent
+reading the log to decide the same. A run with any unmatched failure needs
+a new push anyway.
+
+**The alternatives:** re-running each matched job alone, which leaves the
+run failed on the others; re-running `main`; and re-running more than once.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Rerun` cases and
+`Wiring.test_the_rerun_is_a_branch_push_first_attempt_only`.
+
+### D2798 — A miss is a complete gate whose defect only skipped lanes showed
+
+**The tour said** nothing. The study's replay of November expected 1.7
+misses a week, defects a later draw or the next complete gate shows.
+
+**Chosen:** in the shadow period, a complete gate is a miss when every
+lane with a defect job in it is one the selection recorded on the run
+would have skipped. A branch's consecutive misses on the same lanes are
+one missed defect. `gate_history.py shadow` prints the period's complete
+gates, its weeks, the missed runs and defects and their rate a week, and
+sets them against the study's. `table --write` keeps the same figures
+in the lane table's `shadow` entry, so each weekly update of the table
+carries them. The maintainer reads them there before the selection is applied,
+after about 200 complete gates, the length the maintainer is asked to
+confirm.
+
+**The reason:** under the selected gate such a tree would have passed;
+when a kept lane failed too, the selected gate would have failed it as
+well.
+
+**The alternatives:** counting a run with a skipped lane's defect beside a
+kept lane's, which counts a defect the selected gate also stops; and
+counting every missed run, which counts one defect again on every push
+until it is fixed.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s
+`Shadow.test_a_defect_only_skipped_lanes_showed_is_a_miss`.
+
 ### D1379 — The instruction counter declares the plugin calls it makes
 
 **The tour said** nothing.
@@ -30468,8 +30626,10 @@ unpushed tree; or automatically refreshing a hardware record from a build.
 
 ### D904 — Physical boards run in the gate on trusted events only, and their evidence is never reused
 
-**Superseded in part by D1647:** a push to `main` takes its boards from a
-passed run of the same tree instead of running them again.
+**Superseded in part by D1647, D2774 and D2775:** a push to `main` takes its
+boards from a passed run of the same tree instead of running them again, a
+dispatch and `main`'s push take their legs from a passed run of the same
+board identity, and the schedule runs daily.
 
 **The tour said** nothing about where physical evidence comes from; D901
 and D902 made boot checks and RAM runs the closing evidence of a board
@@ -30527,6 +30687,11 @@ verdict; and `scripts/tests/test_board_gate.py`'s `Sequence`.
 
 ### D1647 — Main's push takes its boards from a passed run of the same tree
 
+**Superseded in part by D2774 and D2775:** a dispatch, and `main`'s push on
+another tree, take their board legs from a passed run of the same board
+identity, and the schedule runs daily and leaves out a commit it already
+ran.
+
 **The tour said** nothing. D904 ran the boards fresh on every push to
 `main` and listed reusing a candidate's board evidence at promotion among
 its alternatives without a reason. In the 3.4 days surveyed on 2026-11-20,
@@ -30565,7 +30730,84 @@ difference.
 
 **Pinned by** `scripts/tests/test_gate_inputs.py`'s `BoardsReuse` cases and
 `BoardVerdict`'s `test_a_main_push_may_take_its_boards_from_a_passed_run`
-and `test_a_dispatch_or_the_schedule_never_takes_boards`.
+and `test_a_dispatch_never_takes_boards`.
+
+### D2774 — Board legs are taken from a passed run of the same board identity
+
+**The tour said** nothing. D904 ran every leg on every board-scope event
+and D1647 let `main`'s push take a passed run of the identical tree. The
+gate-time study of 2026-11-26 found 31 of the 39 boards runs from
+2026-11-20 ran boot, RAM and timing images byte-identical to the passed run
+before them, 23 of those with the board harness and the whole workflow
+unchanged too, while the rig, one leg at a time, was busy seven to eleven
+hours a day and found two defects in about 270 runs, both in its own
+harness. The maintainer accepted reuse on byte-identical images and inputs
+that day.
+
+**Chosen:** `board-bundles` still builds every bundle on a board-scope
+event, strict against the hardware records, and then writes its board
+identity as an annotation titled `board identity`: digests of every file
+the bundles hold but `provenance.json` and `files.sha256`, with
+`bundle.json` read without its compiler and source identities; the timing
+bundle's files likewise, `timing.json` without its compiler, source identity
+and build time and `commands.json` without each command's seconds, or none
+when the event builds no timing images; the blobs and modes of every file
+under `environments/boards/` and `compiler/tests/board/` but the hardware
+records, which are a part of their own; and the text of the `board-bundles`
+and `board` jobs less their comment lines. A dispatch, or `main`'s push
+that D1647 does not cover, skips its legs when a run of `gate.yml` in this
+repository on a board-scope event, under a week old and successful, ran and
+passed `board-bundles` and every leg in a complete listing and recorded an
+identity whose every part is this run's, its timing part too when this run
+times. The aggregate downloads that run's leg evidence, holds every leg's
+`transfer.json` to its run id, requires every port `passed`, compares its
+cycles with this tree's base when the event times the boards, and names the
+run in its summary. A run that took its legs is never a source, and the
+schedule always runs its own.
+
+**The reason:** a leg's verdict is a function of the bytes it loads, the
+harness that loads and judges them and the rig; the identity holds the
+first two exactly and leaves out only what names the commit or the build's
+clock, so a run taken is evidence of the same inputs on the rig at most a
+week ago, which the daily schedule (D2775) and every dispatch with new
+images keep sampling. The library roots the legs' checkout also carries
+reach a board only through the images, so they are not part of it.
+
+**The alternatives:** hashing `files.sha256`, which names the commit
+through `bundle.json` and so never repeats; keying by the gate's tree key,
+which changes with any source file and so reuses no more than D1647; the
+library roots in the harness part, which a change to an unrelated module
+would break; storing the identity as an artifact, which the reading run
+would have to download for every candidate; and boards on a schedule
+alone, which turns `main` red a day after the candidate that broke them.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Identity`,
+`LegsReuse` and `LegsVerdict` cases.
+
+### D2775 — The schedule runs the boards daily, and an unmoved main weekly
+
+**The tour said** nothing; D904 ran the boards weekly on `main`, and D1647
+listed a daily schedule among its alternatives. With legs taken by identity
+(D2774) a board or probe that degrades would show only when the images
+change; the maintainer's rhythm of 2026-11-26 runs the complete evidence on
+`main` once a day when it moved.
+
+**Chosen:** the schedule fires at 04:00 UTC every day. Its `inputs` job
+leaves out its boards and its timing together when a schedule run of the
+same commit under a week old succeeded with every board job and timing leg
+run and passed, and the aggregate accepts that on the schedule and names
+the run. A schedule run never takes its legs by identity.
+
+**The reason:** a day bounds how long a degraded board goes unseen while
+work lands; an unmoved `main` has nothing new to test, and the week bound
+still samples an idle rig once a week, as before.
+
+**The alternatives:** a daily run whatever main did, which spends a rig
+hour a day on a tree already tested; and keeping the weekly run, which
+leaves a degraded board unseen for days now that dispatches take legs.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Unmoved` cases and
+`BoardVerdict`'s `test_an_unmoved_schedule_takes_its_boards_and_timing_together`.
 
 ### D905 — A board run reports one outcome, stops cleanly when cancelled, and shares one rig state
 
@@ -42241,6 +42483,16 @@ and for a host string is not defined.
 `runtime/core-mem-blocks`, `runtime/tree-copy`,
 `runtime/directory-listing` and `runtime/library-builtin-evidence`.
 
+### D2815 — `f32` and `f64` are `cmp.ordered` by IEEE 754's totalOrder
+
+**The tour said** at [1280] that a type has one evidence for a concept and no override, and `cmp.ordered`'s `less` must be a strict weak order. IEEE's `<` is not one once a NaN is among the values, so floats had no evidence and a sort of them declared its own.
+
+**Chosen:** the maintainer's answer: `core/cmp` declares `f32 is ordered` and `f64 is ordered` by IEEE 754's totalOrder, a strict order of every bit pattern: negative NaNs, a larger payload first, negative infinity, the negative numbers, -0.0, +0.0, the positive numbers, infinity, and positive NaNs, a larger payload last. It agrees with `<` on every pair of numbers except the two zeros, so a sort of measurements is the order a reader expects and a NaN has one place, at an end. `less` reads each float's bits through its address and compares keys as unsigned integers: a negative float's bits inverted, a positive one's sign bit set. Another order goes on a distinct type, as for an integer.
+
+**The alternatives:** no evidence, a program declaring a distinct type with the order it wants; and evidence by `<`, valid only where no NaN is sorted, which breaks the concept's own requirement on the values a float can hold.
+
+**Pinned by** `runtime/cmp-float-total-order`, which sorts NaNs of both signs, quiet and signalling, the infinities, both zeros, subnormals and ordinary numbers at both widths on every hosted target and on Cortex-M0.
+
 ### D353 — The hosted provider maps a path's errno, opens and closes once
 
 **The tour said** nothing of the providers' insides, and D297 wrote the
@@ -46151,12 +46403,21 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The tour said** nothing; `LICENSE` says that linking `core/*` places no condition on a program. The roadmap names musl's and FreeBSD's msun and CORE-MATH as sources.
 
-**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. It is the default of a question the maintainer has not yet answered.
+**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. The maintainer kept it, and D2814 makes its condition the rule for all of `core/*`.
 
 **The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
 
 **Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.
 
+### D2814 — Third-party code enters `core/*` only under terms that ask no more than a notice kept with its source
+
+**The tour said** nothing; `LICENSE` says that compiling a program places no licensing condition on it, and neither does linking `core/*` into it. D2554 kept that promise for `core/math` and `core/unicode`'s tables kept it by the same reading, each as the default of a question.
+
+**Chosen:** the maintainer's rule: material from outside the project enters `core/*` only under terms whose sole condition is a notice kept with the source, and that ask nothing of a program that links it: no notice in its documentation, no attribution at run time, no licence of its own. The notice stays in the files that hold the material, and `LICENSE` names each such source among its third-party material without changing its promise. `core/math`'s msun code under Sun's notice and `core/unicode`'s tables, generated from the Unicode Character Database, whose notice is `core/unicode/LICENSE.unicode` and is named in the header of `tables.ldn`, are the two today: a compiled program carries the tables' values, not the Data Files. Code under terms that ask more, BSD-2-Clause's notice in a binary's documentation or MIT's notice with substantial portions, is written here from the mathematics or the standard instead.
+
+**The alternatives:** admitting BSD and MIT sources with a notice every linking program reproduces, which would add an obligation for the project's users, and which the maintainer refused; and porting nothing, which replaces measured code with new code for no licensing gain.
+
+**Pinned by** `LICENSE`'s list of third-party material, the notice in `core/math/math.ldn` and each `core/math` file's opening comment naming the msun files it ports, and `core/unicode/LICENSE.unicode` named in `tables.ldn`'s header.
 ### D2594 — `core/big` keeps a number in 32-bit limbs on every target, in two layers
 
 **The tour said** nothing about numbers wider than `u64`, and D237 left `u128` out of the language. The roadmap asks for arbitrary precision in two layers: one over the caller's limbs with no allocator, as GMP's `mpn` is, for firmware and a parser that may not allocate, and one that grows through the caller's allocator.
@@ -46236,6 +46497,16 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** Toom-4 and FFT multiplication, which the roadmap leaves out; and divide-and-conquer division now, which no consumer in the repository reaches at the lengths where it wins.
 
 **Pinned by** `runtime/big-limbs`'s drawn products and quotients, at lengths on either side of each threshold and with operands of all one bits, and compiler/tests/big/README.md's timing.
+
+### D2735 — A `core/big` product by one limb, and a division's scratch, take no block a step
+
+**The tour said** that arenas are the idiom [1360]; D2595 worked a result written over an operand out on the stack up to 64 limbs and apart above, and D2596 kept a looping routine's temporaries, which left the public routines themselves taking a block a call.
+
+**Chosen:** `big.multiply` of a value by an integer of one limb is one pass of the limb layer's `multiply_limb`, in place when the destination is the long operand, so `x = x * k` takes nothing from the allocator but `x`'s growth at any length. A division into results that are not its operands takes its scratch from the remainder's block, past the limbs it keeps, which the division reserves for it, so a loop dividing into the same quotient and remainder allocates only while they grow; the remainder keeps a block as long as the numerator and twice the divisor in consequence. pidigits' 10,000 digits took 9.5 s, 4.5 of them in the system's mapping and unmapping of a block a step, before this, and 4.6 s, 0.02 in the system, after, on the host of compiler/tests/big/README.md.
+
+**The alternatives:** a public room parameter, `divide_with`'s, on every division, which would put the layer's bookkeeping into every caller's signature as D2596 declined; and leaving it to the caller to multiply into a value of its own and exchange the handles, which `core/big` gives no public routine for.
+
+**Pinned by** `runtime/big-integer-in-place`, which multiplies a hundred-limb value by one limb in place and divides it by that limb a thousand times in an 8 KiB arena, and which runs out of the arena without either change; and `runtime/benchmark-game-pidigits`.
 
 ### D2614 — `core/unicode`'s tables are generated from a pinned database into multi-stage tables a program links only in part
 
@@ -46346,3 +46617,263 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** porting `catrig.c` and the others with their notices, which every program linking `core/complex` would then carry, against `LICENSE`'s promise; and porting musl's, MIT-licensed, with the same cost.
 
 **Pinned by** `core/complex/complex.ldn`'s opening comment, which says nothing is ported.
+
+### D2674 — `core/regex` reads Rust's `regex` syntax, less what loses linear time, and fails with four atoms
+
+**The tour said** nothing about regular expressions; the roadmap asks for a freestanding library of linear-time automata compiled when the program runs, and R20 left the allocator and capability shape and how a match position is named to its item.
+
+**Chosen:** `core/regex` reads the syntax of Rust's `regex` crate and gives its leftmost-first meaning: Unicode by default, the flags `i`, `m`, `s`, `U`, `u`, `x` and `R`, named groups as `(?P<name>...)` and `(?<name>...)`, bracket classes with `&&`, `--` and `~~` and POSIX's ASCII classes, the Perl classes, `\p` for the general categories and the six binary properties `core/unicode` holds, and the word looks `\b`, `\B`, `\<`, `\>` and `\b{start}` with its kin. A backreference and a look-around, which no engine matches in linear time, fail `unsupported_pattern`, as does a property `core/unicode` has no table for, a script's; any other pattern the syntax does not read fails `invalid_pattern`, a class that could match bytes that are not UTF-8, `(?-u:\W)`, among them, as Rust's `Regex` refuses it. A program past the options' size limit, or groups and brackets nested more than 64 deep, or a count past 100,000, fails `pattern_too_large`; a pattern that needs Unicode's tables compiled without them fails `unicode_unavailable` (D2676). A match is a `regex.span`, two `text.position`s of the text searched, as `unicode.segment` is (D2618). Rust's test suite is the conformance oracle: `scripts/regex_tests.py` reads it out of the crate pinned by SHA-256 and writes every case the library can state, 897 of its 1,184, into `runtime/regex-rust-suite`; the rest are sets of patterns, other match and search kinds, bounded searches, other line terminators, haystacks that are not UTF-8, regex-lite's own cases and the properties `core/unicode` lacks, each counted by its reason in the generated file.
+
+**The alternatives:** RE2's syntax, which differs in small ways from the crate whose test suite is the oracle; POSIX's leftmost-longest meaning, which no common engine of the last twenty years gives; and one failure atom for every refusal, which tells a user nothing about what to change. All were declined.
+
+**Pinned by** `runtime/regex-rust-suite`; `runtime/regex-redux-patterns`, which runs the Benchmark Game's regex-redux patterns, which the crate's suite does not hold; and `runtime/regex-api`, which refuses a pattern of each kind with its own atom.
+
+### D2675 — A pattern compiles to a byte program whose classes are tries of their scalars' UTF-8
+
+**The tour said** at [0600] that `utf8` is well-formed UTF-8; the roadmap asks for automata without backreferences.
+
+**Chosen:** the parser writes a tree with the flags applied, a case-insensitive scalar already the class of its simple case-folding orbit and `.` the class it means, and the compiler builds a Thompson program from it in which every instruction reads one byte. A class's scalar ranges become their UTF-8 byte sequences, split where the encoded length changes and where a continuation byte would range over less than all its values, compiled as a trie in which equal nodes are shared, so `\w` is 345 instructions; a reversed program, built the same way with the sequences reversed, finds a match's start (D2678). Every instruction that reads reads a whole scalar's bytes, and a search adds a thread only where a scalar begins, so a match never begins or ends inside one and an empty match never splits one. `x*` whose `x` can match the empty text compiles as `(?:x+)?`, as the crate's compiler does, so that an empty `x` still takes part and sets its groups.
+
+**The alternatives:** a program over scalars, whose DFA would need a table indexed by scalar or a search per byte; and a class instruction that tests a property when the search runs, which a DFA cannot cache by byte. Both were declined.
+
+**Pinned by** `runtime/regex-rust-suite`, whose `empty`, `crazy` and `fowler/nullsubexpr` cases hold the empty iterations' groups and whose `utf8` cases the scalar boundaries.
+
+### D2676 — The Unicode tables a pattern reads are function values its options hold, so a lean program links none
+
+**The tour said** at [1000] that a function is a value; D2617 has a walk hold the routine it uses so that an image links only its tables.
+
+**Chosen:** `regex.defaults()` gives options holding `core/unicode`'s general category, binary properties, case mappings and their run ends as function values, and `regex.lean()` options holding stand-ins that read nothing. Only the parser and the Unicode word look call through them, so a program that compiles with `lean` links no table of `core/unicode` and its image holds the engines alone; a pattern that needs a table, Unicode's `\w`, `\d`, `\s`, `\b` or `\p`, or `(?i)` in Unicode mode, then fails `unicode_unavailable`, and `(?-u)` asks for the ASCII meaning, as the crate behaves built without its Unicode features. `compile` is `compile_with(memory, pattern, regex.defaults())`. A Unicode class is built a run at a time: `unicode.category_run_end` and `unicode.property_run_end`, which this item adds, give the last scalar sharing a scalar's category or properties, from per-block tables `scripts/unicode_tables.py` writes beside each trie, so `\w` compiles in milliseconds where a scalar at a time took 90.
+
+**The alternatives:** a `match` on a flag, which links every table into every image; tables of ranges in `core/regex` itself, as the crate keeps, which would duplicate `core/unicode`'s data; and a scalar at a time over the code space, which the run ends replace. All were declined.
+
+**Pinned by** `runtime/library-shared-regex` and `runtime/regex-linear-time`, which compile with `lean` on the firmware lanes, `runtime/regex-api`'s `unicode_unavailable` refusals, and `runtime/unicode-category-runs` and `runtime/unicode-property-runs`, which hold every run to its category and properties.
+
+### D2677 — A compiled pattern holds its searches' storage, so a search allocates nothing and takes the pattern `inout`
+
+**The tour said** at [1360] that what allocates takes the allocator, and D1948 that a container keeps no allocator.
+
+**Chosen:** `compile` and `compile_with` take the allocator and allocate everything a search of the pattern will use: the programs, the Pike VM's thread lists and slots, the lazy DFA's bounded caches, the one-pass table and the literal set. A search takes the compiled pattern `inout`, since it writes those caches, and allocates nothing, so a firmware search cannot run out of memory and a search's time is its own. `release` gives it all back to the allocator it was compiled with. The DFA caches' bound is the options' `with_cache_size`, 512 KiB by default; a program of n instructions gets at most 16n + 64 states of it, so a small pattern takes little. A fixed `with_size_limit`, 250,000 instructions and edges by default, bounds the program.
+
+**The alternatives:** a cache the caller makes and passes to each search, as the crate's `regex-automata` does, which adds an argument to every call for the case of many threads sharing one pattern, which Landin's patterns do not yet meet; and growing the caches during a search, which would need the allocator at every call. Both were declined.
+
+**Pinned by** `runtime/regex-linear-time` and `runtime/library-shared-regex`, which compile into an arena over a static buffer and search with no allocator.
+
+### D2678 — The engine is chosen per pattern and search, as RE2's and the crate's are
+
+**The tour said** nothing; the item names a literal prefilter, a one-pass engine, a lazy DFA run in reverse for a match's start, and a Pike VM.
+
+**Chosen:** when a pattern's matches all begin with one of at most 16 literals of at most 16 bytes, found by walking the tree from its start, the search skips to where one occurs; when those literals are the whole pattern, as in `agggtaaa|tttaccct`, the first found is the match, each position trying them in the pattern's order of preference. Otherwise the lazy DFA finds where the leftmost-first match ends, skipping with the literals while it is in its start state, and the reversed program's DFA, run back from there with longest-match states, where it begins. When groups are wanted, the one-pass DFA finds them between the two if the pattern is one-pass and keeps at most 32 slots, and the Pike VM otherwise. An anchored pattern's groups go to the one-pass DFA directly. A DFA that cannot answer gives the search to the Pike VM (D2679). `with_engine` asks for one engine, which tests and measurement use; `regex.prepared` says which a pattern got, `regex.fallbacks` how many searches the DFA gave up, `regex.work` how much work searches did and `regex.program_size` the program's size.
+
+**The alternatives:** the Pike VM alone, which is linear but slow on every byte; a backtracking engine for small inputs, which the crate keeps but which needs a visited set to stay linear; and a DFA compiled ahead of time and vectorised literal search, which the item leaves out. All were declined.
+
+**Pinned by** `runtime/regex-engines-agree`, which checks every engine against the Pike VM on 100 seeded generated patterns and six one-pass ones with eight haystacks each, unanchored and anchored, and requires each engine to have answered for some.
+
+### D2679 — A lazy DFA state is the threads' targets before their closure, which is taken once the next byte is known
+
+**The tour said** nothing; RE2's and the crate's lazy DFAs cache determinized states in bounded memory and report a match one byte late.
+
+**Chosen:** a state is the ordered list of the instructions a step reached, before any split or look is followed, with what the byte before was: nothing, a newline, a carriage return, a word byte or another. A transition on a byte first takes the closure of each listed instruction in order, judging every look now that the bytes on both sides are known, then steps the readers over the byte and lists their targets, so the closure visits the program in the order the Pike VM's does and leftmost-first's preference is the same: a state that kept its closure and judged the looks later reorders `(?m)(?:^|a)+`'s threads and finds a longer match than the Pike VM. A match ends where a state reached through it begins. The cache holds a table of states by byte class, the classes split where the program's ranges and looks need them; when it is full it is cleared and the search goes on from its current state, and a search that clears it more than eight times gives up. A Unicode word look is judged only between ASCII bytes, and a search that meets another byte where one is listed gives up, as the crate's DFA quits on such a byte. A search that gives up is answered by the Pike VM, from the start.
+
+**The alternatives:** states that keep their closure, RE2's form, which needs RE2's flags to rerun it and still differs from the Pike VM on a look inside a loop; and a DFA that judges Unicode word looks by decoding the scalars around a position, which makes its byte transitions depend on more than one byte. Both were declined.
+
+**Pinned by** `runtime/regex-engines-agree`, whose long haystacks over patterns of many states clear a 24 KiB cache mid-search and give up, and `runtime/regex-rust-suite`'s `multiline` cases.
+
+### D2680 — Each search is linear in the text, and a walk over every match need not be
+
+**The tour said** nothing; the roadmap asks for linear time pinned on adversarial patterns, on a hosted target and on Cortex-M0.
+
+**Chosen:** every engine visits each instruction at most once per byte, and the DFA builds each state in time linear in the program, so one search takes time linear in the text times the program's size whatever the pattern. `regex.work` counts that work: the threads the Pike VM stepped, the bytes the DFAs read and the instructions their new states reached, and the bytes the prefilter and the one-pass DFA read. `runtime/regex-linear-time` holds ten patterns exponential for a backtracking engine or for a DFA's states, `(a*)*b`, `(x+x+)+y` and `(?:a?){20}a{20}b` among them, to work at most 2.3 times as large over a text twice as long, and within the text's length times the program, on every hosted target and on the Cortex-M target. A program that compiles a pattern links the parser, the compiler and every engine, about 140 KB of Thumb text at `size/auto`, so the 32 KiB ARMv6-M profile records it as a size limit, as it does the `complex-*` fixtures, and the M7 corpus lane, `cortex-m0` at `armv7e-m` with 4 MiB, runs it. A walk over every match, `next_match` or `matches`, searches again after each match, and a pattern whose leftmost-first match is short but whose search reads far past it, `a+b|a` over a long run of `a`s, reads to the end for each match and takes time quadratic in the text, as RE2's and the crate's iterators do.
+
+**The alternatives:** timing the searches, which a loaded runner makes noisy and an emulator meaningless; and a work bound per walk, which leftmost-first's non-overlapping matches do not allow. Both were declined.
+
+**Pinned by** `runtime/regex-linear-time`.
+
+### D2681 — A walk passes over an empty match where the last one ended, and `for` walks through a pointer to the pattern
+
+**The tour said** at [1320] that `for` walks an `iter.iterable`, whose entries cannot fail; D2030 makes the end of a walk `at_end`.
+
+**Chosen:** `walk_start` and `next_match` walk a haystack's matches, `next_match` failing `mem.not_found` at the end and keeping the match's groups for `group` when asked. Each search begins where the last match ended, and an empty match exactly there is passed over by searching again a byte further on, the crate's rule: `a*` over "aab" gives "aa" and the empty match at the end, not one between. `matches(addr pattern, haystack)` conforms to `iter.iterable` with a `span` as its item; the walk holds the pointer, since every step writes the pattern's caches, so the pattern is not used otherwise while it runs. `replace_all` appends the haystack to a `text.builder` with each such match replaced by a template, `$1` and `${1}` for a group by number, `$name` and `${name}` by name, `$$` for a dollar, a group that took no part or that the pattern lacks as nothing, and a dollar before anything else as itself; it gives the number of matches, and on `mem.out_of_memory` the builder holds what it held, as D2616 has it.
+
+**The alternatives:** a walk that reports every empty match, which gives a match between "aa" and its end that the crate and every test suite reject; a walk value holding the pattern by value, which would copy its caches; and a replacement callback, which Landin's function values, capturing nothing, would need a context argument for. All were declined.
+
+**Pinned by** `runtime/regex-api`, `runtime/library-shared-regex` and every iterating case of `runtime/regex-rust-suite`.
+
+### D2682 — A case-insensitive class takes every scalar of its members' simple case-folding orbits
+
+**The tour said** nothing; D2619 makes `core/unicode`'s simple case folding CaseFolding's common and simple entries.
+
+**Chosen:** under `(?i)` a class, and a scalar, which becomes the class of one, gains every scalar whose `unicode.simple_fold` is that of a member: its folding, its own and its folding's simple upper, lower and title mappings, and the 31 scalars none of those reaches, the Kelvin sign among them, which `scripts/unicode_tables.py` writes into `core/regex/folds.ldn` from the same pinned database. Every scalar of an orbit of two or more is Cased, so a walk over a class passes a run of uncased scalars whole. Under `(?-u)` folding swaps the case of the ASCII letters alone.
+
+**The alternatives:** a table of every orbit, as the crate keeps, 2,800 entries where 31 suffice; and full case folding, by which `ß` would match `ss`, which the crate does not do and which a byte automaton over single scalars cannot. Both were declined.
+
+**Pinned by** `runtime/regex-rust-suite`'s `flags` and `unicode` cases and `runtime/regex-api`'s `(?i)straße`.
+
+### D2683 — `core/regex` keeps its failures' words, so that `core/failure` does not import it
+
+**The tour said** nothing; D388 gives every library failure atom its words in `failure.reason`, and D1950 keeps that one registry until a measurement shows its cost, naming the alternative of a module keeping its atoms' words itself.
+
+**Chosen:** `core/regex` declares `regex.words(problem)` for its four atoms and `mem.out_of_memory`, phrases in the form `failure.words` gives, and `failure.reason` does not hold its atoms; `check.py`'s rule for D388 excuses an atom whose module's own `public words` names it, and still reports one that neither holds. The measurement is the time a check takes: every hosted program reaches `core/failure` through `hosted/system`, and a program that imports only `core/failure` checks in 0.8 seconds, one that also imports `core/regex` in 3.0, `core/regex` reaching `core/unicode`'s tables for `defaults()`; the registry would have added those seconds to every hosted program's check. An image is unchanged either way, since a type costs no bytes and `words` is linked only where it is called (D1950).
+
+**The alternatives:** `core/failure` importing `core/regex`, which costs every hosted program those 2.2 seconds; the atoms in `core/text`, which `core/failure` already imports, under names that would say `text` for a regular expression's failure; and a submodule holding the atoms alone, which a program would import to name them. All were declined.
+
+**Pinned by** `scripts/tests/test_check_controls.py`'s `FailureWords`, which holds a module's own words to its atoms, and `runtime/regex-api`.
+
+### D2694 — `core/dense` is a vector and a matrix view over the caller's storage, generic over `math.floating`
+
+**The tour said** nothing about linear algebra; the roadmap asks for a vector or matrix as a view over caller storage, with rows, columns and strides in either order and transposed and sub-matrix views without copying, its elements real, with room left for complex ones.
+
+**Chosen:** `core/dense` declares `vector(item: type is math.floating)`, a slice, a `length` and a `step`, and `matrix(item)`, a slice, `rows`, `columns`, a `row_step` and a `column_step`: the element in row `i` and column `j` is `values[i * row_step + j * column_step]`. A matrix laid out by rows has `column_step` 1, one laid out by columns, the BLAS's order, `row_step` 1, and a leading dimension larger than the matrix is a larger step, so `rows_over`, `columns_over` and `matrix_over` make any of them and every routine reads them alike. `transposed` swaps the counts and the steps; `block`, `segment`, `row`, `column` and `diagonal` are further views of the same storage, made as `over` makes a view (D269). Every routine is generic over `math.floating` and written once, its arithmetic the element type's own [1290]. The routines are named for what they compute, `multiply_vector`, `add_outer`, `solve_triangular`, with the BLAS's name in each doc comment. Element type is the struct's one parameter, so a complex element type can later meet a concept beside `math.floating` without changing the views' shape.
+
+**The alternatives:** a matrix that owns its storage, which an allocator in every value would need and the library's conventions refuse (D269); one layout only, which makes every caller of the other layout copy; and the BLAS's names (`dgemm`, `dtrsm`), which a reader must already know.
+
+**Pinned by** `runtime/library-shared-dense` and the `dense-blas-*` runtime fixtures, which run every routine over views laid out by columns with a leading dimension and again laid out by rows.
+
+### D2695 — A view holds a writable slice, and a routine writes only the view it names `into`
+
+**The tour said** at [0790] that a reference's permission is part of its type; no overloading lets one routine take a readable and a writable view.
+
+**Chosen:** both views hold `[]mut item`. A routine's signature names the view it writes `into`, and reads the rest; storage that is only readable, a constant table, is copied into writable storage before it is viewed. Views a routine writes and reads must not overlap unless the routine says it works in place, as the BLAS asks.
+
+**The alternatives:** a readable and a writable type of each view, whose every constructor, transposition and block would come in two forms without overloading, and whose every result needs a conversion before it is the next routine's operand. Declined: it doubles the module's surface for the rarer case.
+
+**Pinned by** `core/dense/dense.ldn`'s opening comment and the `dense-blas-*` fixtures' checks that every operand but `into` is unchanged.
+
+### D2696 — A view's steps are unsigned, and the BLAS's negative increments have no counterpart
+
+**The tour said** nothing; the BLAS lets an increment be negative, which walks a vector from its last element.
+
+**Chosen:** `step`, `row_step` and `column_step` are `usize`, and a view's first element is its slice's first. A reversed vector is not a view. The translated BLAS tests run each case of a negative increment at its magnitude, which gives the routines the same logical operands; dblat1's expected values for negative increments, which differ, are left out and counted in its fixture.
+
+**The alternatives:** signed steps with a first index, so a view may run backwards, which puts a signed index computation and a checked conversion in every element access of every routine, the packed product's copying included, for a layout few programs use. Declined; a reversed view can be added as its own form if one is wanted.
+
+**Pinned by** the `dense-blas-*` fixtures' header comments, which name the departure.
+
+### D2697 — A transposed operand is a transposed view, and a triangle is the view's own
+
+**The tour said** nothing; the BLAS passes `TRANS`, `UPLO`, `DIAG` and `SIDE` as characters.
+
+**Chosen:** no routine takes a transposition flag: `multiply_vector(into, alpha, dense.transposed(a), x, beta)` is `gemv` with `'T'`. A triangle is `dense.upper` or `dense.lower` of the view as given, so a transposed view's upper triangle is its storage's lower one, and `trmv` with `UPLO 'U'` and `TRANS 'T'` is `multiply_triangular_vector` over the transposed view with `dense.lower`. The diagonal is `dense.stored` or `dense.unit`, and a square operand multiplies on the `dense.left` or `dense.right`: atom types of the module, `triangle`, `diagonal_kind` and `side`.
+
+**The alternatives:** the BLAS's flags beside the views, which give two spellings of one product and a triangle that refers to the storage rather than to the matrix the routine sees. Declined.
+
+**Pinned by** the `dense-blas-*` fixtures, which run each transposed case of the BLAS's tests as a transposed view.
+
+### D2698 — A mistaken call stops the program, reported at the call
+
+**The tour said** at [1560] that a check that stops the program gives its `caller` parameter to `compiler.unreachable`.
+
+**Chosen:** a view whose extent passes its storage, made by `strided_over`, `rows_over`, `columns_over`, `matrix_over`, `block` or `segment`, and operands whose shapes disagree stop the program, reported at the caller's call through a `caller` parameter. Nothing in `core/dense` fails: every condition a routine meets is the calling program's mistake, as an index out of range is. A singular triangular matrix is not checked; its solve gives infinities or NaNs, as the BLAS's does.
+
+**The alternatives:** a declared failure for a shape mismatch, which every call of every product would then handle though a correct program never meets it; and no check, as the BLAS's XERBLA reports and continues, which turns a mismatch into a read of the wrong elements. Declined.
+
+**Pinned by** `core/dense/dense.ldn`'s `require`; a trap given a `caller` parameter whose type `site` is declared nowhere is refused for the type alone, where checking once stopped on an internal defect, pinned by `negative/compiler-unreachable-undeclared-site`.
+
+### D2699 — `alpha` and `beta` are read as the BLAS reads them, and an empty product is zero
+
+**The tour said** nothing; the reference BLAS does not read the output when `beta` is 0 and does not read the operands when `alpha` is 0, and returns early when a dimension is 0.
+
+**Chosen:** when `beta` is 0 the output is set without being read, so a NaN there does not survive, and when `alpha` is 0 the operands are not read; `beta` 1 leaves the output's elements as they are. An empty product is the mathematics' zero: `multiply_vector` with an `x` of no elements gives `beta·y`, and `multiply` with no depth `beta·C`, where the reference BLAS leaves `y` and `C` as they were. The translated tests check such cases by the same reference computation and ratio as the others.
+
+**The alternatives:** the BLAS's early return, which makes `beta·y` depend on whether a dimension happens to be zero. Declined.
+
+**Pinned by** the empty-dimension cases of the `dense-blas-level-2` and `dense-blas-level-3` fixtures.
+
+### D2700 — The matrix product is packed into the caller's scratch and blocked for the cache
+
+**The tour said** nothing; the roadmap asks for the product blocked and packed for the cache from the start, the established strategy, and the library allocates only through a provider the caller passes.
+
+**Chosen:** `multiply(into, alpha, a, b, beta, scratch)` follows Goto and van de Geijn: a panel of `b`, up to 256 rows deep and 1024 columns wide, is copied into the scratch in slivers two columns wide, and for each block of `a`, up to 128 rows by the same depth, copied in slivers four rows high, a kernel multiplies one sliver of each with its eight sums in registers. `product_scratch(rows, columns, depth)` gives the length the largest blocks need, at most 294,912 elements; a shorter scratch cuts smaller blocks, and one that holds less than eight elements per row of the depth, an empty slice included, multiplies without packing, each element a dot product. The 4 by 2 kernel was measured against a 4 by 4 one, which spilled half its sums on x86-64's sixteen float registers: 4.9 GFLOP/s against 3.6 at n=1000. The other third-level routines are loops over the second level's and are not blocked.
+
+**The alternatives:** a packing buffer on the stack, which no fibre's or firmware's stack can hold at a useful size; thread storage, which every thread would pay for; an allocator in the signature, which makes every product fallible for a buffer the caller can as well give; and an unblocked product, which the roadmap rules out.
+
+**Pinned by** the `dense-blas-level-3` fixture, which runs every product with the full scratch and with a short one, and a 70 by 70 product across several blocks on hosted targets.
+
+### D2701 — The norm and the rotations are scaled as Blue and Anderson describe, and the modified rotation keeps its rescaled entries
+
+**The tour said** nothing; the reference BLAS's `nrm2` and `rotg` follow Anderson's "Algorithm 978: Safe scaling in the level 1 BLAS" (2017), and its `rotmg` follows Lawson, Hanson, Kincaid and Krogh (1979).
+
+**Chosen:** `norm_two` sums squares in three accumulators by Blue's thresholds, in Anderson's form and constants, so it neither overflows nor underflows unless the norm does, in one pass; `matrix_norm_frobenius` combines its rows' norms by a running scale. `rotation` scales its operands into range before the square root, as Anderson's `rotg` does, and returns `r` and `z` beside `c` and `s`. `modified_rotation` returns its matrix with every entry filled in and the BLAS's flag as a `rotation_form` atom; it rescales by 4096 while a scale lies outside [2^-24, 2^24], the bound exact where the reference writes 5.9604645D-8, and when the rescaling runs more than once it keeps the entries it has already scaled, where the reference sets `H21` and `H12` to -1 and 1 again on every pass.
+
+**The alternatives:** the reference's repeated reset, which discards the scaling of the passes before; and an unscaled norm, which overflows at a magnitude of 10^154 in `f64`.
+
+**Pinned by** `runtime/dense-blas-level-1`, whose DB1NRM2 cases hold special and extreme values, and its DROTG and DROTMG tables.
+
+### D2702 — `core/dense` is written from the mathematics, and its tests are translated from the reference BLAS's
+
+**The tour said** nothing; `LICENSE` promises that linking `core/*` places no condition on a program, and the reference BLAS is under LAPACK's modified BSD licence, whose second clause asks a binary's documentation to reproduce its notice.
+
+**Chosen:** nothing in `core/dense` is ported: each routine is written from the mathematics and the published methods its comment names, and `LICENSE` gains nothing for it. The test programs, BLAS/TESTING's `dblat1.f`, `dblat2.f` and `dblat3.f` of Reference-LAPACK 3.12.1, are translated into the `dense-blas-*` fixtures, with their generator, parameters, reference computation, test ratio and threshold, and each fixture's directory holds LAPACK's licence in its NOTICE, which `LICENSE` names among the third-party material. A fixture is test material and is linked into no program.
+
+**The alternatives:** porting the reference BLAS's routines, which would put LAPACK's notice on every program that links `core/dense`; and tests of the library's own design, which would not be the BLAS's cases the roadmap asks for.
+
+**Pinned by** `core/dense/dense.ldn`'s opening comment and the fixtures' NOTICE files.
+
+### D2703 — The `f64` product at n=1000 takes 8.2 times OpenBLAS's time on one core
+
+**The tour said** nothing; the roadmap asks for the `f64` matrix product at n=1000 timed against OpenBLAS on one core.
+
+**Chosen:** `scripts/dense_timing.py` builds `compiler/tests/dense/timing.ldn` at `--optimize speed` and `timing.c` against the pinned nixpkgs's OpenBLAS, runs them interleaved on one pinned core with OpenBLAS on one thread, checks that their products' checksums agree and reports the median of the product's own time. On an AMD EPYC 7302 core `core/dense` took 0.41 s, 4.9 GFLOP/s, and OpenBLAS 0.3.33 0.049 s, 41 GFLOP/s. The difference is mostly vector instructions, which refine does not emit, and partly the scalar kernel's code, which the register records.
+
+**The alternatives:** a kernel per target in assembly, as OpenBLAS's are, which would leave the language's own code generation unmeasured. Declined for now.
+
+**Pinned by** `compiler/tests/dense/README.md`, which records the measurement and how to repeat it.
+
+### D2754 — A float is written as the shortest text that reads back, laid out as a Landin float literal
+
+**The tour said** at [0210] that a float literal always has a point, and nothing about writing a float as text; `core/text` wrote only integers.
+
+**Chosen:** `text.append_f64`, `text.append_f32` and a float's `{}` write the shortest decimal that reads back as the same float, and of the decimals of that length the one nearest it, ties to even; an `f32` is written for its own interval, `0.1` for the `f32` nearest a tenth. The text is spelled as Landin spells a float literal, digits on both sides of a point: `1.0`, `0.001`, `123.456`, and below 0.0001 or from 10^16 up an exponent, `1.0e16`, `2.5e-7`, where Rust's `Debug` changes form. A negative value, negative zero included, begins with `-`; the infinities are `inf` and `-inf`, and every NaN is `NaN`, its sign and payload unwritten. So the text a program prints for a float is, apart from the three non-finite values, a literal that denotes it.
+
+**The alternatives:** Rust's `Display`, which writes `1` for one and every digit of 10^300, three hundred of them; Python's `repr`, `1e+16`, which is no Landin literal; C's `%g`, six significant digits that do not read back; and a fixed number of digits, seventeen or nine, which reads back but shows a reader digits that say nothing.
+
+**Pinned by** `runtime/float-text-shortest`, whose table and ten thousand drawn `f64`s agree with Python's `repr`; `runtime/float-text-single`, whose `f32`s agree with digits found by exact rounding; and compiler/tests/float-text/README.md's exhaustive run of every `f32`.
+
+### D2755 — The shortest digits come from Ryu's method, with its powers of five computed from 28 bases
+
+**The tour said** nothing; the item asks for shortest writing and its size measured on Cortex-M0's soft float.
+
+**Chosen:** the digits are found by Ryu's method (Ulf Adams, PLDI 2018), written here from the paper: the float's rounding interval is scaled by a 125-bit power of five into 64-bit integers and digits are taken off its ends while they differ. One routine serves both widths, an `f32` entering with its shorter significand. The 668 powers an `f64` meets are not stored: 13 bases of 5^(26n) and 15 of their inverses, 448 bytes, are scaled by one 64-bit power of five and corrected by a two-bit entry, 172 bytes, each power exactly the one a full table would hold, which `scripts/float_text.py tables` generates and `--check` holds current. No float arithmetic is used, so every target writes the same text, and nothing is ported, so no notice travels with a program.
+
+**The alternatives:** Ryu's full tables, 10.7 KB of flash every program that writes an `f64` would carry; Steele and White's or Dragon4's big-integer search, small but a hundred times slower; Grisu, which needs a slower fallback for a few values in a thousand; and porting Ryu's C, whose Apache-2.0 or Boost notice `LICENSE`'s promise keeps out of `core/*`.
+
+**Pinned by** `core/text/powers.ldn`, which the generator checks against Python's exact powers; the shortest fixtures above; and the exhaustive run.
+
+### D2756 — Rounded float text is the exact value rounded once, ties to even, byte for byte C's `printf`
+
+**The tour said** nothing; the item asks for fixed-precision writing byte-equal to C's `printf` over an oracle set.
+
+**Chosen:** `text.append_f64_fixed` and a float's `{:.N}` write `places` digits after the point, and `text.append_f64_exponent` and `{:.Ne}` one digit before it, `places` after and the power of ten, `6.022e23`, each from the float's exact value rounded once to nearest with ties to even: `0.125` to two places is `0.12`, `2.5` to none is `2`, and `-0.001` to two is `-0.00`, as glibc's `printf` writes them. The exact value, a whole significand times a power of two, is multiplied out in `core/big/limbs` in the caller's stack: 82 limbs and 821 bytes for an `f64`, 13 and 131 for an `f32`. The exponent is written without a sign for a positive one or leading zeros, `1e-3`, as Rust writes it, where C writes `1e-03`. The non-finite values are written as the shortest form writes them, so a NaN is `NaN` where C writes `nan`.
+
+**The alternatives:** rounding through float arithmetic, scaling by a power of ten, which rounds twice and differs from `printf` on ties and large exponents; Ryu's `printf` tables, about a hundred kilobytes; and C's spellings of the exponent and of NaN, which would make one placeholder's text disagree with the next's.
+
+**Pinned by** `runtime/float-text-rounded`, whose 130 edge values at two and seventeen places and sixty drawn values and precisions agree with C's `snprintf`, called from the generator through `ctypes`, and `runtime/float-text-single`.
+
+### D2757 — A float is parsed rounded once, by Clinger's fast path or exactly in big/limbs
+
+**The tour said** nothing; D355 makes `core/text` the home of parsing, and its integer parses refuse a `+`.
+
+**Chosen:** `text.parse_f64` and `text.parse_f32` read an optional `-`, digits with an optional point and at least one digit beside it, `2.` and `.25` included, and an optional exponent, `e` or `E` with an optional sign; or `inf`, `infinity` or `nan` in any case. A `+` before the number, whitespace, `_` and hexadecimal are `invalid_number`, as the integer parses refuse them; a finite decimal whose nearest float is beyond the greatest is `number_overflow`, and one below half the least subnormal is zero of its sign. Any number of digits is read and the result rounded once from the decimal, an `f32` never through an `f64`. Fifteen digits or fewer, seven for an `f32`, times a power of ten an `f64` holds exactly, 10^22 at most, is one correctly rounded multiplication or division; every other decimal is computed exactly, the first 780 significant digits, 120 for an `f32`, over a power of five in limbs on the stack, the quotient's top bits rounded as D2598 rounds with the dropped digits as sticky bits. Halfway points between `f64`s have at most 767 significant digits, so no rounding depends on the digits dropped.
+
+**The alternatives:** Eisel and Lemire's fast path, which needs a 10 KB table of 128-bit powers; `strtod`'s acceptance of whitespace, hexadecimal and a `+`, which no writer here produces; and an infinity for overflow, which would make the parse of `1e400` succeed where `parse_u32` of a long number fails.
+
+**Pinned by** `runtime/float-text-parse`, whose table of halfway decimals and their neighbours, long digit strings, refusals and limits agree with Python's exact fractions, with five thousand drawn decimals and the shortest text of five thousand drawn `f64`s read back; `runtime/float-text-single`'s readings; and the exhaustive run.
+
+### D2758 — A placeholder takes Rust's format specification, without arguments named or counted
+
+**The tour said** nothing; D527 kept `{}` alone, and the maintainer left the template's syntax to this item.
+
+**Chosen:** a placeholder is `{}` or `{:spec}`, the spec Rust's: `[[fill]align][+][#][0][width][.precision][kind]`. The fill is any scalar but a brace, the alignment `<`, `>` or `^`, `+` a sign before a number that is not negative, `#` a `0x`, `0o` or `0b` before one in that radix, `0` zeros between a number's sign and prefix and its digits, which an infinity or a NaN, having none, takes as spaces before it; the width and precision are decimal, a million at most, and the kind one of `x`, `X`, `o`, `b`, `e` and `E`. The width counts scalars, so `{:8}` pads `naïve` with three spaces. Without an alignment a number goes to the right and anything else to the left, as in Rust. The library's integers read the radix, `+` and `#`, writing a negative one in a radix as its two's complement at its own width, as Rust does; its floats read `+`, the precision and `e` or `E`, and `utf8` the precision as the most scalars written. A part a value does not read changes nothing: `{:.2}` of an integer is the integer. A spec that does not parse is `invalid_format`, found when the template is checked, before anything is written.
+
+**The alternatives:** positional and named arguments, `{0}` and `{name}`, which a slice of values does not need; a width or precision taken from an argument, `{:1$}` and `{:.*}`, which would read a number out of an `any formattable`; the `?` kind, for which there is no debugging concept; Rust's `-`, which has no meaning there either; and C's `%5.2f`, whose letters say the type a template here cannot check.
+
+**Pinned by** `runtime/core-text-format-spec`, whose templates cover every part and whose malformed specs write nothing, and `runtime/float-text-rounded`'s templates built at run time.
+
+### D2759 — A conformance reads its placeholder from the builder, and the template pads what it wrote
+
+**The tour said** at [1230] that a concept has no default bodies, so a new entry in `text.formattable` would be one every conformance in every program must supply.
+
+**Chosen:** `text.formattable` is unchanged. While `format` or `format_onto` fills a placeholder, the builder carries what it asked for, and `text.placeholder(into)` gives a conformance that `text.format_spec`; at any other time, and inside a nested format's own placeholders, it is `text.plain`, and the outer one is put back when the nested format ends. The template applies the width, fill and alignment to the bytes the conformance wrote, in the store for `format_onto` wherever the padded value fits it, so a conformance of the program's own is padded without reading anything, and one that wants a radix or a precision reads it as the library's do. A library number's conformance marks its text as a number, which is what sends it to the right.
+
+**The alternatives:** a second entry taking the spec, which every existing conformance would have to add; a concept of its own for values that read a spec, which an `any formattable` cannot be asked for; and refusing a part a value does not read, which needs the value's type when the template is checked, before any value is looked at.
+
+**Pinned by** `runtime/core-text-format-spec`'s program types, one reading `x` through `text.placeholder` and one formatting a pair inside its own conformance, padded by the outer placeholder.

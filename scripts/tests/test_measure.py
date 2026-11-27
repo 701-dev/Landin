@@ -255,6 +255,32 @@ class BaseCheckout(unittest.TestCase):
                               {"fixture": "runtime/none-such", "name": "w"},
                               Path(directory), None, root=Path(directory))
 
+    def test_a_workload_the_base_lacks_is_named_new_and_not_timed(self):
+        #  The commit that adds a workload has no base image to pair it
+        #  with: the run names it new and passes, building nothing for it.
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory) / "base"
+            (base / "compiler/tests/fixtures").mkdir(parents=True)
+            args = mock.Mock(refine="refine", base_refine="base-refine",
+                             base_checkout=base, target="linux-x86-64",
+                             output=directory, skip=[], samples=1, jobs=1)
+            given = {"linux-x86-64": {"x86-64-v1": []}}
+            rows = {("linux-x86-64", "x86-64-v1"): {"classes": ["wall"]}}
+            with mock.patch.object(measure, "targets", lambda refine: given), \
+                    mock.patch.object(measure, "runner_rows", lambda given: rows), \
+                    mock.patch.object(measure, "host_lacks", lambda features: []), \
+                    mock.patch.object(measure, "runner_class",
+                                      lambda: {"label": "nowhere"}), \
+                    mock.patch.object(measure, "build", mock.Mock(
+                        side_effect=AssertionError("built"))), \
+                    mock.patch.object(measure, "workloads", lambda: {"hosted": [
+                        {"name": "w", "fixture": "runtime/new-one"}]}):
+                self.assertEqual(measure.measure_time(args), 0)
+            written = json.loads((Path(directory) / "time.json").read_text())
+            figures = written["targets"]["linux-x86-64"]
+            self.assertTrue(figures)
+            self.assertTrue(all(f == {"new": True} for f in figures.values()))
+
     def test_a_copied_base_refine_is_told_its_tree(self):
         #  A refine copied out of its build directory lies in no checkout:
         #  the run refuses, naming the option that gives the base's tree.

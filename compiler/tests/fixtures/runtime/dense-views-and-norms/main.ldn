@@ -1,0 +1,142 @@
+--  core/dense's views, element-wise operations, reductions and matrix
+--  norms on small matrices of integers, whose every result is exact, so
+--  each is compared for equality.  Run at f64 and at f32, the program
+--  exits 42 when every check holds, and otherwise with the number of the
+--  first that did not, plus 50 at f32.
+import core/dense
+import core/math
+
+mut storage_a: [24]f64 = zeroed
+mut storage_b: [24]f64 = zeroed
+mut storage_c: [24]f64 = zeroed
+mut narrow_a: [24]f32 = zeroed
+mut narrow_b: [24]f32 = zeroed
+mut narrow_c: [24]f32 = zeroed
+
+--  The 3 by 4 matrix whose element (i, j) is 4·i + j - 5, from -5 to 6.
+fill_counting: (item: type is math.floating, m: dense.matrix(item)) -> none =
+    for i in 0..<m.rows do
+        for j in 0..<m.columns do
+            dense.set_element(m, i, j, item(4 * i + j) - item(5))
+        end for
+    end for
+end fill_counting
+
+check: (item: type is math.floating, sa: []mut item, sb: []mut item,
+        sc: []mut item) -> (failed: i32) =
+    failed = 0
+    zero: item = item(0)
+    --  A, 3 by 4, laid out by rows with a gap of 2 after each row.
+    a := dense.matrix_over(sa, 3, 4, 6, 1)
+    fill_counting(a)
+    failed = 1
+    return when sa[6] <> item(-1) or sa[5] <> zero or sa[13] <> item(4)
+
+    --  A block, a row, a column and the diagonal see the same storage.
+    b := dense.block(a, 1, 1, 2, 3)
+    failed = 2
+    return when b.rows <> 2 or dense.element(b, 0, 0) <> item(0)
+      or dense.element(b, 1, 2) <> item(6)
+    failed = 3
+    r := dense.row(a, 2)
+    k := dense.column(a, 3)
+    d := dense.diagonal(a)
+    return when dense.get(r, 0) <> item(3) or dense.get(k, 1) <> item(2)
+      or d.length <> 3 or dense.get(d, 2) <> item(5)
+    failed = 4
+    s := dense.segment(r, 1, 2)
+    return when s.length <> 2 or dense.get(s, 0) <> item(4) or dense.get(s, 1) <> item(5)
+    dense.set(s, 1, item(9))
+    failed = 5
+    return when dense.element(a, 2, 2) <> item(9)
+    dense.set(s, 1, item(5))
+
+    --  A row or column vector as a matrix.
+    failed = 6
+    as_row := dense.as_row(k)
+    as_column := dense.as_column(r)
+    return when as_row.rows <> 1 or as_row.columns <> 3
+      or dense.element(as_row, 0, 2) <> item(6)
+      or as_column.columns <> 1 or dense.element(as_column, 3, 0) <> item(6)
+
+    --  The transpose's norms are the matrix's, exchanged.
+    failed = 7
+    return when dense.matrix_norm_one(a) <> item(10)
+      or dense.matrix_norm_infinity(a) <> item(18)
+      or dense.matrix_norm_one(dense.transposed(a)) <> item(18)
+      or dense.matrix_norm_max(a) <> item(6)
+    --  Squares sum to 25+16+9+4 + 1+0+1+4 + 9+16+25+36 = 146.
+    failed = 8
+    frobenius := dense.matrix_norm_frobenius(a)
+    return when math.abs(frobenius * frobenius - item(146)) > item(146) * item(0.0001)
+
+    --  Vectors: element-wise, into a third, into one of their own.
+    x := dense.strided_over(sb, 4, 3)
+    y := dense.vector_over(sc[0..<4])
+    for i in 0..<x.length do
+        dense.set(x, i, item(i + 1))
+        dense.set(y, i, item(2 * i) - item(3))
+    end for
+    failed = 9
+    return when sb[3] <> item(2) or sb[9] <> item(4)
+      or dense.sum(x) <> item(10) or dense.sum(y) <> item(0)
+      or dense.norm_infinity(y) <> item(3)
+    z := dense.vector_over(sc[4..<8])
+    dense.add(z, x, y)
+    failed = 10
+    return when dense.get(z, 0) <> item(-2) or dense.get(z, 3) <> item(7)
+    dense.subtract(z, z, y)
+    failed = 11
+    return when dense.get(z, 0) <> item(1) or dense.get(z, 3) <> item(4)
+    dense.multiply_elements(z, x, y)
+    failed = 12
+    return when dense.get(z, 0) <> item(-3) or dense.get(z, 2) <> item(3)
+    dense.divide_elements(z, z, x)
+    failed = 13
+    return when dense.get(z, 0) <> item(-3) or dense.get(z, 3) <> item(3)
+    dense.fill(z, item(2))
+    failed = 14
+    return when dense.sum(z) <> item(8)
+    nan := zero / zero
+    dense.set(z, 1, nan)
+    failed = 15
+    return when not math.is_nan(dense.norm_infinity(z))
+
+    --  Matrices: identity, copy through a transpose, a scaled sum.
+    c := dense.columns_over(sc[8..<20], 4, 3)
+    dense.set_identity(c)
+    failed = 16
+    return when dense.element(c, 0, 0) <> item(1) or dense.element(c, 3, 2) <> zero
+      or dense.element(c, 2, 2) <> item(1) or dense.element(c, 1, 0) <> zero
+    dense.copy_matrix(c, dense.transposed(a))
+    failed = 17
+    return when dense.element(c, 3, 2) <> item(6) or dense.element(c, 0, 1) <> item(-1)
+    dense.add_matrices(c, item(2), c, item(-1), dense.transposed(a))
+    failed = 18
+    return when dense.element(c, 3, 2) <> item(6) or dense.element(c, 1, 0) <> item(-4)
+    --  With beta 0 the second operand is not read: a NaN there stays out.
+    dense.set_element(a, 0, 0, nan)
+    dense.add_matrices(c, item(1), c, zero, dense.transposed(a))
+    failed = 19
+    return when math.is_nan(dense.element(c, 0, 0))
+    dense.scale_matrix(c, item(-1))
+    failed = 20
+    return when dense.element(c, 3, 2) <> item(-6)
+    dense.fill_matrix(c, item(3))
+    failed = 21
+    return when dense.matrix_norm_max(c) <> item(3) or dense.matrix_norm_one(c) <> item(12)
+    failed = 0
+end check
+
+public main: () -> (code: i32) =
+    code = 42
+    wide := check(storage_a[0..<24], storage_b[0..<24], storage_c[0..<24])
+    if wide <> 0 then
+        code = wide
+        return
+    end if
+    narrow := check(narrow_a[0..<24], narrow_b[0..<24], narrow_c[0..<24])
+    if narrow <> 0 then
+        code = narrow + 50
+    end if
+end main
