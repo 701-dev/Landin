@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: R22.43 the memory network's options, hosts-text names, connect_by_name over each address in turn, Unix-domain stream and datagram sockets, a group's datagram and a silent name server, and core/net's name-server client over turns against a server fibre that answers, says a name does not exist and cuts an answer short, which is asked again over TCP
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0680, 0940, 1030, 1660
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

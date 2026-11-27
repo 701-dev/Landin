@@ -98,7 +98,7 @@ fixed if compiler.os == linux and not compiler.c_runtime then
                 continue
             end if
             count = net.hosts_lookup(chunk[0..<ends], name, port, into, count)
-            held = total - ends - 1
+            held = total - (ends + 1)
             for index in usize(0)..<held do
                 chunk[index] = chunk[ends + 1 + index]
             end for

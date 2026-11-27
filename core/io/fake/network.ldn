@@ -82,6 +82,7 @@ public network_socket: type = struct
     linger_limit: u64
     group: net.address
     joined: bool
+    interface: net.address
 end network_socket
 
 --- A free socket record whose received bytes wait in `buffer`.
@@ -95,7 +96,8 @@ public socket_over: (buffer: []mut u8)
             send_limit: 0, no_delay: false, named: false, path: zeroed,
             path_length: 0, flags: 0, numbers: zeroed, spans: zeroed,
             lingering: false, linger_limit: 0,
-            group: net.unspecified(net.ipv4, 0), joined: false)
+            group: net.unspecified(net.ipv4, 0), joined: false,
+            interface: net.unspecified(net.ipv4, 0))
 end socket_over
 
 network_value: type = struct
@@ -139,7 +141,18 @@ end network_value
 --- peer's reset, partial reads, nor a port held after its socket closed.  It
 --- reads no zone: `::1%lo` is its loopback address, and `fe80::1%lo`, as every
 --- other address, none of its interfaces.  A connection is made at once or
---- refused, so `connect_within`'s limit is never reached.
+--- refused, so `connect_within`'s limit is never reached.  A datagram from a
+--- socket bound to the unspecified address arrives from the loopback
+--- address of its family, as a system fills in the address it leaves by.
+---
+--- The network keeps every option a socket is given and reads it back as
+--- it was set, a span in whole seconds, without any changing what it does
+--- (D3078).  It knows the names `with_names` gave it, and `resolve` never
+--- waits.  A Unix-domain socket keeps its path in its record, and a path is
+--- in use while a socket bound to it is open, since the network has no
+--- files.  A datagram socket joins one group at a time, through the
+--- unspecified or a loopback address, and a datagram sent to a group goes
+--- to every socket that joined it at the port.
 public network: type = network_value
 
 --  The scheduler of a network that does not take turns: it runs nothing
@@ -370,6 +383,7 @@ opened: (self: network, index: usize, role: socket_role, local: net.address)
     slot.val.linger_limit = 0
     slot.val.group = net.unspecified(local.family, 0)
     slot.val.joined = false
+    slot.val.interface = net.unspecified(local.family, 0)
 end opened
 
 --  The open socket a file is, of `role` when that is not free.
@@ -637,11 +651,17 @@ network_send_to: (self: network, socket: io.file, bytes: []u8,
         return
     end if
     fail net.unreachable when not is_local(to)
+    --  A socket bound to the unspecified address sends from the loopback
+    --  one, as a system fills in the address its datagram leaves by.
+    mut source: net.address = slot.val.local
+    if net.is_unspecified(source) then
+        source = net.loopback(source.family, source.port)
+    end if
     for index in usize(0)..<lenof self.sockets do
         receiver: ptr mut network_socket = addr self.sockets[index]
         if receiver.val.role == datagram_slot and not receiver.val.named
           and takes(receiver.val.local, to) then
-            try queued(self, receiver, slot.val.local, bytes)
+            try queued(self, receiver, source, bytes)
             return
         end if
     end for
@@ -963,6 +983,28 @@ network_leave_group: (self: network, socket: io.file, group: net.address,
     slot.val.joined = false
 end network_leave_group
 
+--  The fake has the loopback interface alone, so an interface is the
+--  unspecified address or a loopback one, and reads back as it was set.
+network_set_multicast_interface: (self: network, socket: io.file,
+                                  through: net.address)
+                                 -> none ! net.address_unavailable
+                                         | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try slot_of(self, socket, datagram_slot)
+    fail io.io_failed when slot.val.named
+    fail net.address_unavailable when not (net.is_unspecified(through)
+                                           or is_local(through))
+    slot.val.interface = through
+end network_set_multicast_interface
+
+network_multicast_interface: (self: network, socket: io.file)
+                             -> (through: net.address) ! io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try slot_of(self, socket, datagram_slot)
+    fail io.io_failed when slot.val.named
+    through = slot.val.interface
+end network_multicast_interface
+
 --  Names come from the hosts text the test put in the space, and nothing
 --  waits.
 network_resolve: (self: network, name: []u8, port: u16,
@@ -1176,6 +1218,8 @@ network is net.network
      set_span: network_set_span, span: network_span,
      set_linger: network_set_linger, linger: network_linger,
      join_group: network_join_group, leave_group: network_leave_group,
+     set_multicast_interface: network_set_multicast_interface,
+     multicast_interface: network_multicast_interface,
      resolve: network_resolve,
      connect_local: network_connect_local, listen_local: network_listen_local,
      open_local_datagram: network_open_local_datagram,

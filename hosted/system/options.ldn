@@ -20,18 +20,32 @@ fixed if compiler.os <> windows then
         end match
     end flag_named
 
-    --- Turn the flag `which` of the socket `socket` on or off.
+    --  `einval` for `ipv6_only` on a socket that is not IPv6's, which Linux
+    --  would call an option it does not have.
+    flag_held: (socket: posix.descriptor, which: net.flag_option)
+               -> (option: posix.integer_option) ! posix.errno =
+        option = flag_named(which)
+        return when which <> net.ipv6_only
+        family: posix.socket_family =
+            try posix.family_of(try posix.socket_name(socket))
+        fail posix.einval when family <> posix.internet6
+    end flag_held
+
+    --- Turn the flag `which` of the socket `socket` on or off: `einval` for
+    --- `ipv6_only` on a socket that is not IPv6's.
     public set_socket_flag:
         (socket: io.file, which: net.flag_option, on: bool)
         -> none ! posix.errno =
         value: i32 = if on then 1 else 0 end if
-        try posix.set_option(descriptor_of(socket), flag_named(which), value)
+        made: posix.descriptor = descriptor_of(socket)
+        try posix.set_option(made, try flag_held(made, which), value)
     end set_socket_flag
 
     --- Whether the flag `which` of the socket `socket` is on.
     public socket_flag:
         (socket: io.file, which: net.flag_option) -> (on: bool) ! posix.errno =
-        value: i32 = try posix.option(descriptor_of(socket), flag_named(which))
+        made: posix.descriptor = descriptor_of(socket)
+        value: i32 = try posix.option(made, try flag_held(made, which))
         on = value <> 0
     end socket_flag
 
@@ -123,6 +137,35 @@ fixed if compiler.os <> windows then
         on = lingers
         limit = time.seconds(u64(seconds))
     end socket_linger
+
+    --- Send what the socket `socket` sends to groups out through the
+    --- interface `through` names: its address for IPv4, its zone for IPv6,
+    --- by the socket's family.
+    public set_socket_multicast_interface:
+        (socket: io.file, through: net.address) -> none ! posix.errno =
+        made: posix.descriptor = descriptor_of(socket)
+        family: posix.socket_family =
+            try posix.family_of(try posix.socket_name(made))
+        mut by: posix.internet_endpoint =
+            (family: family, octets: through.octets, port: 0, scope: 0)
+        if family == posix.internet6 then
+            by.octets = zeroed
+            if through.family == net.ipv6 then by.scope = try scope_of(through) end if
+        else
+            fail posix.einval when through.family <> net.ipv4
+              and not net.is_unspecified(through)
+        end if
+        try posix.set_multicast_interface(made, by)
+    end set_socket_multicast_interface
+
+    --- The interface the socket `socket` sends to groups through.
+    public socket_multicast_interface:
+        (socket: io.file) -> (through: net.address) ! posix.errno =
+        made: posix.descriptor = descriptor_of(socket)
+        family: posix.socket_family =
+            try posix.family_of(try posix.socket_name(made))
+        through = endpoint_address(try posix.multicast_interface(made, family))
+    end socket_multicast_interface
 
     --- Join, or with `joining` false leave, the multicast group `group` on
     --- the socket `socket`, through the interface `through` names: its

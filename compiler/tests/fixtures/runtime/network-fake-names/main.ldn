@@ -1,0 +1,342 @@
+--  The memory network's options, names, Unix-domain sockets and groups,
+--  and core/net's name-server client asked over it.  Over a network that
+--  never waits: every option set and read back; `resolve` answering from
+--  the hosts text `with_names` gives, `unknown_name` for a name it lacks;
+--  `connect_by_name` refused at ::1 and connected at 127.0.0.1, in the
+--  hosts text's order; a Unix-domain stream and a datagram exchange with
+--  the sender's path; a datagram to a group taken by the socket that
+--  joined it; and a name server that never answers, `timed_out` at once.
+--  Over a network whose calls take turns: a name server in one fibre that
+--  answers one name, says another does not exist and cuts a third's
+--  answer short, which the client in the other fibre asks again over TCP.
+import core/cmp
+import core/failure
+import core/fibre
+import core/fibre/stacks
+import core/io
+import core/io/fake
+import core/net
+import core/text
+import core/time
+
+--- Something came back other than it should.
+wrong: atom
+
+hosts: []u8 = "# names of this test\n::1 two.test\n127.0.0.1   two.test Alias.Test  # both\n"
+
+--- Every option over the network.
+options: (host: fake.network) -> none ! ... =
+    socket: io.file = try net.open_datagram(host, net.loopback(net.ipv6, 0))
+    defer net.close(host, socket) else none
+    fail wrong when not try net.flag(host, socket, net.ipv6_only)
+    try net.set_flag(host, socket, net.broadcast, true)
+    fail wrong when not try net.flag(host, socket, net.broadcast)
+    try net.set_number(host, socket, net.multicast_hops, 4)
+    fail wrong when try net.number(host, socket, net.multicast_hops) <> 4
+    try net.set_span(host, socket, net.keep_alive_idle, time.milliseconds(1500))
+    fail wrong when u64(try net.span(host, socket, net.keep_alive_idle))
+      <> u64(time.seconds(2))
+    try net.set_linger(host, socket, true, time.seconds(3))
+    (on: on, limit: limit) := try net.linger(host, socket)
+    fail wrong when not on or u64(limit) <> u64(time.seconds(3))
+    four: io.file = try net.open_datagram(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, four) else none
+    net.set_flag(host, four, net.ipv6_only, true) else (problem)
+        fail wrong when problem <> io.io_failed
+        return
+    end
+    fail wrong
+end options
+
+--- Names, and a connection by name over each address in turn.
+names: (plain: fake.network) -> none ! ... =
+    host := fake.with_names(plain, hosts)
+    mut found: [4]net.address = [4 of net.unspecified(net.ipv4, 0)]
+    count: usize = try net.resolve(host, "ALIAS.test.", 5, found[0..<4])
+    fail wrong when count <> 1
+      or not net.same_address(found[0], net.loopback(net.ipv4, 5))
+    fail wrong when not lacks(host, "three.test")
+    listener: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, listener) else none
+    at: net.address = try net.local_address(host, listener)
+    connection: io.file = try net.connect_by_name(host, "two.test", at.port,
+                                                  time.seconds(1))
+    try net.close(host, connection)
+end names
+
+--- Whether `host` knows no address for `name`.
+lacks: (host: fake.network, name: []u8) -> (yes: bool) =
+    mut found: [4]net.address = [4 of net.unspecified(net.ipv4, 0)]
+    yes = false
+    count: usize = net.resolve(host, name, 5, found[0..<4]) else (problem)
+        yes = problem == net.unknown_name
+        return
+    end
+    _ = count
+end lacks
+
+--- A Unix-domain stream and a datagram exchange.
+local: (host: fake.network) -> none ! ... =
+    listener: io.file = try net.listen_local(host, text.os_string_over("a.sock"))
+    defer net.close(host, listener) else none
+    client: io.file = try net.connect_local(host, text.os_string_over("a.sock"))
+    defer net.close(host, client) else none
+    served: io.file = try net.accept(host, listener)
+    defer net.close(host, served) else none
+    try net.send(host, client, "ping")
+    mut buffer: [8]u8 = zeroed
+    got: usize = try net.receive(host, served, buffer[0..<8])
+    fail wrong when cmp.compare(buffer[0..<got], "ping") <> cmp.equal
+    one: io.file = try net.open_local_datagram(host, text.os_string_over("b.sock"))
+    defer net.close(host, one) else none
+    two: io.file = try net.open_local_datagram(host, text.os_string_over("c.sock"))
+    defer net.close(host, two) else none
+    try net.send_to_local(host, one, "word", text.os_string_over("c.sock"))
+    mut room: [16]u8 = zeroed
+    (count: count, sender: sender) :=
+        try net.receive_from_local(host, two, buffer[0..<8], room[0..<16])
+    fail wrong when cmp.compare(buffer[0..<count], "word") <> cmp.equal
+      or cmp.compare(text.os_string_bytes(sender), "b.sock") <> cmp.equal
+end local
+
+--- A datagram to a group.
+group: (host: fake.network) -> none ! ... =
+    receiver: io.file = try net.open_datagram(host, net.unspecified(net.ipv4, 0))
+    defer net.close(host, receiver) else none
+    bound: net.address = try net.local_address(host, receiver)
+    joined: net.address = net.ipv4_address(239, 1, 2, 3, bound.port)
+    try net.join_group(host, receiver, joined, net.loopback(net.ipv4, 0))
+    sender: io.file = try net.open_datagram(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, sender) else none
+    try net.set_multicast_interface(host, sender, net.loopback(net.ipv4, 0))
+    try net.send_to(host, sender, "all", joined)
+    mut buffer: [8]u8 = zeroed
+    got: net.datagram = try net.receive_from(host, receiver, buffer[0..<8])
+    fail wrong when cmp.compare(buffer[0..<got.count], "all") <> cmp.equal
+    try net.leave_group(host, receiver, joined, net.loopback(net.ipv4, 0))
+end group
+
+--- A name server that never answers.
+silent: (host: fake.network) -> none ! ... =
+    quiet: io.file = try net.open_datagram(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, quiet) else none
+    mut service: net.name_service = net.name_service_of("")
+    service.servers[0] = try net.local_address(host, quiet)
+    mut found: [4]net.address = [4 of net.unspecified(net.ipv4, 0)]
+    count: usize = net.ask(host, service, "quiet.test", 53, found[0..<4], 1)
+        else (problem)
+        fail wrong when problem <> net.timed_out
+        return
+    end
+    _ = count
+    fail wrong
+end silent
+
+--  The name server's half of the turns: what it shares with the client.
+party: type = struct
+    network: fake.network
+    datagrams: io.file
+    listener: io.file
+    server: net.address
+end party
+
+--  What the client found, for main to read.
+mut answers: [4]usize = zeroed
+mut outcome: [4]u8 = zeroed
+
+--  An answer to `query` of `length` bytes: its header and question, and
+--  for `kind` one record, `rdata`, after it; `code` is the response code,
+--  `cut` the truncation flag.
+reply: (query: []u8, into: []mut u8, code: u8, cut: bool, rdata: []u8)
+       -> (length: usize) =
+    length = lenof query
+    for index in usize(0)..<length do
+        into[index] = query[index]
+    end for
+    into[2] = if cut then 0x83 else 0x81 end if
+    into[3] = 0x80 | code
+    into[6] = 0
+    into[7] = 0
+    return when lenof rdata == 0
+    into[7] = 1
+    record: [12]u8 = [0xc0, 12, query[length - 4], query[length - 3], 0, 1,
+                      0, 0, 0, 60, 0, u8(lenof rdata)]
+    for index in usize(0)..<12 do
+        into[length + index] = record[index]
+    end for
+    length += 12
+    for index in usize(0)..<lenof rdata do
+        into[length + index] = rdata[index]
+    end for
+    length += lenof rdata
+end reply
+
+--  The record a name has: one.test and, over TCP, big.test an address of
+--  each family.
+four_one: [4]u8 = [192, 0, 2, 1]
+six_one: [16]u8 = [0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+four_seven: [4]u8 = [192, 0, 2, 7]
+
+rdata_of: (label: u8, kind: u8) -> (rdata: []u8) =
+    rdata = if label == u8('o') and kind == 1 then four_one[0..<4]
+            elsif label == u8('o') then six_one[0..<16]
+            elsif label == u8('b') and kind == 1 then four_seven[0..<4]
+            else "" end if
+end rdata_of
+
+--  Answer over TCP the one connection a cut answer brings.
+answer_over_tcp: (state: party) -> none ! ... =
+    host: fake.network = state.network
+    connection: io.file = try net.accept(host, state.listener)
+    defer net.close(host, connection) else none
+    mut prefix: [2]u8 = zeroed
+    _ = try net.receive(host, connection, prefix[0..<2])
+    wanted: usize = (usize(prefix[0]) << 8) | usize(prefix[1])
+    mut query: [300]u8 = zeroed
+    mut got: usize = 0
+    while got < wanted do
+        got += try net.receive(host, connection, query[got..<wanted])
+    end while
+    mut message: [400]u8 = zeroed
+    kind: u8 = query[wanted - 3]
+    length: usize = reply(query[0..<wanted], message[0..<400], 0, false,
+                          rdata_of(u8('b'), kind))
+    framed: [2]u8 = [u8(length >> 8), u8(length & 255)]
+    try net.send(host, connection, framed[0..<2])
+    try net.send(host, connection, message[0..<length])
+end answer_over_tcp
+
+--  Serve questions until a round passes with none.
+serve: (inout state: party) -> none ! failure.reason =
+    host: fake.network = state.network
+    loop do
+        mut query: [300]u8 = zeroed
+        got: net.datagram = net.receive_from(host, state.datagrams,
+                                             query[0..<300]) else (problem)
+            return when problem == net.timed_out
+            fail problem
+        end
+        label: u8 = query[13]
+        kind: u8 = query[got.count - 3]
+        mut message: [400]u8 = zeroed
+        if label == u8('q') then continue end if
+        code: u8 = if label == u8('g') then 3 else 0 end if
+        cut: bool = label == u8('b')
+        rdata: []u8 = if cut then "" else rdata_of(label, kind) end if
+        length: usize = reply(query[0..<got.count], message[0..<400], code, cut,
+                              rdata)
+        try net.send_to(host, state.datagrams, message[0..<length], got.sender)
+        if cut then try answer_over_tcp(state) end if
+    end loop
+end serve
+
+--  Ask `name`, keeping how many addresses came back and how it ended.
+asked: (state: party, index: usize, name: []u8) -> none =
+    mut service: net.name_service = net.name_service_of("options timeout:1 attempts:1")
+    service.servers[0] = state.server
+    mut found: [4]net.address = [4 of net.unspecified(net.ipv4, 0)]
+    answers[index] = net.ask(state.network, service, name, 80, found[0..<4],
+                             u16(100 * index)) else (problem)
+        outcome[index] = if problem == net.unknown_name then u8('u')
+                         elsif problem == net.timed_out then u8('t')
+                         else u8('f') end if
+        return
+    end
+    outcome[index] = u8('a')
+    if index == 0 then
+        expected: net.address = net.ipv4_address(192, 0, 2, 1, 80)
+        if not net.same_address(found[0], expected) then outcome[index] = u8('w') end if
+        if found[1].family <> net.ipv6 or found[1].octets[15] <> 1 then
+            outcome[index] = u8('w')
+        end if
+    end if
+    if index == 2
+      and not net.same_address(found[0], net.ipv4_address(192, 0, 2, 7, 80)) then
+        outcome[index] = u8('w')
+    end if
+end asked
+
+call: (inout state: party) -> none ! failure.reason =
+    asked(state, 0, "one.test")
+    asked(state, 1, "gone.test")
+    asked(state, 2, "big.test")
+    asked(state, 3, "quiet.test")
+end call
+
+mut backing: [2 * 32768]u8 = zeroed
+
+--- The client and its server over turns.
+dialogue: (runs: any fibre.turns) -> none ! ... =
+    mut space: fake.network_space = zeroed
+    mut buffers: [8][1024]u8 = zeroed
+    mut sockets: [8]fake.network_socket =
+        [fake.socket_over(buffers[0][0..<1024]), fake.socket_over(buffers[1][0..<1024]),
+         fake.socket_over(buffers[2][0..<1024]), fake.socket_over(buffers[3][0..<1024]),
+         fake.socket_over(buffers[4][0..<1024]), fake.socket_over(buffers[5][0..<1024]),
+         fake.socket_over(buffers[6][0..<1024]), fake.socket_over(buffers[7][0..<1024])]
+    host := fake.network_over_turns(space, runs, sockets)
+    datagrams: io.file = try net.open_datagram(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, datagrams) else none
+    server: net.address = try net.local_address(host, datagrams)
+    listener: io.file = try net.listen(host, server)
+    defer net.close(host, listener) else none
+    shared: party = (network: host, datagrams: datagrams, listener: listener,
+                     server: server)
+    mut tasks := try fibre.turns_over(runs, backing, 2)
+    defer fibre.join(tasks) else none
+    try fibre.admit(tasks, serve, shared)
+    try fibre.admit(tasks, call, shared)
+    try fibre.join(tasks)
+end dialogue
+
+public main: () -> (code: i32) =
+    code = 1
+    mut space: fake.network_space = zeroed
+    mut buffers: [8][256]u8 = zeroed
+    mut sockets: [8]fake.network_socket =
+        [fake.socket_over(buffers[0][0..<256]), fake.socket_over(buffers[1][0..<256]),
+         fake.socket_over(buffers[2][0..<256]), fake.socket_over(buffers[3][0..<256]),
+         fake.socket_over(buffers[4][0..<256]), fake.socket_over(buffers[5][0..<256]),
+         fake.socket_over(buffers[6][0..<256]), fake.socket_over(buffers[7][0..<256])]
+    host := fake.network_over(space, sockets)
+    options(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 2
+    names(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 3
+    local(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 4
+    group(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 5
+    silent(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 6
+    mut state: stacks.round_space = zeroed
+    mut entries: [3]usize = zeroed
+    idler: stacks.spin = zeroed
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
+        _ = problem
+        return
+    end
+    dialogue(any(addr round)) else (problem)
+        _ = problem
+        return
+    end
+    code = 7
+    return when cmp.compare(outcome[0..<4], "auat") <> cmp.equal
+      or answers[0] <> 2 or answers[2] <> 1
+    code = 42
+end main

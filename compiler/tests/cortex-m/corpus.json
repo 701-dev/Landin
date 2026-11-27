@@ -3003,6 +3003,12 @@
       "mode": "refuse",
       "reason": "Firmware has no standard output to print to. runtime/binary-search executes the same algorithm here."
     },
+    "runtime/example-connect-by-name": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/example-dice-and-cards": {
       "codes": [
         "L0015"
@@ -4487,6 +4493,11 @@
       "profile_limit": "selected-image",
       "reason": "The network consumer's routines over core/io's memory network beside a memory world, with its line reader, buffered writer, format and every oracle of the memory network, need 193,760 bytes of flash at size/auto, overflowing the 32 KiB profile by 160,992, 65,508 of them the bytes of the longest datagram the memory network carries, which its oracle sends. A table keeps only the entries something projects (D374), so what remains is the program's and the oracles' own direct calls into the network, most of it the Cortex-M0 backend's frame homes and copies between them, as runtime/run-shell-memory's limit records. Each profile still attempts execution; runtime/network-addresses-firmware runs the network's address code within the image and requires execution; this image limit is not runtime evidence."
     },
+    "runtime/network-fake-names": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "The name-server fibre and its client each hold a question, an answer and a fibre stack's frames, about 15 KB, which is the test's and not the network's; runtime/network-datagram-memory-firmware exercises the memory network on Cortex-M0."
+    },
     "runtime/network-fake-reopened-slot": {
       "mode": "execute",
       "profile_limit": "selected-image",
@@ -4521,6 +4532,30 @@
       "mode": "refuse",
       "reason": "The routine runs over the hosted provider as well as core/io's memory network, which runtime/network-echo-memory exercises on Cortex-M0."
     },
+    "runtime/network-local-datagram": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-local-stream": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-multicast": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-options": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/network-receive-timeout": {
       "codes": [
         "L0015"
@@ -4534,6 +4569,18 @@
       ],
       "mode": "refuse",
       "reason": "Firmware has no network stack here. runtime/network-echo-memory refuses, finds in use, disconnects and times out over core/io's memory network instead."
+    },
+    "runtime/network-resolver": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-resolver-libc": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/null-pointer-dynamic-traps": {
       "mode": "execute"

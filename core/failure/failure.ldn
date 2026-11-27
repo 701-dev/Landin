@@ -25,7 +25,7 @@ public reason: type = mem.out_of_bounds | mem.empty | mem.not_empty
     | io.already_exists | io.not_a_terminal
     | net.invalid_address | net.refused | net.unreachable
     | net.address_in_use | net.address_unavailable
-    | net.timed_out | net.disconnected
+    | net.timed_out | net.disconnected | net.unknown_name | net.unsupported
     | text.invalid_text | text.invalid_number
     | text.number_overflow
     | text.invalid_format
@@ -61,6 +61,8 @@ public words: (problem: reason) -> (phrase: []u8) =
         net.address_unavailable: "address not available"
         net.timed_out: "timed out"
         net.disconnected: "peer disconnected"
+        net.unknown_name: "unknown host name"
+        net.unsupported: "not supported by this system"
         text.invalid_text: "invalid UTF-8"
         text.invalid_number: "not a number"
         text.number_overflow: "number out of range"

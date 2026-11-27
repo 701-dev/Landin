@@ -1,0 +1,86 @@
+--  Names resolved through hosted/blocking by the system's resolver: the C
+--  library's or Windows' own, and a static Linux program's reading of
+--  /etc/hosts and resolv.conf.  An address's own text is that address;
+--  `localhost`, which the hosts file or the system itself knows, gives
+--  127.0.0.1 among its addresses, each with the port asked for; a
+--  connection by that name reaches a listener on 127.0.0.1 alone,
+--  whichever address the resolver gives first; a name under `.invalid`,
+--  which no name server knows (RFC 6761), is `unknown_name`, or
+--  `timed_out` where no name server can be reached at all; a name too
+--  long for DNS is `unknown_name` before anyone is asked; and a name
+--  server that never answers, a socket of this program's that reads
+--  nothing, makes `net.ask` fail `timed_out` once its limit has passed.
+import core/io
+import core/net
+import core/time
+import hosted/blocking
+
+--- Something came back other than it should.
+wrong: atom
+
+--- Whether resolving `name` fails as an unknown name does.
+unknown: (host: blocking.host, name: []u8, or_silent: bool) -> (yes: bool) =
+    mut found: [4]net.address = [4 of net.unspecified(net.ipv4, 0)]
+    yes = false
+    count: usize = net.resolve(host, name, 80, found[0..<4]) else (problem)
+        yes = problem == net.unknown_name
+              or (or_silent and problem == net.timed_out)
+        return
+    end
+    _ = count
+end unknown
+
+--- Whether asking `service` for a name fails `timed_out`.
+silent: (host: blocking.host, service: net.name_service) -> (yes: bool) =
+    mut found: [4]net.address = [4 of net.unspecified(net.ipv4, 0)]
+    yes = false
+    count: usize = net.ask(host, service, "quiet.test", 80, found[0..<4], 7)
+        else (problem)
+        yes = problem == net.timed_out
+        return
+    end
+    _ = count
+end silent
+
+names: (host: blocking.host) -> none ! ... =
+    mut found: [8]net.address = [8 of net.unspecified(net.ipv4, 0)]
+    literal: usize = try net.resolve(host, "::1", 7, found[0..<8])
+    fail wrong when literal <> 1
+      or not net.same_address(found[0], net.loopback(net.ipv6, 7))
+    count: usize = try net.resolve(host, "localhost", 9, found[0..<8])
+    mut seen: bool = false
+    for index in usize(0)..<count do
+        if net.same_address(found[index], net.loopback(net.ipv4, 9)) then
+            seen = true
+        end if
+        fail wrong when found[index].port <> 9
+    end for
+    fail wrong when not seen
+    listener: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, listener) else none
+    at: net.address = try net.local_address(host, listener)
+    connection: io.file = try net.connect_by_name(host, "localhost", at.port,
+                                                  time.seconds(5))
+    defer net.close(host, connection) else none
+    accepted: io.file = try net.accept(host, listener)
+    try net.close(host, accepted)
+    fail wrong when not unknown(host, "no-such-host.invalid", true)
+    long: [300]u8 = [300 of u8('a')]
+    fail wrong when not unknown(host, long[0..<300], false)
+    quiet: io.file = try net.open_datagram(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, quiet) else none
+    mut service: net.name_service =
+        net.name_service_of("nameserver 127.0.0.1\noptions timeout:1 attempts:1\n")
+    service.servers[0] = try net.local_address(host, quiet)
+    fail wrong when not silent(host, service)
+end names
+
+public main: () -> (code: i32) =
+    code = 1
+    host := blocking.new()
+    names(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 42
+end main

@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: R22.43 every socket option of net.network set and read back on a listener, a connection and a datagram socket of each family through hosted/blocking and hosted/events: reuse_address, keep_alive and broadcast on and off, ipv6_only on from the start for IPv6 and io_failed for IPv4, buffers at least what was set, unicast and multicast hops, the keep-alive spans in whole seconds rounded up, and linger on and off; reuse_port where the system has it and unsupported on Windows
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0680, 0940, 1030, 1660
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

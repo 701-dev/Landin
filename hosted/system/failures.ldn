@@ -50,6 +50,8 @@ fixed if compiler.os <> windows then
             net.address_unavailable: failure.words(net.address_unavailable)
             net.timed_out: failure.words(net.timed_out)
             net.disconnected: failure.words(net.disconnected)
+            net.unknown_name: failure.words(net.unknown_name)
+            net.unsupported: failure.words(net.unsupported)
             text.invalid_text: failure.words(text.invalid_text)
             text.invalid_number: failure.words(text.invalid_number)
             text.number_overflow: failure.words(text.number_overflow)

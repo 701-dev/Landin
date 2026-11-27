@@ -521,6 +521,28 @@ fixed if compiler.os <> windows then
         try membership(self, socket, group, through, false)
     end blocking_leave_group
 
+    blocking_set_multicast_interface: (self: host, socket: io.file,
+                                  through: net.address)
+                                 -> none ! net.address_unavailable
+                                         | io.io_failed =
+        cleared(self)
+        system.set_socket_multicast_interface(socket, through) else (problem)
+            record(self, problem)
+            fail net.address_unavailable when unavailable(problem)
+              or problem == posix.einval
+            fail io.io_failed
+        end
+    end blocking_set_multicast_interface
+
+    blocking_multicast_interface: (self: host, socket: io.file)
+                             -> (through: net.address) ! io.io_failed =
+        cleared(self)
+        through = system.socket_multicast_interface(socket) else (problem)
+            record(self, problem)
+            fail io.io_failed
+        end
+    end blocking_multicast_interface
+
     blocking_resolve: (self: host, name: []u8, port: u16,
                        into: []mut net.address)
                       -> (count: usize)
@@ -693,6 +715,8 @@ fixed if compiler.os <> windows then
          set_span: blocking_set_span, span: blocking_span,
          set_linger: blocking_set_linger, linger: blocking_linger,
          join_group: blocking_join_group, leave_group: blocking_leave_group,
+         set_multicast_interface: blocking_set_multicast_interface,
+         multicast_interface: blocking_multicast_interface,
          resolve: blocking_resolve,
          connect_local: blocking_connect_local,
          listen_local: blocking_listen_local,

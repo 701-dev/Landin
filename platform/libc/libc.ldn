@@ -406,8 +406,6 @@ fixed if compiler.os <> windows then
     public addrinfo_kind: usize = 8
     --- `ai_next`'s place, the record after it or zero, the same everywhere.
     public addrinfo_next: usize = 40
-    --- The size of C's `struct addrinfo` on every 64-bit hosted system.
-    public addrinfo_size: usize = 48
 
     --- Put the address the socket is bound to in `address`, as `accept` puts
     --- a peer's: 0, or -1 with the reason in errno.

@@ -265,6 +265,19 @@ public network: type = concept (provider: type) is io.reader, io.writer
     --- Stop taking what is sent to a group `join_group` joined.
     leave_group: (self: provider, socket: io.file, group: address,
                   through: address) -> none ! address_unavailable | io.io_failed
+    --- Send what `socket` sends to a multicast group out through the
+    --- interface `through` names, as `join_group` reads it: IP_MULTICAST_IF
+    --- or IPV6_MULTICAST_IF.  An unspecified address gives the choice back
+    --- to the system; an interface it does not have is
+    --- `address_unavailable`.
+    set_multicast_interface: (self: provider, socket: io.file,
+                              through: address)
+                             -> none ! address_unavailable | io.io_failed
+    --- The interface `socket` sends to groups through, as
+    --- `set_multicast_interface` set it: unspecified for the system's
+    --- choice.  An IPv6 interface is the address `::` with its zone.
+    multicast_interface: (self: provider, socket: io.file)
+                         -> (through: address) ! io.io_failed
     --- Write into `into` the addresses the host name `name` has, each with
     --- `port`, in the order the system's resolver gives them, and return
     --- how many, as many as `into` holds.  It waits as a receive does while
@@ -885,6 +898,21 @@ public join_group: (provider: type is network, host: provider,
     try provider.join_group(host, socket, group, through)
 end join_group
 
+--- Send what `socket` sends to groups out through the interface
+--- `through` names, unspecified for the system's choice.
+public set_multicast_interface: (provider: type is network, host: provider,
+                                 socket: io.file, through: address)
+                                -> none ! address_unavailable | io.io_failed =
+    try provider.set_multicast_interface(host, socket, through)
+end set_multicast_interface
+
+--- The interface `socket` sends to groups through.
+public multicast_interface: (provider: type is network, host: provider,
+                             socket: io.file)
+                            -> (through: address) ! io.io_failed =
+    through = try provider.multicast_interface(host, socket)
+end multicast_interface
+
 --- Stop taking what is sent to a group `join_group` joined.
 public leave_group: (provider: type is network, host: provider,
                      socket: io.file, group: address, through: address)
@@ -929,7 +957,7 @@ public connect_by_name: (provider: type is network, host: provider,
                         ! unknown_name | refused | unreachable
                         | address_unavailable | timed_out | io.io_failed =
     mut found: [16]address = [16 of unspecified(ipv4, 0)]
-    count: usize = try resolve(provider, host, name, port, found[0..<16])
+    count: usize = try resolve(host, name, port, found[0..<16])
     mut last: attempt_failure = io.io_failed
     for index in usize(0)..<count do
         connected = provider.connect_within(host, found[index], limit)

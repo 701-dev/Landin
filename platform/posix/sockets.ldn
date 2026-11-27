@@ -491,6 +491,56 @@ fixed if compiler.os <> windows then
         try membership(socket, group, through, true)
     end join_group
 
+    --- Send what `socket` sends to multicast groups out through the
+    --- interface `through` names, as `join_group` reads it: IP_MULTICAST_IF
+    --- with its address, or IPV6_MULTICAST_IF with its number.
+    public set_multicast_interface:
+        (socket: descriptor, through: internet_endpoint) -> none ! errno =
+        mut record: [4]u8 = zeroed
+        if through.family == internet then
+            for index in usize(0)..<4 do
+                record[index] = through.octets[index]
+            end for
+            try system_set_bytes(socket, ipv4_level, ipv4_interface,
+                                 addr record[0], 4)
+        elsif through.family == internet6 then
+            for index in usize(0)..<4 do
+                record[index] = u8((through.scope >> u32(8 * index)) & 255)
+            end for
+            try system_set_bytes(socket, ipv6_level, ipv6_interface,
+                                 addr record[0], 4)
+        else
+            fail eafnosupport
+        end if
+    end set_multicast_interface
+
+    --- The interface `socket`, of `family`, sends to groups through: for
+    --- IPv4 its address, for IPv6 its number in `scope`; zero for the
+    --- system's choice.
+    public multicast_interface:
+        (socket: descriptor, family: socket_family)
+        -> (through: internet_endpoint) ! errno =
+        through = (family: family, octets: zeroed, port: 0, scope: 0)
+        mut record: [4]u8 = zeroed
+        mut length: u32 = 4
+        if family == internet then
+            try system_get_bytes(socket, ipv4_level, ipv4_interface,
+                                 addr record[0], addr length)
+            for index in usize(0)..<4 do
+                through.octets[index] = record[index]
+            end for
+        elsif family == internet6 then
+            try system_get_bytes(socket, ipv6_level, ipv6_interface,
+                                 addr record[0], addr length)
+            for index in usize(0)..<4 do
+                through.scope = through.scope
+                                | (u32(record[index]) << u32(8 * index))
+            end for
+        else
+            fail eafnosupport
+        end if
+    end multicast_interface
+
     --- Leave a group `join_group` joined: `eaddrnotavail` when it was not.
     public leave_group:
         (socket: descriptor, group: internet_endpoint, through: internet_endpoint)
@@ -784,6 +834,8 @@ fixed if compiler.os <> windows then
         ipv4_level: i32 = linux.ipproto_ip
         ipv4_join: i32 = linux.ip_add_membership
         ipv4_leave: i32 = linux.ip_drop_membership
+        ipv4_interface: i32 = linux.ip_multicast_if
+        ipv6_interface: i32 = linux.ipv6_multicast_if
         ipv6_level: i32 = linux.ipproto_ipv6
         ipv6_join: i32 = linux.ipv6_join_group
         ipv6_leave: i32 = linux.ipv6_leave_group
@@ -1171,6 +1223,8 @@ fixed if compiler.os <> windows then
         ipv4_level: i32 = libc.ipproto_ip
         ipv4_join: i32 = libc.ip_add_membership
         ipv4_leave: i32 = libc.ip_drop_membership
+        ipv4_interface: i32 = libc.ip_multicast_if
+        ipv6_interface: i32 = libc.ipv6_multicast_if
         ipv6_level: i32 = libc.ipproto_ipv6
         ipv6_join: i32 = libc.ipv6_join_group
         ipv6_leave: i32 = libc.ipv6_leave_group

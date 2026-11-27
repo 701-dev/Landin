@@ -244,7 +244,8 @@ The library covers:
 - regular expressions over `utf8`, matched in linear time,
   `core/regex`;
 - complex numbers over `f32` and `f64`, `core/complex`;
-- blocking TCP and UDP sockets over IPv4 and IPv6;
+- blocking TCP and UDP sockets over IPv4 and IPv6, their options,
+  resolving a host name, connecting by name and Unix-domain sockets;
 - threads started as a group the function joins, `hosted/thread`;
 - the rest of the file system: opening with options, renaming, a file's
   status, read-only files, synchronizing, truncation, reading and writing
@@ -272,8 +273,7 @@ library's systems:
 
 | Need | Planned | Route until then |
 |---|---|---|
-| Calendars, time zones and formatting a date | the locale record in the register | `time.wall_now` gives the wall clock's seconds since 1970. Turning them into a date is the program's work. |
-| Resolving a host name to an address | the resolver record in the register | Under the C library, which means on Darwin, on FreeBSD and on Linux under `--link=libc`, declare `getaddrinfo` as `extern(c)`. A static Linux program has none. `net.parse_address` reads an address that is already written as one. |
+| Calendars, time zones and formatting a date | The next roadmap's library takes dates up. | `time.wall_now` gives the wall clock's seconds since 1970. Turning them into a date is the program's work. |
 | Changing the working directory | Not offered. The working directory is the whole process's, and beside threads a change would move every relative path at once. | Use a path built from `io.current_directory`, or a call relative to a directory open as `at` in `platform/posix`; `chdir` by its number through `linux.system_call` on Linux, or declared `extern(c)` on Darwin and FreeBSD, where a program must. |
 | Extended attributes, access control lists, file flags | not yet planned | On Linux, pass the call's number from `platform/linux/numbers` to `linux.system_call`. On Darwin and FreeBSD, declare the C function as `extern(c)`. |
 | Accounts kept outside /etc/passwd and /etc/group on Linux, those of a directory service or of the Name Service Switch (NSS) | `--link=libc` | A static Linux program reads the two files itself. In a program linked with `--link=libc`, `platform/posix` asks the C library, which asks NSS. |
@@ -1997,6 +1997,12 @@ The network concept, whose connections are readers and writers, and internet add
 | `net.send`, `net.receive` | Send and receive on a connection. |
 | `net.open_datagram`, `net.send_to`, `net.receive_from` | A UDP socket and its datagrams. |
 | `net.parse_address`, `net.append_address` | Read and write `192.0.2.1:80`, `[2001:db8::1]:80` and `[fe80::1%eth0]:80`. |
+| `net.resolve`, `net.connect_by_name` | Give a host name's addresses, and connect to the first of them that answers. |
+| `net.hosts_lookup`, `net.name_service_of`, `net.ask` | Read a hosts file and a resolver's settings, and ask name servers. |
+| `net.set_flag`, `net.set_number`, `net.set_span`, `net.set_linger` | Set a socket's options; `flag`, `number`, `span` and `linger` read them back. |
+| `net.join_group`, `net.leave_group`, `net.set_multicast_interface` | Take what is sent to a multicast group, and choose the interface a socket sends to groups through. |
+| `net.connect_local`, `net.listen_local` | Unix-domain connections at a path. |
+| `net.open_local_datagram`, `net.send_to_local`, `net.receive_from_local` | Unix-domain datagrams. |
 | `net.close` | Close a socket. |
 
 ### Sockets
@@ -2068,7 +2074,151 @@ name, `eth0`, or its number in decimal, `2`.
 - The hosted provider looks a name up when the address is used. It names
   the interface again in an address it reads back, a peer's among them.
 
-Nothing here resolves a name.
+Nothing here asks a system for a name's address; [Names](#names) does.
+
+### Names
+
+`resolve` writes the addresses a host name has into the caller's slice,
+each with the port it was given, and returns how many: as many as the
+slice holds, in the resolver's order (D3075).
+
+- A name that is an address's own text, `127.0.0.1` or `::1`, is that
+  address. It is read as `parse_ip` reads one, and no one is asked.
+- A name no source knows is `unknown_name`. So is one that cannot be a
+  host's name: empty, longer than 253 bytes, or with an empty label or
+  one longer than 63.
+- It waits as a receive does while name servers are asked, which may take
+  seconds. Name servers that do not answer are `timed_out`.
+- A slice without room holds none, and the count is zero.
+
+Whose resolver answers depends on the system:
+
+| System | Who answers |
+|---|---|
+| Darwin, FreeBSD, and Linux under `--link=libc` | The C library's `getaddrinfo`. |
+| Windows | Windows' own resolver. |
+| Linux, linked statically | The provider itself. It reads `/etc/hosts` and, for a name the file lacks, asks the name servers `/etc/resolv.conf` names. |
+
+A static Linux program has no C library, so it asks DNS itself, over the
+provider's own network:
+
+- It reads at most three `nameserver` lines, and `timeout:` and
+  `attempts:` from an `options` line. Without a server it asks 127.0.0.1;
+  without options it waits five seconds and asks twice.
+- `search` and `domain` lines are ignored, so a name is asked for as it
+  is written.
+- It asks for IPv4 addresses and then IPv6 ones, over UDP, and again over
+  TCP after a truncated answer.
+
+Under `hosted/events` that program's fibre waits for the name servers as
+for any socket, and other fibres run. The C library's resolver and
+Windows' hold the thread until they answer: nothing lets the loop wait for
+them.
+
+`connect_by_name` connects to a host and port (D3076):
+
+- It resolves the name as `resolve` does, to at most sixteen addresses.
+- It tries each in the resolver's order until one connects. Each attempt
+  has the limit it was given, as `connect_within` limits one; zero is no
+  limit.
+- When none connects it fails as the last attempt did.
+
+So a listener on 127.0.0.1 alone is reached by `localhost` even where the
+resolver gives `::1` first.
+
+The parts a static Linux program resolves with are public, for a program
+that reads a hosts file of its own or asks a name server it chooses:
+
+| Call | Behaviour |
+|---|---|
+| `hosts_lookup` | Adds to a slice the address of each line of a hosts file's text that names a host, as many as fit, each once, in the file's order. Names match in either case, a `#` begins a comment, and a line whose address cannot be read is passed over. |
+| `name_service_of` | Reads a `name_service` from `resolv.conf`'s text: the servers at port 53, how long to wait for each answer, at most 30 seconds, and how many times to ask, at most 5. |
+| `is_host_name` | Says whether a name can be a host's name in DNS. |
+| `ask` | Asks the servers of a `name_service` for a name's addresses over any network. The caller gives the number of its questions, drawn from its entropy. A name a server says does not exist, or one with no address, is `unknown_name`; servers that never answer are `timed_out`. |
+
+[Executable example](../compiler/tests/fixtures/runtime/network-resolver/main.ldn)
+
+### Options
+
+A socket's options are entries by the kind of value an option holds, and
+each option is an atom (D3074). `set_flag`, `set_number` and `set_span`
+set one, and `flag`, `number` and `span` read it back.
+
+| Option | Set by | What it does |
+|---|---|---|
+| `reuse_address` | `set_flag` | Lets a socket bind an address and port that earlier connections still hold while they close. Set it before the socket is bound. Every listener of a hosted provider has it already. |
+| `reuse_port` | `set_flag` | Lets several sockets bind one address and port, the system sharing what arrives among them. Each sets it before it is bound. |
+| `keep_alive` | `set_flag` | Probes an idle connection now and then, and ends it once its peer stops answering. |
+| `broadcast` | `set_flag` | Lets a datagram socket send to a broadcast address. |
+| `ipv6_only` | `set_flag` | Lets an IPv6 socket take IPv6 alone, never IPv4 through mapped addresses. Every IPv6 socket of a hosted provider is made with it on. |
+| `receive_buffer`, `send_buffer` | `set_number` | How many bytes the system keeps for what arrives and for what is sent. |
+| `unicast_hops` | `set_number` | How many routers what a socket sends to one address may cross: 1 to 255. |
+| `multicast_hops` | `set_number` | How many routers a datagram sent to a group may cross: 0 to 255, and 1, this network alone, until it is set. |
+| `keep_alive_idle` | `set_span` | How long a connection with `keep_alive` is idle before its first probe. |
+| `keep_alive_interval` | `set_span` | How long such a connection waits between probes. |
+
+- A number is a `u32`. The two hop counts are IPv4's or IPv6's option by
+  the socket's family, so a program names one option for both.
+- A span is a `time.duration` kept in whole seconds. A part of a second
+  is rounded up, and zero is `io_failed`.
+- The system rounds a buffer's size, and Linux doubles it, so read it
+  back; it is at least what was set.
+- An option a system does not have is `unsupported`. Windows has no
+  `reuse_port`.
+- `ipv6_only` on an IPv4 socket is `io_failed`.
+
+`set_linger` says what a close does with what the socket has sent and the
+peer has not yet taken, and `linger` reads it back:
+
+- With `on`, the close waits up to its limit, kept in whole seconds, for
+  that to be delivered. A limit of zero resets the connection at the
+  close.
+- Without, the close returns at once and the system delivers what is left
+  on its own.
+
+A datagram socket takes what is sent to a multicast group once it has
+joined it:
+
+| Call | Behaviour |
+|---|---|
+| `join_group` | Joins a group through an interface: for IPv4 the interface's address, for IPv6 the interface its zone names. An unspecified address without a zone lets the system choose. An address that is no group is `address_unavailable`. |
+| `leave_group` | Stops taking what is sent to a group `join_group` joined. |
+| `set_multicast_interface` | Sends what the socket sends to groups out through the interface named, as `join_group` reads it. An unspecified address gives the choice back to the system; an interface the system does not have is `address_unavailable`. |
+| `multicast_interface` | Gives that interface back: unspecified for the system's choice, and an IPv6 one as the address `::` with its zone. |
+
+Two sockets on one host exchange a group's datagrams by sending through
+the loopback interface.
+
+`set_no_delay` and `set_timeouts` stay as [Sockets](#sockets) gives them.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-options/main.ldn)
+
+[Executable example](../compiler/tests/fixtures/runtime/network-multicast/main.ldn)
+
+### Unix-domain sockets
+
+A Unix-domain socket is named by a path, a `text.os_string`, where an
+internet socket is named by an address (D3077). Accepting, sending,
+receiving, shutting and closing are the calls every socket has.
+
+| Call | Behaviour |
+|---|---|
+| `listen_local` | Listens at a path, which the listener makes. A path that already exists is `address_in_use`. |
+| `connect_local` | Connects to the listener at a path. A path nothing listens at is `refused`, whether it is missing or the file of a socket that has closed. |
+| `open_local_datagram` | Opens a datagram socket bound to a path, as `listen_local` binds one. |
+| `send_to_local` | Sends a datagram whole to the socket at a path. A path no socket is bound to is `refused`. |
+| `receive_from_local` | Gives the next datagram and its sender's path, written into room the caller lends. The path is empty for a sender bound to none. |
+
+- A path that is empty, holds a NUL or is longer than the system takes is
+  `invalid_address`.
+- A listener's path stays after it closes, as the system leaves it. The
+  program removes it.
+- Windows makes Unix-domain streams and no datagram sockets, so
+  `open_local_datagram` is `unsupported` there.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-local-stream/main.ldn)
+
+[Executable example](../compiler/tests/fixtures/runtime/network-local-datagram/main.ldn)
 
 ### The fake network
 
@@ -2112,6 +2262,26 @@ fibres run first (D493).
 
 A test may take IPv6 away with `without_ipv6` and fail a call with
 `fail_at`.
+
+It has each addition of the concept, kept in its records (D3078):
+
+- `with_names` gives a network the text of a hosts file, read as
+  `hosts_lookup` reads one, and `resolve` answers from it without
+  waiting. A network made without names knows none, so every name is
+  `unknown_name` to it.
+- It keeps every option a socket is given and reads it back as it was
+  set, a span in whole seconds. None of them changes what the network
+  does.
+- A Unix-domain socket keeps its path in its record. The network has no
+  files, so a path is in use while a socket bound to it is open.
+- A datagram socket joins one group at a time, through the unspecified
+  address or a loopback one. A datagram to a group goes to every socket
+  that joined it at the port.
+- A datagram from a socket bound to the unspecified address arrives from
+  the loopback address of its family, as a system fills in the address a
+  datagram leaves by. An answer to it therefore finds its way back.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-fake-names/main.ldn)
 
 [Executable example](../compiler/tests/fixtures/runtime/network-fake-turns-exchange/main.ldn)
 

@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: R22.43 names resolved through hosted/blocking by a static Linux program's hosts file and resolv.conf and elsewhere the C library's or Windows' resolver: an address's text is itself, localhost gives 127.0.0.1 with the port, connect_by_name reaches a listener on 127.0.0.1 alone, a .invalid name is unknown_name or timed_out where no server can be reached, a name too long is unknown_name, and net.ask of a server that never answers is timed_out
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0680, 0940, 1030, 1660
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

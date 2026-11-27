@@ -41529,6 +41529,56 @@ reading back are `system.internet_address` and `system.address_of` in
 `hosted/system`, over `platform/posix`'s `internet_record` and
 `endpoint_of`, which speak numbers rather than a `net.address`.
 
+### D3074 — A socket's options are entries named by atom sets, and `unsupported` is a system's absence
+
+**The tour said** nothing, and the library lane asks for the options `socket2` sets: reuse of an address and a port, keepalive and its interval, buffer sizes, broadcast, multicast membership and hops, IPv6 only, the unicast hop limit and linger, each set and read back on every hosted target.
+
+**Chosen:** `net.network` gains entries by the kind of value an option holds, each option an atom of a set: `set_flag` and `flag` for `net.flag_option`, `reuse_address`, `reuse_port`, `keep_alive`, `broadcast` and `ipv6_only`; `set_number` and `number` for `net.number_option`, `receive_buffer`, `send_buffer`, `unicast_hops` and `multicast_hops`, a `u32`; `set_span` and `span` for `net.span_option`, `keep_alive_idle` and `keep_alive_interval`, a `time.duration` kept in whole seconds, a part of one rounded up and zero refused; `set_linger` and `linger`, whether a close lingers and how long; `join_group` and `leave_group`; and `set_multicast_interface` and `multicast_interface`, which the multicast exchange on one host needs to send over the loopback interface. They are entries, not free routines over existing ones, because only the provider can answer them (D1948), and the fake keeps them as it keeps `no_delay`. The hops are IP_TTL or IPV6_UNICAST_HOPS and IP_MULTICAST_TTL or IPV6_MULTICAST_HOPS by the socket's family, which the provider reads, so a program names one option for both. An interface is an `address`, as `join_group`'s `through` is: an IPv4 interface's address, an IPv6 one's zone, the unspecified address the system's choice. An option a system does not have is the new atom `net.unsupported`, ENOPROTOOPT on POSIX: Windows has no SO_REUSEPORT. `ipv6_only` on an IPv4 socket is `io_failed`, the provider checking the family, since Linux calls it an option it does not have. `set_no_delay` and `set_timeouts` stay as they were. `platform/posix` gains `set_option` and `option` over `posix.integer_option`, `set_linger`, `join_group`, `leave_group` and the multicast interface, and each system's numbers; Darwin's linger is SO_LINGER_SEC, which keeps seconds as the others' SO_LINGER does.
+
+**The alternatives:** an entry for each option, `socket2`'s thirty setters and as many getters, which the providers and every conformance would repeat; one entry taking a variant of every option's value, which no other concept of the library takes; and a raw `setsockopt`, a level, a name and bytes, which `platform/posix` already gives a program that needs one and no fake or Windows provider can answer alike.
+
+**Pinned by** `runtime/network-options`, every option on a listener, a connection and a datagram socket of each family through `hosted/blocking` and `hosted/events` on every hosted target, a buffer reading back at least what was set since Linux doubles it; `runtime/network-multicast`; and `runtime/network-fake-names`.
+
+### D3075 — Names are the system's resolver's, and a static Linux program reads the files and asks DNS itself
+
+**The tour said** nothing; the register's resolver record was retired on 2026-11-21 for want of a consumer, and a connection by name is that consumer.
+
+**Chosen:** `net.network` gains `resolve(name, port, into)`, the addresses a host name has in the system resolver's order, each with `port`, as many as `into` holds; `net.resolve` reads an address's own text first, as `parse_ip` does, and asks no one for it. A name no source knows, or that cannot be a DNS name, longer than 253 bytes or with an empty label or one over 63, is the new atom `net.unknown_name`; name servers that do not answer are `timed_out`. Where the system's resolver is the authority, it answers: the C library's `getaddrinfo`, `posix.resolve_name`, on Darwin, FreeBSD and Linux under `--link=libc`, and Windows' own. A static Linux program has no C library, so it reads `/etc/hosts` and, for a name the file lacks, asks the name servers `/etc/resolv.conf` names, over the provider's own network, so that the event provider's fibre waits for them as for any socket: `core/net`'s `hosts_lookup` reads the hosts text, `name_service_of` the settings, at most three `nameserver` lines, `timeout:` and `attempts:`, 127.0.0.1 without a server, and `ask` puts an A and then an AAAA question to each server in turn as many times as the settings say, over UDP and again over TCP after a truncated answer, numbered from the system's random bytes, an answer from another address or to another question passed over. The first question's addresses stand when the second fails. `search` and `domain` lines are passed over, so a name is asked for as it is written. Under the event provider the C library's resolver holds the thread, which nothing lets it wait for.
+
+**The alternatives:** a resolver of Landin's own on every system, which would disagree with the system's configuration, NSS and mDNS among it, wherever one exists; the C library's on static Linux too, which would need it linked; a separate `resolver` concept, which a routine needing both it and the network would take as a second capability for one system; the search list, which glibc applies for names with fewer dots than `ndots` and which no exit evidence asks for; and EDNS, whose larger answers TCP already brings.
+
+**Pinned by** `runtime/network-resolver` on every hosted target, static on Linux, and `runtime/network-resolver-libc`: `localhost` gives 127.0.0.1, a `.invalid` name is `unknown_name`, or `timed_out` where no server can be reached, and `ask` of a socket that never answers is `timed_out`; and `runtime/network-fake-names`, whose server fibre answers, says a name does not exist and cuts an answer short.
+
+### D3076 — A connection by name tries each address in turn and fails as the last did
+
+**The tour said** nothing; the library lane asks for a connection to a host and port that tries each address the name gives, as Go's `Dial` does.
+
+**Chosen:** `net.connect_by_name(name, port, limit)` resolves the name, as `net.resolve` does, to at most sixteen addresses, and connects to each in the resolver's order, each attempt within `limit` as `connect_within` limits one, zero for none, until one connects; when none does it fails as the last attempt did. It is a free routine over `resolve` and `connect_within`, which every provider already answers.
+
+**The alternatives:** Go's `Dial`, which divides one deadline among the addresses and, with Happy Eyeballs, races IPv6 against IPv4; and the first failure rather than the last, which says less about the address tried last.
+
+**Pinned by** `runtime/network-resolver`, whose listener on 127.0.0.1 alone is reached by `localhost` whichever address the resolver gives first, and `runtime/network-fake-names`, refused at ::1 and connected at 127.0.0.1.
+
+### D3077 — Unix-domain sockets are five entries over a path, and Windows makes streams alone
+
+**The tour said** nothing; `platform/posix` alone gave Unix-domain sockets.
+
+**Chosen:** `net.network` gains `connect_local`, `listen_local`, `open_local_datagram`, `send_to_local` and `receive_from_local`, each naming a path as a `text.os_string`; accepting, sending, receiving, shutting and closing are the entries every socket has. `receive_from_local` puts the sender's path into the caller's room, empty for a sender bound to none, so a datagram can be answered. A path that is empty, holds a NUL or does not fit the system's record is `invalid_address`; a path nothing listens at, missing or a socket's file whose socket has closed, is `refused`; a path that exists at a listen is `address_in_use`. A listener's path stays after it closes, as the system leaves it, for the program to remove. Windows makes Unix-domain streams and no datagram sockets, so `open_local_datagram` is `unsupported` there.
+
+**The alternatives:** a path inside `net.address`, which would make every address on every target, firmware's included, a hundred bytes longer; and `receive` alone for a datagram, which cannot say who to answer.
+
+**Pinned by** `runtime/network-local-stream` on every hosted target, `runtime/network-local-datagram` on the systems that have such sockets, and `runtime/network-fake-names`.
+
+### D3078 — The fake network keeps options, names, paths and one group a socket
+
+**The tour said** nothing; the library lane has the fake network gain each addition.
+
+**Chosen:** the fake keeps every option a socket is given and reads it back as it was set, a span in whole seconds, and none of them changes what it does. `fake.with_names(host, names)` gives a network the text of a hosts file, read as `net.hosts_lookup` reads one, from which `resolve` answers without waiting; a network made without names knows none. A Unix-domain socket keeps its path in its record, and a path is in use while a socket bound to it is open, the fake having no files. A datagram socket joins one group at a time; a datagram to a group goes to every socket that joined it at the port. A datagram from a socket bound to the unspecified address arrives from the loopback address of its family, as a system fills in the address it leaves by, so a name server's answer finds its way back.
+
+**The alternatives:** names in `network_space`, which a test declares `zeroed` and which can hold no slice; and modelling an option's effect, buffer sizes on what a send takes, which no test asks for.
+
+**Pinned by** `runtime/network-fake-names`.
+
 ### D325 — The rest of the file system is a concept of its own
 
 **The tour said** at [1660] that a program reaches its host through

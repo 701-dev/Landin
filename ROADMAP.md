@@ -4291,7 +4291,7 @@ server that does not answer, both the system's and the static Linux one;
 a multicast exchange and a Unix-domain exchange on one host; the fake
 network's tests for each; an example program in `examples.md` that
 connects by name; `docs/library.md`'s table of routes without the
-resolver's row, and its dates row pointing at no missing record, SR-2112.
+resolver's row, and its dates row pointing at no missing record, `SR-2112`.
 
 ### R22.44 — Command-line arguments parsed
 
