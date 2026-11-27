@@ -3854,7 +3854,7 @@ documents that name a step saying the new one.
 
 ### R22.28 — What Windows still lacks after R21.70
 
-Status: planned
+Status: active
 Depends on: none
 
 The Windows gaps R21.70 left or met, scheduled by the register sweep of
