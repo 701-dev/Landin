@@ -3682,7 +3682,7 @@ in `core/text/shortest.ldn`, and restated; filed: SR-2012, L0102's
 
 ### R22.21 — n-body and spectral-norm ported
 
-Status: planned
+Status: active
 Depends on: R22.10, R22.20
 
 The Benchmarks Game's two numeric programs, ported beside its five

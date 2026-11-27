@@ -601,7 +601,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R22.21 — n-body and spectral-norm ported (planned).**
+**Current roadmap work: R22.21 — n-body and spectral-norm ported.**
 
 ## Questions, bugs and ideas
 
