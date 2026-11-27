@@ -3961,7 +3961,7 @@ schedule run already ran (D2775). Two board-bundles artifacts of different
 commits, runs 45840509189 and 45855853447, give one identity. Boards run
 45893119145 ran every leg and passed; dispatch 45906315984 on the same
 head took its legs and passed in 13 minutes. `item.py boards` met no
-SR-1988 of its own: the item fixes that landed first record a queued
+`SR-1988` of its own: the item fixes that landed first record a queued
 dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
