@@ -1073,7 +1073,7 @@ def contract(run, refine):
            ' . = . + (ABSOLUTE(.) < 8 ? 8 - ABSOLUTE(.) : 0);')
     require(old in rule, 'the derived script lacks %r' % old)
     (run.out / 'zero.ld').write_text(rule.replace(old, '_landin_firmware_text_start = .;'))
-    #  SR-1716: the RAM layout's text moved into the ITCM by hand, without
+    #  D2997: the RAM layout's text moved into the ITCM by hand, without
     #  the eight bytes, puts reset itself at zero, which startup symbols do
     #  not excuse.
     compile_firmware(run, refine, tightly, h7 + ['--firmware-layout=ram'],

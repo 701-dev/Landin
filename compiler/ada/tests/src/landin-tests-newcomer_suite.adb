@@ -380,7 +380,7 @@ package body Landin.Tests.Newcomer_Suite is
          Asm : constant Landin.Driver.Outcome := Run
            (["--target=linux-x86-64", "hand.s", "--emit=asm", "-o",
              "other.s"], Host, Tools);
-         --  SR-1714: a firmware image is laid out by its description,
+         --  D2996: a firmware image is laid out by its description,
          --  which an assembly operand does not carry.
          Firmware : constant Landin.Driver.Outcome := Run
            (["--target=cortex-m0", "--level=armv7e-m",

@@ -77,6 +77,15 @@ package body Landin.Diagnostics.Explanations is
                & "ine (D383)."
                & LF
                & LF
+               & "An assembly operand is linked only for a hosted target. "
+               & "A firmware image is laid out by its description, which a"
+               & "ssembly does not carry, so a `.s` operand with a firmwar"
+               & "e target is refused here: compile the program's source w"
+               & "ith `--root` and `--firmware-entry`, or assemble the `--"
+               & "keep-asm` output and link it with the toolchain and the "
+               & "`OUT.ld` written beside the image (D2996)."
+               & LF
+               & LF
                & "`refine` has no `build` command of its own: `refine buil"
                & "d` runs a contributed `refine-build` on PATH. With none "
                & "there, `refine build` and `refine help build` are refuse"
@@ -456,11 +465,14 @@ package body Landin.Diagnostics.Explanations is
                & ") else return`, is refused here too, because a recovery "
                & "that leaves holds its `return`, `fail`, `break` or `cont"
                & "inue` in a block [1030]: the likely fix writes `else beg"
-               & "in return end` (D870). A `[` that begins a line continue"
-               & "s the line above as an index when that line ends in a na"
-               & "me [1750], so `[]` there is an empty index, and the refu"
-               & "sal says the line was continued and that the name in par"
-               & "entheses, `(name)`, lets the `[` begin a value (D331).",
+               & "in return end` (D870). As an `if` arm's statement the ca"
+               & "ll and that recovery go in parentheses, `(f() else begin"
+               & " return end)`, since a bare `else` there divides the `if"
+               & "` (L0329). A `[` that begins a line continues the line a"
+               & "bove as an index when that line ends in a name [1750], s"
+               & "o `[]` there is an empty index, and the refusal says the"
+               & " line was continued and that the name in parentheses, `("
+               & "name)`, lets the `[` begin a value (D331).",
             when Catalogue.Token_Expected =>
                "A token the grammar requires is absent [1810]. The secon"
                & "d label points at the construct that required it. When a"
@@ -622,9 +634,20 @@ package body Landin.Diagnostics.Explanations is
                & "s file lacks (D2174), and the exact fix, which `refine f"
                & "ix` applies, inserts the line, `import core/mem`. A type"
                & " argument written with such a prefix, `vec.list(mem.allo"
-               & "cator)`, is reported the same way. A library module no i"
-               & "mport of the program reaches is not known here, so its n"
-               & "ame is reported as a misspelling."
+               & "cator)`, is reported the same way. So is a prefix that i"
+               & "s the last segment of exactly one library module no impo"
+               & "rt of the program reaches, `text.length(value)` in a pro"
+               & "gram that imports `core/text` nowhere: the driver lists "
+               & "the library's modules for this target and the note names"
+               & " the one meant (D2994)."
+               & LF
+               & LF
+               & "Inside `platform/linux`, a name ending in `_number` that"
+               & " nothing declares is a system call's number that `platfo"
+               & "rm/linux/wrapped.ldn` does not hold yet. That file is ge"
+               & "nerated: the note says to run `python3 scripts/linux_sys"
+               & "calls.py`, which writes the number of every call the mod"
+               & "ule's other files name (D2999)."
                & LF
                & LF
                & "An option is read only in fixed conditions, option defau"
@@ -974,7 +997,10 @@ package body Landin.Diagnostics.Explanations is
                & "eds a separator before a following name [1770], so a wid"
                & "th suffix such as `f32` makes the whole literal malforme"
                & "d: drop the suffix and let the binding's type give the w"
-               & "idth.",
+               & "idth. A literal that lacks only its point, `1e10` or C's"
+               & " hexadecimal `0x1p-20`, is told that the point goes befo"
+               & "re the exponent, and the exact fix writes `.0` there: `1"
+               & ".0e10`, `0x1.0p-20` (D2995).",
             when Catalogue.Malformed_Character_Literal =>
                "A character literal holds exactly one Unicode scalar val"
                & "ue [0250] [0270].",
@@ -1101,15 +1127,17 @@ package body Landin.Diagnostics.Explanations is
                & LF
                & "In an `if` arm, `else value` after a call is read as the"
                & " `if`'s own `else` [1820], so the call is left unrecover"
-               & "ed: write `(f() else 0)`, or bind the error with `else ("
-               & "problem)`. A failing call that ends a body with returns "
-               & "is the routine's value [1080], and the message says so; "
-               & "its result is checked against the returns once the failu"
-               & "re is handled (D871). The hosted `main` declares no `!` "
-               & "set [1970], so widening one cannot mend a `try` or an un"
-               & "handled call there: handle the failure with `else`, or m"
-               & "ove the work into a routine whose set holds it and handl"
-               & "e that call's failure in `main` (D872).",
+               & "ed: put the call and its recovery in parentheses, `(f() "
+               & "else 0)` or `(f() else begin return end)`, or bind the e"
+               & "rror with `else (problem) ... end` (D3000). A failing ca"
+               & "ll that ends a body with returns is the routine's value "
+               & "[1080], and the message says so; its result is checked a"
+               & "gainst the returns once the failure is handled (D871). T"
+               & "he hosted `main` declares no `!` set [1970], so widening"
+               & " one cannot mend a `try` or an unhandled call there: han"
+               & "dle the failure with `else`, or move the work into a rou"
+               & "tine whose set holds it and handle that call's failure i"
+               & "n `main` (D872).",
             when Catalogue.Assembly_Block_Contract =>
                "An assembly block, operand or template breaks [1630]'s b"
                & "lock contract or [1990]'s register rules. Only `assemble"
@@ -1989,13 +2017,15 @@ package body Landin.Diagnostics.Explanations is
                & "age (D1114), an initialized image whose load address is "
                & "not in the region text is placed in, or a datum or routi"
                & "ne at address zero, where a pointer is null (D1115, D132"
-               & "3). A description-owned initialization stage is the rese"
-               & "t-vector entry when present. In RAM layout, loaded secti"
-               & "ons must be in SRAM, their load and runtime addresses eq"
-               & "ual, and their ranges clear of the reserved stack. Chang"
-               & "e the script so the clause holds; the derived script ref"
-               & "ine writes beside the image as `OUT.ld` meets every clau"
-               & "se.",
+               & "3); a startup routine is held to it too, and only the ve"
+               & "ctor table and the RISC-V entry word may begin there (D2"
+               & "997). A description-owned initialization stage is the re"
+               & "set-vector entry when present. In RAM layout, loaded sec"
+               & "tions must be in SRAM, their load and runtime addresses "
+               & "equal, and their ranges clear of the reserved stack. Cha"
+               & "nge the script so the clause holds; the derived script r"
+               & "efine writes beside the image as `OUT.ld` meets every cl"
+               & "ause.",
             when Catalogue.Boot_Stage_Object =>
                "The assembled second stage cannot be sealed with the boo"
                & "t ROM's checksum (D588). refine reads the `.boot2` secti"

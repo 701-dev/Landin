@@ -155,7 +155,7 @@ package body Landin.Stages.Wanted_Imports is
          end if;
       end;
 
-      --  SR-1693: no module the program reaches has the name, and exactly
+      --  D2994: no module the program reaches has the name, and exactly
       --  one module of the library the driver listed has it; nothing
       --  imports that one, since the program would reach it otherwise.
       declare

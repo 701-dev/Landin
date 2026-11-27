@@ -3473,13 +3473,13 @@ and `source.lexical` guarantee rows.
 **The discrepancy:** C's hexadecimal float without a point, `0x1p-20`, was
 L0011, "this is not an integer any base spells", whose note spoke of digits
 and underscores; nothing said that [0220]'s hexadecimal float has a point,
-`0x1.0p-20` (SR-1896). `1e10` was L0321 with the general note.
+`0x1.0p-20`. `1e10` was L0321 with the general note.
 
 **Chosen:** a digit run, decimal or after `0x`, followed directly by its
 exponent, `e` or `p` with an optional sign and a digit, is L0321 over the
 whole literal. When the run before the exponent is well formed the note
-says that a float with an exponent still has a point with digits on both
-sides, and an exact fix writes `.0` before the exponent, which keeps the
+says that a float literal needs a point with digits on both sides even when
+it has an exponent, and an exact fix inserts `.0` before the exponent, which keeps the
 value; `refine fix` applies it.
 
 **The alternatives:** accepting C's form, a second spelling of one value;
@@ -19322,7 +19322,7 @@ module the program reached, and left one it did not reach to [1860]'s
 spelling note, because the stages ask the host nothing and the module table
 held only what imports reached. `text.bytes(value)` in a program that
 imports `core/text` nowhere, a newcomer's first use of a module, was told
-to check its spelling (SR-1693).
+to check its spelling.
 
 **Chosen:** the driver lists the library's modules when it loads a program
 with a library: every directory under `core`, `hosted` and `platform` that
@@ -19348,7 +19348,7 @@ report.
 library did not make before is L0201 on its `*_number`, with [1860]'s
 spelling note and near guesses; only `wrapped.ldn`'s header said that
 `scripts/linux_syscalls.py` writes those numbers from the names the
-module's other files use (SR-1881).
+module's other files use.
 
 **Chosen:** a name ending in `_number` that resolves to nothing in a file of
 `platform/linux` is L0201 whose note says the numbers are `wrapped.ldn`'s
@@ -23707,10 +23707,10 @@ statement on a line of its own.
 return end`, and the same call written that way as an `if` arm's statement
 is L0329, because the bare `else` divides the `if` [1820]; L0329's note
 offered `(call(...) else value)` and the bound block, so a recovery that
-returns was left only the binding of an error it does not read (SR-2012).
+returns was left only the binding of an error it does not read.
 
 **Chosen:** the grammar is unchanged. L0329's note in an `if` arm, and the
-L0332 note beside it, say to put the call and its recovery in parentheses,
+notes beside it, say to wrap the call and its recovery in parentheses,
 `(call(...) else value)` or `(call(...) else begin return end)`, or to bind
 the error, and `docs/diagnostics.md`'s L0102 says the parenthesised form is
 the one an `if` arm takes.
@@ -33101,7 +33101,7 @@ refuses each.
 **The discrepancy:** the fifth clause skipped every `_landin_firmware_*`
 symbol, so a developer's script that moved the STM32H753's RAM-layout text
 into the ITCM without the derived script's eight bytes linked with
-`_landin_firmware_reset` at address zero and refine exited 0 (SR-1716).
+`_landin_firmware_reset` at address zero and refine exited 0.
 
 **Chosen:** the fifth clause holds the startup routines and data too; only
 `_landin_firmware_vectors` and `_landin_firmware_entry`, which begin their
@@ -38412,8 +38412,8 @@ which finds no assembly after a failed link.
 --firmware-layout=ram -o p.elf` ended in an internal compiler defect, a
 failed precondition deriving the linker script from a profile no source
 gave, where the help said "a .s operand is linked as a compiled program
-is"; with `--root` or `--firmware-entry` it was L0002 for another reason
-(SR-1714).
+is"; with `--root` or `--firmware-entry` it was L0002 for another
+reason.
 
 **Chosen:** an assembly operand is linked only for a hosted target. With a
 firmware target it is L0002 before anything runs, saying that a firmware
@@ -41529,13 +41529,13 @@ lanes.
 
 **The discrepancy:** D1281 gave words to one trap of the root, a read
 before it exists, and left a second triple and a negative count or null
-table as bare traps (SR-1214).
+table as bare traps.
 
 **Chosen:** before each of those traps `platform/posix` writes one line to
-standard error: `landin: _landin_host_initialize_arguments was called again
-with another argc, argv or envp; only the first call's may be repeated`, and
-`landin: _landin_host_initialize_arguments needs a nonnegative argc and a
-non-null argv`. As in D1281 the writes ask nothing of the root and the trap
+standard error: `landin: _landin_host_initialize_arguments was called a second time with
+a different argc, argv or envp; a repeated call must pass the same values
+as the first`, and `landin: _landin_host_initialize_arguments was called
+with a negative argc or a null argv`. As in D1281 the writes ask nothing of the root and the trap
 follows unchanged.
 
 **The alternatives:** a failure the call returns, which a C `main` has no

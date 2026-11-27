@@ -6,7 +6,7 @@
 --  the same module imports under that name, since [1450] gives every file
 --  its own imports, and the one library module the program reaches whose
 --  last segment is that name, or, when the program reaches none, the one
---  library module the driver listed with that name (SR-1693), since only
+--  library module the driver listed with that name (D2994), since only
 --  the driver reads the library's directories.  The resolver asks for a
 --  prefix in a value position and the checker for one in a type position;
 --  both say what this answers, and the first such prefix in the file

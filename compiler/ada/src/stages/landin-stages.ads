@@ -102,7 +102,7 @@ package Landin.Stages is
    --  or not the program reaches them.  The driver lists the library's
    --  directories and hands their names here, since a stage asks the host
    --  nothing, so that a qualified name whose prefix is a library module
-   --  no import reaches is told the import (D2174, SR-1693).  Empty when
+   --  no import reaches is told the import (D2174, D2994).  Empty when
    --  the request names no library.
    procedure Add_Library_Module
      (Context : in out Compilation; Logical : String);

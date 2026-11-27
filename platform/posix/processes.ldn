@@ -46,30 +46,33 @@ fixed if compiler.os <> windows then
         "_landin_host_initialize_arguments(argc, argv, envp) first\n"
 
     --  What a C main that misuses the root is told before it traps
-    --  (SR-1214): a triple other than the one kept, or a first call without
+    --  (D2998): a triple other than the one kept, or a first call without
     --  a count or a table.
     replaced_report: []u8 =
-        "landin: _landin_host_initialize_arguments was called again with "
+        "landin: _landin_host_initialize_arguments was called a second time "
     replaced_triple: []u8 =
-        "another argc, argv or envp; only the first call's may be repeated\n"
+        "with a different argc, argv or envp; "
+    replaced_rule: []u8 =
+        "a repeated call must pass the same values as the first\n"
     invalid_report: []u8 =
-        "landin: _landin_host_initialize_arguments needs a nonnegative argc "
+        "landin: _landin_host_initialize_arguments was called with a "
     invalid_triple: []u8 =
-        "and a non-null argv\n"
+        "negative argc or a null argv\n"
 
     --  End a program that misused the argument root.  A trap carries no
     --  words of its own, so what was misused is said on standard error
     --  first; the writes ask nothing of the root.
-    misused: (report: []u8, rest: []u8) -> noreturn =
+    misused: (report: []u8, rest: []u8, last: []u8) -> noreturn =
         _ = write(standard_error, report) else none
         _ = write(standard_error, rest) else none
+        _ = write(standard_error, last) else none
         compiler.unreachable()
     end misused
 
     --  End a program that reads the argument root before it exists, naming
     --  the call it lacks.
     uninitialized: () -> noreturn =
-        misused(uninitialized_report, uninitialized_call)
+        misused(uninitialized_report, uninitialized_call, "")
     end uninitialized
 
     --- Establish the process's argument root from C's `main` carriers.  The
@@ -119,12 +122,12 @@ fixed if compiler.os <> windows then
                 ptr (table): usize(table)
             end match
             if count <> root_count or given <> held or variables <> kept then
-                misused(replaced_report, replaced_triple)
+                misused(replaced_report, replaced_triple, replaced_rule)
             end if
             return
         end if
         if count < 0 or given == 0 then
-            misused(invalid_report, invalid_triple)
+            misused(invalid_report, invalid_triple, "")
         end if
         root_count = count
         root_values = values

@@ -9977,7 +9977,7 @@ package body Landin.Syntax.Parser is
                                                   & " value)` or"
                                                   & " `(call(...) else begin"
                                                   & " return end)`, or bind"
-                                                  & " the error, `else"
+                                                  & " the error with `else"
                                                   & " (problem) ... end`");
                                     if not Begins_Line (Index) then
                                        Skip_Rest_Of_Line;

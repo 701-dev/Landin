@@ -515,7 +515,7 @@ package body Landin.Tokens.Lexer is
 
          --  `1e10` is a float that forgot its fraction, not an integer in
          --  the wrong base: read the exponent run and say so.
-         --  SR-1896: so is `0x1p-20`, C's hexadecimal float, which has
+         --  D2995: so is `0x1p-20`, C's hexadecimal float, which has
          --  no point [0220].  Each is told where the point goes.
          if (not Prefixed or else Base = Hexadecimal)
            and then Position > Digits_From

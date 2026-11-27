@@ -879,7 +879,7 @@ package body Landin.Build_Reports.Firmware is
                               --  D1115: a datum or a routine, a Thumb
                               --  one's address its value without bit 0,
                               --  defined in a section of the image.  The
-                              --  startup routines are held too (SR-1716):
+                              --  startup routines are held too (D2997):
                               --  only the vector table and the entry word
                               --  come first in the region they begin.
                               if (not Startup

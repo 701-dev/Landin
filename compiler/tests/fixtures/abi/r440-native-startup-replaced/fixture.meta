@@ -8,4 +8,4 @@ c-args: -O2
 traps: yes
 constructs: 1570, 1580, 1600, 1650, 1660, 1960, 1975
 targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
-trap_report: landin: _landin_host_initialize_arguments was called again with another argc, argv or envp; only the first call's may be repeated
+trap_report: landin: _landin_host_initialize_arguments was called a second time with a different argc, argv or envp; a repeated call must pass the same values as the first

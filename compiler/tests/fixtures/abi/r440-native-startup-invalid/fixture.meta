@@ -8,4 +8,4 @@ c-args: -O2
 traps: yes
 constructs: 1570, 1580, 1650, 1660, 1960, 1975
 targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
-trap_report: landin: _landin_host_initialize_arguments needs a nonnegative argc and a non-null argv
+trap_report: landin: _landin_host_initialize_arguments was called with a negative argc or a null argv

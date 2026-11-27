@@ -75102,6 +75102,7 @@ file negative/hex-float-overflows-context/program.ldn tokens 5
   11 14 f32
   15 16 =
   17 32 0x1.ffffffp+127
+file negative/hexadecimal-float-without-point-is-fixed/main.ldn refused '0x1p' is not an integer the rules spell
 file negative/hosted-datum-link-main/program.ldn tokens 12
   0 4 link
   4 5 (
@@ -79509,6 +79510,56 @@ file negative/layout-optimal-places-fields-as-written/program.ldn tokens 37
   359 360 0
   361 364 end
   365 369 main
+file negative/leaving-recovery-in-an-if-arm-is-parenthesised/main.ldn tokens 49
+  0 4 full
+  4 5 :
+  6 10 atom
+  11 17 append
+  17 18 :
+  19 20 (
+  20 28 negative
+  28 29 :
+  30 34 bool
+  34 35 )
+  36 38 ->
+  39 43 none
+  44 45 !
+  46 50 full
+  51 52 =
+  57 59 if
+  60 68 negative
+  69 73 then
+  82 86 fail
+  87 91 full
+  96 99 end
+  100 102 if
+  103 106 end
+  107 113 append
+  114 119 write
+  119 120 :
+  121 122 (
+  122 130 negative
+  130 131 :
+  132 136 bool
+  136 137 )
+  138 140 ->
+  141 145 none
+  146 147 =
+  152 154 if
+  155 163 negative
+  164 168 then
+  169 175 append
+  175 176 (
+  176 184 negative
+  184 185 )
+  186 190 else
+  191 196 begin
+  197 203 return
+  204 207 end
+  208 211 end
+  212 214 if
+  215 218 end
+  219 224 write
 file negative/length-of-a-slice-is-not-a-field/program.ldn tokens 23
   0 5 count
   5 6 :
@@ -125337,6 +125388,33 @@ file negative/unnamed-result-names-the-named-form/program.ldn tokens 59
   386 387 0
   388 391 end
   392 396 main
+file negative/unreached-library-module-prefix-names-its-import/main.ldn tokens 26
+  0 5 count
+  5 6 :
+  7 8 (
+  8 13 value
+  13 14 :
+  15 19 text
+  19 20 .
+  20 27 builder
+  27 28 )
+  29 31 ->
+  32 33 (
+  33 34 n
+  34 35 :
+  36 41 usize
+  41 42 )
+  43 44 =
+  49 50 n
+  51 52 =
+  53 57 text
+  57 58 .
+  58 64 length
+  64 65 (
+  65 70 value
+  70 71 )
+  72 75 end
+  76 81 count
 file negative/unterminated-raw-literal/program.ldn refused a raw literal is never closed
 file negative/unterminated-text-literal/main.ldn refused a text literal is never closed
 file negative/unused-else-binding/program.ldn tokens 215

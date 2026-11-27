@@ -253,7 +253,7 @@ package Landin.Tokens is
    function Word (Item : Fault) return Landin.Source.Names.Name_Id
      with Pre => Kind (Item) = Capitalised_Identifier;
 
-   --  SR-1896: a float literal that lacks only its point, `1e10` or
+   --  D2995: a float literal that lacks only its point, `1e10` or
    --  `0x1p-20`, says so, and where the point and a zero fraction go:
    --  before the exponent, at an empty span.
    function Lacks_Point (Item : Fault) return Boolean

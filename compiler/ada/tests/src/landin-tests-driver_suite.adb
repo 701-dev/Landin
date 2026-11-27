@@ -3466,7 +3466,7 @@ package body Landin.Tests.Driver_Suite is
       end;
    end A_Static_Link_Starts_At_Platform_Linux;
 
-   --  SR-1881: platform/linux's wrappers take their call numbers from
+   --  D2999: platform/linux's wrappers take their call numbers from
    --  `wrapped.ldn`, which a generator writes; a wrapper whose number it
    --  has not written yet is told to run it, not to check its spelling.
    procedure An_Unwritten_Call_Number_Names_Its_Generator

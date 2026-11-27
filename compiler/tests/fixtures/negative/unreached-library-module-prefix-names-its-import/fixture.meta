@@ -1,5 +1,5 @@
 class: negative
-summary: SR-1693 a qualified name whose prefix is a library module no import of the program reaches is L0201 naming the module, and carries its import as an exact fix
+summary: D2994 a qualified name whose prefix is a library module no import of the program reaches is L0201 naming the module, and carries its import as an exact fix
 program: main.ldn
 root: ../../../../..
 args: --target=linux-x86-64

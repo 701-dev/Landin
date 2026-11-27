@@ -226,7 +226,7 @@ package body Landin.Driver.Loading is
       end loop;
    end Load_Files;
 
-   --  SR-1693: every module of the library this target admits, by
+   --  D2994: every module of the library this target admits, by
    --  logical path, handed to the stages, which ask the host nothing, so
    --  that a prefix naming a library module no import reaches is told its
    --  import (D2174).  A module is a directory under `core`, `hosted` or

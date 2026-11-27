@@ -324,7 +324,7 @@ package body Landin.Stages.Resolution is
          end;
       end Named_Call_Form;
 
-      --  SR-1881: whether Named, unresolved in Of_Tree, is a system-call
+      --  D2999: whether Named, unresolved in Of_Tree, is a system-call
       --  number a wrapper of `platform/linux` uses: a name ending in
       --  `_number` in a file of that module.
       function Is_Wrapped_Number
@@ -2303,7 +2303,7 @@ package body Landin.Stages.Resolution is
                   elsif Named /= Landin.Source.Names.No_Name
                     and then Is_Wrapped_Number (Of_Tree, Named)
                   then
-                     --  SR-1881: a wrapper's call number is one the
+                     --  D2999: a wrapper's call number is one the
                      --  generator writes into `wrapped.ldn` from the names
                      --  the module uses, and nothing else declares it.
                      Names.Report
@@ -2313,12 +2313,12 @@ package body Landin.Stages.Resolution is
                         Message => "`" & Spelled (Named)
                                    & "` is not declared in any scope this"
                                    & " reaches",
-                        Note    => "[1860]: platform/linux's call numbers"
-                                   & " are declared in `wrapped.ldn`, which"
-                                   & " `python3 scripts/linux_syscalls.py`"
-                                   & " writes from the names the module's"
-                                   & " other files use; run it after adding"
-                                   & " a wrapper",
+                        Note    => "[1860]: platform/linux declares its call"
+                                   & " numbers in `wrapped.ldn`, a generated"
+                                   & " file; after adding a wrapper, run"
+                                   & " `python3 scripts/linux_syscalls.py`,"
+                                   & " which rewrites it from the names the"
+                                   & " module's other files use",
                         Into    => Found);
                   elsif Named /= Landin.Source.Names.No_Name then
                      Names.Report
