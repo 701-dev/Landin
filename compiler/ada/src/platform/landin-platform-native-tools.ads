@@ -27,6 +27,9 @@ package Landin.Platform.Native.Tools is
    --  process that deliberately leaves its group.
    procedure Set_Limit (Host : in out Native_Tool_Runner; Seconds : Duration);
 
+   --  The limit a runner starts with.
+   Default_Limit : constant Duration := 600.0;
+
    --  What a tool's standard input reads.  By default a tool inherits the
    --  caller's own; after this, each later Run opens Path for reading and
    --  gives the tool that instead, so a test can hand a program its input
@@ -101,7 +104,7 @@ package Landin.Platform.Native.Tools is
 private
 
    type Native_Tool_Runner is limited new Tool_Runner with record
-      Limit : Duration := 600.0;
+      Limit : Duration := Default_Limit;
       Input : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 

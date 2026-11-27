@@ -617,7 +617,6 @@ package body Landin.Stages.Checking.Flow is
         (Id : Res.Declaration_Id; State : Assigned_Set) return Boolean;
       function Shadowing_Local
         (Named : Landin.Source.Names.Name_Id) return Syn.Node_Id;
-      function Inside_Anonymous (Node : Syn.Node_Id) return Boolean;
       procedure Require_Inout_Places_Live
         (At_Span : Landin.Source.Span; State : Assigned_Set);
       function Element_Is_Assigned
@@ -1113,8 +1112,7 @@ package body Landin.Stages.Checking.Flow is
             or else State.Fields.Contains ((Id, 0)));
 
       --  The first binding in the body, at any depth, that declares Named:
-      --  a local or destructured name, outside any nested anonymous
-      --  function, whose own scope it is.
+      --  a local or destructured name.
       function Shadowing_Local
         (Named : Landin.Source.Names.Name_Id) return Syn.Node_Id
       is
@@ -1129,31 +1127,12 @@ package body Landin.Stages.Checking.Flow is
               and then Syn.Name (Of_Tree, Node) = Named
               and then Landin.Source.Contains
                 (Body_Extent, Syn.Where (Of_Tree, Node))
-              and then not Inside_Anonymous (Node)
             then
                return Node;
             end if;
          end loop;
          return Syn.No_Node;
       end Shadowing_Local;
-
-      --  Whether Node lies inside an anonymous function in the body.
-      function Inside_Anonymous (Node : Syn.Node_Id) return Boolean is
-         Body_Extent : constant Landin.Source.Span :=
-           Syn.Where (Of_Tree, Body_Node);
-      begin
-         for Other in Syn.Node_Id'(1) .. Syn.Last_Node (Of_Tree) loop
-            if Syn.Kind (Of_Tree, Other) = Syn.Anonymous_Function
-              and then Landin.Source.Contains
-                (Body_Extent, Syn.Where (Of_Tree, Other))
-              and then Landin.Source.Contains
-                (Syn.Where (Of_Tree, Other), Syn.Where (Of_Tree, Node))
-            then
-               return True;
-            end if;
-         end loop;
-         return False;
-      end Inside_Anonymous;
 
       procedure Require_Returns_Assigned
         (At_Span : Landin.Source.Span;
@@ -2074,12 +2053,9 @@ package body Landin.Stages.Checking.Flow is
             return;
          end if;
 
-         --  A fixed-array `lenof` asks only for a type constant.  Forming an
-         --  anonymous function likewise forms one static code address; its
-         --  separately checked no-capture body reads nothing in this flow.
+         --  A fixed-array `lenof` asks only for a type constant.
          if Syn.Kind (Of_Tree, Node)
               in Syn.Size_Of | Syn.Align_Of | Syn.Offset_Of
-                 | Syn.Anonymous_Function
            or else Measures_Unevaluated (Of_Tree, Node)
          then
             return;
@@ -2245,7 +2221,7 @@ package body Landin.Stages.Checking.Flow is
          --  These forms do not evaluate their children in this function.
          --  D31 includes calls inside an array literal measured by lenof.
          if Syn.Kind (Of_Tree, Root)
-              in Syn.Anonymous_Function | Syn.Size_Of | Syn.Align_Of
+              in Syn.Size_Of | Syn.Align_Of
                  | Syn.Offset_Of
            or else Measures_Unevaluated (Of_Tree, Root)
          then
@@ -2300,7 +2276,7 @@ package body Landin.Stages.Checking.Flow is
                  (Of_Tree, Syn.Value_Of (Of_Tree, Node), Result,
                   State, Edges, Whole_As, Discarded => True);
 
-            when Syn.Anonymous_Function | Syn.Size_Of | Syn.Align_Of
+            when Syn.Size_Of | Syn.Align_Of
                | Syn.Offset_Of =>
                Edges := Fallthrough_Edge;
 

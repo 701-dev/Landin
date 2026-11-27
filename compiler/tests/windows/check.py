@@ -50,6 +50,10 @@ SPECIALIZED = [('none', 'all'), ('speed', 'all')]
 #  trap instruction a failed check executes, `ud2` or arm64's `brk #1`,
 #  with no handler.
 TRAP_STATUS = 0xC000001D
+#  STATUS_ACCESS_VIOLATION: a program ended by a write to a read-only
+#  section, as an immutable module value's (D3014), which a fixture says
+#  with `protected: yes`.
+FAULT_STATUS = 0xC0000005
 #  What the selection must not ask of the lane: a C peer is the ABI kind's
 #  alone, and a C library is none Windows links.
 UNSUPPORTED = ('c-shared', 'c-archives', 'library-directories', 'c-inputs', 'link')
@@ -259,6 +263,7 @@ def build(args, bundle, item):
             'run_args': meta.run_args, 'run_files': given,
             'stdin': standard_input,
             'status': meta.status_at(level), 'traps': meta.traps,
+            'protected': meta.get('protected') == 'yes',
             'stream': meta.get('stream', 'merged'),
             'expected': expected is not None,
             'trap_report': meta.get('trap_report', '')}
@@ -603,9 +608,9 @@ def outcome(bundle, result, runner):
     #  Wine hands Linux the low byte of the Windows exit code.
     native = not runner
     if result['traps']:
-        wanted = TRAP_STATUS if native else TRAP_STATUS & 0xFF
-        require(status == wanted, '%s: status %#x, expected the trap\'s %#x'
-                % (label, status, wanted))
+        code = FAULT_STATUS if result.get('protected') else TRAP_STATUS
+        wanted = code if native else code & 0xFF
+        require(status == wanted, '%s: status %#x, expected %#x' % (label, status, wanted))
     else:
         #  A fixture's status is the one a POSIX parent reads, the low byte
         #  of what main returned; Windows keeps all 32 bits.

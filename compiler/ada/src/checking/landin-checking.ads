@@ -37,7 +37,7 @@ with Landin.Machine;
 --  A declaration's type is the type of the VALUE its name denotes.  D113
 --  makes a function name and an inferred Function_Value; D117 adds a written
 --  function type and D123 carries recursively nested descriptors through
---  storage, parameters, results and anonymous routines.  D128 gives each
+--  storage, parameters and results.  D128 gives each
 --  descriptor an ordered result run and gives a two-or-more result value its
 --  anonymous structural shape.  D131 puts the same descriptor beside a
 --  function-valued ordinary or payload field.  Type_Kind says that

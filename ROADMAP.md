@@ -2273,7 +2273,7 @@ what an array length folds (D1663). [1795] and the tree-sitter grammar lost
 the inline body and the `->` lookahead it needed. `refine fix --allow all`
 migrated the corpus, and an L0696-only script the negative fixtures, whose
 own refusals a full `refine fix` would have mended (`SR-1558`); seventeen
-fixtures that pinned only a removed form left with it. SR-1568 is filed for
+fixtures that pinned only a removed form left with it. `SR-1568` is filed for
 the anonymous-function paths the stages after the parser still hold.
 
 ### R19.70 — Range subtypes become distinct types
@@ -3538,7 +3538,7 @@ R22.13 fixed the same on main first, and the merge keeps its fix with
 vector instructions, and `SR-1979`, an `if` expression's or a literal
 range's type taken from a literal or an atom with no note of the written
 type that fixes it. It landed in R22.36's train: gate run 45920421418,
-passed on its second attempt after the first failed only in SR-1882's
+passed on its second attempt after the first failed only in `SR-1882`'s
 cancellation race and `SR-1940`'s stack-switch step, and boards run
 45920432106.
 
@@ -3683,7 +3683,7 @@ padding, so eight format fixtures' corpus rows record limits at
 `none/off` and RV32's 32 KiB maps, with their sizes, and
 `compiler/tests/float-text/README.md` holds the figures. Settled: `SR-97`, `SR-285`. The renamed
 `negative/format-array-names-its-type` keeps D880's pin now that an
-`f64` is formattable. Met on the way: SR-1939's grammar defect again,
+`f64` is formattable. Met on the way: `SR-1939`'s grammar defect again,
 in `core/text/shortest.ldn`, and restated; filed: `SR-2012`, L0102's
 `else begin return end` that L0329 then refuses in an `if` arm.
 
@@ -4027,7 +4027,7 @@ holds the tables to the pin in the gate. On Cortex-M0 at `size/auto` a
 program links only the tables it reaches (D2617): 5,388 bytes for
 grapheme clusters, 12,420 for the general category, 19,817 for NFC and
 NFD, and 36,084 for all four forms, which do not fit the 32 KiB profile.
-Q-321 asks how Unicode's notice goes with a program; SR-1938 records the
+Q-321 asks how Unicode's notice goes with a program; `SR-1938` records the
 hosted backends' writable sections for immutable data, met laying out
 the tables.
 
@@ -4074,21 +4074,49 @@ inference path decides, not a note's words.
 
 ### R22.32 — Defects the library work met
 
-Status: planned
+Status: complete
 Depends on: none
 
 Defects R19 to R22.30 met beside their own work, scheduled by the
-register sweep of 2026-11-26: SR-1938's immutable module arrays in a
-hosted image's writable section; SR-1939's Tree-sitter grammar, which
-misreads a sum of three operands followed by a statement; SR-1568's
-anonymous-function paths that nothing reaches since D1654; SR-1882's
+register sweep of 2026-11-26: `SR-1938`'s immutable module arrays in a
+hosted image's writable section; `SR-1939`'s Tree-sitter grammar, which
+misreads a sum of three operands followed by a statement; `SR-1568`'s
+anonymous-function paths that nothing reaches since D1654; `SR-1882`'s
 cancellation test, which signals `refine` before its handlers are
-installed on a loaded host; and SR-1740's runtime outcome that never
+installed on a loaded host; and `SR-1740`'s runtime outcome that never
 ends and holds the whole test program until the job's limit. Placed
 here so that no phase gate waits for it; it depends on no other item.
 
 Exit evidence: each row's completion with the fixture, corpus test or
 control it names.
+
+Done: an immutable module value is in its target's read-only section
+on every backend, `.rodata`, `__TEXT,__const` or `.rdata`, a wholly zero
+one written there and no longer reserved in RAM on RV32 and Xtensa, by one
+predicate the backends and the image measurement share (D3014);
+`runtime/immutable-module-value-write-faults` and its zero counterpart end
+by the fault on every hosted target, and a new metadata key,
+`protected: yes`, says the oracle is a refused write: the lanes that name
+a trap's signal expect SIGSEGV or SIGBUS for it, Windows
+`STATUS_ACCESS_VIOLATION`, and the firmware corpora read it as an oracle
+firmware without memory protection cannot give. A relocated immutable value on a hosted target stays writable,
+`SR-2147`. The Tree-sitter grammar reads a sum of any length before a
+statement: each operator level's tail is right-recursive at the level's
+own precedence, where `repeat1`'s helper had none, so a `-` that could
+begin the next statement no longer ended the sum; the measurement's
+operator is the words `lenof` and `offsetof`, `offsetof` as well since
+[1820] and the from-c fixtures have it, which the row's completion did
+not name; the three library lines are written plainly again, with
+`highlight/tree-sitter/test/corpus/sums.txt`. The anonymous-function node and every stage's
+path for it are gone, the parser returning an error expression over the
+refused span, about 400 lines. The cancellation test signals `refine`
+once the kernel shows its handler installed and, for a run, once it holds
+its directory, with a `-delayed` case starting it a second late. A
+runtime outcome has a limit of its own, two minutes: the runner's ten
+already stopped a QEMU program, but `events-network-limits` ran at six
+profiles in one piece, six hung ten-minute accepts past the job's hour.
+Filed from findings handed to the item or met on the way: `SR-2143` to
+`SR-2146`.
 
 ### R22.33 — Boards reused on identical images
 
@@ -4274,7 +4302,7 @@ yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
 the table's `shadow` entry, which the weekly `table --write` keeps.
 Its own gate run 45902780283 and boards run 45902794687 passed; it landed
 with R22.15 as one train on gate run 45920421418, passed on its second
-attempt after two known flakes (SR-1882, `SR-1940`), and boards run
+attempt after two known flakes (`SR-1882`, `SR-1940`), and boards run
 45920432106. The shadow period, the causes it records and the measured
 miss rate remain for the item to close.
 
@@ -4667,8 +4695,8 @@ folded and normalized by hand. On Cortex-M0 at `size/auto` equality, a
 prefix and a suffix without case take 5,662 bytes of tables and the
 canonical match 19,570, and the ASCII forms 724 bytes of code. Fixed on the
 way: `docs/library.md` named the scalar walk's `done` and `width`, renamed
-by D2030 and D2031, and a narrow integer had no append. SR-1939's and
-SR-2012's refusals were met again and recorded in their rows.
+by D2030 and D2031, and a narrow integer had no append. `SR-1939`'s and
+`SR-2012`'s refusals were met again and recorded in their rows.
 
 ### R22.46 — The complete gate belongs to a batch
 

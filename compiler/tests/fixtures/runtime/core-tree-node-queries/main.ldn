@@ -20,12 +20,16 @@ queried: (inout value: tree.tree, memory: arena.arena) -> none ! ... =
     fail wrong when tree.ordinal(start) <> 0 or zero <> 0
 end queried
 
-mut backing: [512]u8 = zeroed
+--  Room beyond the 512 bytes the nodes take from an aligned start: the
+--  array is aligned only as bytes are, and a start that is not costs the
+--  arena its padding (D3014 moved it to a 4-aligned address under
+--  Microsoft's link).
+mut backing: [1024]u8 = zeroed
 
 public main: () -> (code: i32) =
     code = 1
     mut space: arena.space = zeroed
-    bump := arena.over(space, addr backing[0], 512)
+    bump := arena.over(space, addr backing[0], 1024)
     mut value := tree.new()
     queried(value, bump) else (problem)
         _ = problem

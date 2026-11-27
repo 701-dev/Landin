@@ -19309,6 +19309,46 @@ type argument and a failure set, and
 `negative/library-module-concept-prefix-names-its-import`, a prefix the
 resolver reads; each fixed program compiles with no report.
 
+### D3014 — An immutable module value is read-only on every target
+
+**The discrepancy:** [1460] says an immutable value can stay in flash, and
+D161 puts a text literal in `.rodata` so that a write through a reference
+the checker should have refused faults. Only the firmware backends put an
+immutable module value there; Linux x86-64, arm64 and RV64, and with them
+FreeBSD, Darwin and Windows, emitted it in a writable `.data`, and a wholly
+zero one in `.bss`, so a write through a pointer made from its address
+changed it silently for every reader. RV32 and Xtensa reserved a wholly
+zero immutable value beside the mutable ones, in RAM.
+
+**Chosen:** every backend places an immutable module value in its
+target's read-only section, `.rodata`, Mach-O's `__TEXT,__const` or PE's
+`.rdata`, unless it is in thread storage or, on a hosted target, its image
+names another symbol: a function, an address, a slice's source or a
+field's target. A wholly zero one is written there, its zeros with it. One
+predicate, `Landin.Backend.In_Read_Only_Section`, decides for every
+backend and for the image measurement, whose writable count it also
+corrects. A firmware image is linked where it runs and has no loader, so
+its relocated constants stay in flash as before.
+
+**The alternatives:** a relocated immutable value in `.data.rel.ro` or
+`__DATA_CONST`, which a loader makes read-only after writing it; whether
+each hosted link mode has a loader that does so was not established here,
+so a relocated value keeps its writable section until an item that
+changes how hosted images are relocated settles it. A wholly zero
+immutable value reserved in a read-only `NOBITS` section, which costs no
+file bytes but leaves its placement to each linker's rules for an
+allocated section without contents. Both were declined.
+
+**Pinned by** `runtime/immutable-module-value-write-faults` and
+`runtime/immutable-zero-module-value-write-faults` on every hosted target,
+whose write through a pointer made from the value's address ends the
+program by SIGSEGV or SIGBUS, and on Windows by `STATUS_ACCESS_VIOLATION`.
+Their metadata says `protected: yes`, so that the lanes which name a
+trap's signal expect the refused write's instead, and the firmware
+corpora, whose targets have no memory protection to refuse it, read the
+oracle as one firmware cannot give.
+
+
 ## DECISIONS: THE TOOLCHAIN, C AND THE MACHINE
 
 The C boundary, the machine directives, the entry point, and the

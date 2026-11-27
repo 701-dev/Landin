@@ -47,7 +47,7 @@ package body Landin.Formatting is
    --  began.  An if arm and a fixed arm answer for the conditional they
    --  belong to.
    function Is_Construct (Of_Kind : Syn.Node_Kind) return Boolean
-     is (Of_Kind in Syn.Function_Declaration | Syn.Anonymous_Function
+     is (Of_Kind in Syn.Function_Declaration
                   | Syn.If_Statement | Syn.If_Arm | Syn.Fixed_Conditional
                   | Syn.Fixed_Arm | Syn.While_Statement | Syn.For_Statement
                   | Syn.Loop_Statement | Syn.Match_Statement | Syn.Bare_Block

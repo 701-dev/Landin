@@ -295,6 +295,15 @@ package body Landin.Tests.Fixture_Execution_Suite is
       end;
    end Lane_Note;
 
+   --  How long one runtime or ABI outcome may run, its own limit rather
+   --  than the runner's ten minutes for any tool.  A fixture runs once per
+   --  profile, six of them under `profiles: specialization`, so an outcome
+   --  that never ended held its piece for an hour and the job was
+   --  cancelled at its limit naming nothing.  Two minutes is
+   --  far past any outcome's run on any lane, QEMU's included, and a hang
+   --  is then one failed outcome named by its label and profile.
+   Outcome_Limit : constant Duration := 120.0;
+
    --  How many fixtures may be in flight at once.  One unless a run asks
    --  for more, so the harness behaves exactly as it always has by default
    --  and a parallel run is something a caller opted into.  An unreadable
@@ -3269,9 +3278,12 @@ package body Landin.Tests.Fixture_Execution_Suite is
          end;
          Feed_Standard_Input
            (Runner, Case_Item, Fixture_Root & "/runtime/" & Name (Case_Item));
+         Landin.Platform.Native.Tools.Set_Limit (Runner, Outcome_Limit);
          Run_With_Stream
            (Case_Item, Label, Runner, Built, Runtime_Arguments, Outcome, Item,
             Compiled => True);
+         Landin.Platform.Native.Tools.Set_Limit
+           (Runner, Landin.Platform.Native.Tools.Default_Limit);
 
          if Outcome.Ended = Landin.Platform.Timed_Out then
             Landin.Testing.Fail
@@ -3505,9 +3517,12 @@ package body Landin.Tests.Fixture_Execution_Suite is
               (Case_Item, Directory, Runtime_Arguments);
          end;
          Feed_Standard_Input (Runner, Case_Item, Directory);
+         Landin.Platform.Native.Tools.Set_Limit (Runner, Outcome_Limit);
          Run_With_Stream
            (Case_Item, Label, Runner, Built, Runtime_Arguments, Outcome, Item,
             Compiled => True);
+         Landin.Platform.Native.Tools.Set_Limit
+           (Runner, Landin.Platform.Native.Tools.Default_Limit);
 
          if Outcome.Ended = Landin.Platform.Timed_Out then
             Landin.Testing.Fail

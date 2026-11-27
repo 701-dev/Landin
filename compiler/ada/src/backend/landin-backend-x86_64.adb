@@ -10183,7 +10183,8 @@ package body Landin.Backend.X86_64 is
                        (Item => Item, Shared_With => Shared_With (Index),
                         others => <>));
                end if;
-            elsif Landin.IR.Is_Read_Only (Of_Unit, Item) then
+            elsif Landin.Backend.In_Read_Only_Section (Of_Unit, Facts, Item)
+            then
                Any_Read_Only := True;
             elsif Is_All_Zero (Item) then
                Any_Reserved := True;
@@ -10416,7 +10417,9 @@ package body Landin.Backend.X86_64 is
 
       --  D161: read-only images sit in `.rodata`, so a write through a
       --  reference the checker should have refused faults instead of
-      --  silently changing every reader's literal.
+      --  silently changing every reader's literal.  D3014: so does every
+      --  immutable module value whose image the loader need not write,
+      --  a wholly zero one with its zeros.
       if Any_Read_Only then
          for Index in 1 .. Landin.IR.Item_Count (Of_Unit) loop
             declare
@@ -10424,11 +10427,49 @@ package body Landin.Backend.X86_64 is
                  Landin.IR.Item_Id (Index);
             begin
                if Landin.IR.Kind_Of (Of_Unit, Item) = Landin.IR.Datum
-                 and then Landin.IR.Is_Read_Only (Of_Unit, Item)
+                 and then Landin.Backend.In_Read_Only_Section
+                   (Of_Unit, Facts, Item)
                then
                   Begin_Item_Section
                     (".rodata.landin_datum_", """a"",@progbits", Index);
-                  Emit_Array_Image_Datum (Item);
+                  if Landin.IR.Is_Read_Only (Of_Unit, Item) then
+                     Emit_Array_Image_Datum (Item);
+                  elsif Is_All_Zero (Item) then
+                     if Landin.IR.Result_Of (Of_Unit, Item)
+                        = Landin.Types.Aggregate
+                     then
+                        Emit_Aggregate_Datum (Item);
+                     elsif Landin.IR.Result_Of (Of_Unit, Item)
+                           = Landin.Types.Fixed_Array
+                     then
+                        Emit_Array_Datum (Item);
+                     else
+                        Emit_Reserved
+                          (Item,
+                           Landin.Targets.Byte_Count
+                             (Landin.Targets.Bytes
+                                (Size_Of
+                                   (Landin.IR.Result_Of (Of_Unit, Item),
+                                    Facts))),
+                           Landin.Targets.Alignment_Of
+                             (Facts,
+                              Size_Of
+                                (Landin.IR.Result_Of (Of_Unit, Item),
+                                 Facts)));
+                     end if;
+                  elsif Landin.IR.Result_Of (Of_Unit, Item)
+                     = Landin.Types.Aggregate
+                  then
+                     Emit_Recursive_Image_Datum (Item);
+                  elsif Landin.IR.Has_Slice_Image (Of_Unit, Item) then
+                     Emit_Slice_Image_Datum (Item);
+                  elsif Landin.IR.Result_Of (Of_Unit, Item)
+                        = Landin.Types.Fixed_Array
+                  then
+                     Emit_Array_Image_Datum (Item);
+                  else
+                     Emit_Datum (Item);
+                  end if;
                end if;
             end;
          end loop;
@@ -10523,7 +10564,8 @@ package body Landin.Backend.X86_64 is
                  Landin.IR.Item_Id (Index);
             begin
                if Landin.IR.Kind_Of (Of_Unit, Item) = Landin.IR.Datum
-                 and then not Landin.IR.Is_Read_Only (Of_Unit, Item)
+                 and then not Landin.Backend.In_Read_Only_Section
+                   (Of_Unit, Facts, Item)
                  and then not Is_All_Zero (Item)
                then
                   Begin_Item_Section
@@ -10553,8 +10595,8 @@ package body Landin.Backend.X86_64 is
             function Reserved (Index : Positive) return Boolean
             is (Landin.IR.Kind_Of (Of_Unit, Landin.IR.Item_Id (Index))
                   = Landin.IR.Datum
-                and then not Landin.IR.Is_Read_Only
-                  (Of_Unit, Landin.IR.Item_Id (Index))
+                and then not Landin.Backend.In_Read_Only_Section
+                  (Of_Unit, Facts, Landin.IR.Item_Id (Index))
                 and then Is_All_Zero (Landin.IR.Item_Id (Index)));
 
             Count : Natural := 0;

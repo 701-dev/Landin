@@ -42,7 +42,6 @@ package body Landin.Syntax is
             when Bare_Block               => 1,
             when Labeled_Application | Call => 1,
             when Try_Expression            => 1,
-            when Anonymous_Function       => 3,
             when Error_Expression         => 0,
             when Name_Reference           => 0,
             --  The one slot is what it selects from; the name it selects
@@ -566,7 +565,7 @@ package body Landin.Syntax is
      is (Slot
            (Of_Tree, Id,
             (case Kind (Of_Tree, Id) is
-                when Function_Declaration | Anonymous_Function => 3,
+                when Function_Declaration => 3,
                 when Bare_Block => 1,
                 when others => 2)));
 

@@ -1,0 +1,10 @@
+-- D3014: a wholly zero immutable module value is written into the
+-- read-only section, zeros and all, rather than reserved beside the
+-- mutable ones, so a write through a pointer made from its address faults.
+zeros: [4]u32 = zeroed
+
+public main: () -> (code: i32) =
+    cell: ptr mut u32 = ptr(usize(addr zeros))
+    cell.val = 9
+    code = i32(zeros[0])
+end main
