@@ -158,7 +158,7 @@ public name_service_of: (settings: []u8) -> (service: name_service) =
         ends: usize = start + mem.find(settings[start..<lenof settings],
                                        u8('\n'))
         line: []u8 = settings[start..<start + mem.find(settings[start..<ends],
-                                                      u8('#'))]
+                                                       u8('#'))]
         start = ends + 1
         (begins: first, ends: past) := word_at(line, 0)
         keyword: []u8 = line[first..<past]
@@ -444,7 +444,7 @@ tcp_exchange: (provider: type is network, host: provider, connection: io.file,
         fail io.io_failed
     end
     fail io.io_failed when try received_all(host, connection,
-                                             prefix[0..<2]) < 2
+                                            prefix[0..<2]) < 2
     mut wanted: usize = usize(word16(prefix[0..<2], 0))
     if wanted > lenof answer then wanted = lenof answer end if
     length = try received_all(host, connection, answer[0..<wanted])

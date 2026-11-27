@@ -1198,7 +1198,6 @@ network_receive_from_local: (self: network, socket: io.file, into: []mut u8,
     sender = text.os_string_over(room[0..<named])
 end network_receive_from_local
 
-
 network is io.reader (read: network_read)
 network is io.writer (write: network_write,
                       write_some: network_write_some)

@@ -430,7 +430,7 @@ fixed if compiler.os <> windows then
     end option_failure
 
     events_set_flag: (self: host, socket: io.file, which: net.flag_option,
-                        on: bool) -> none ! net.unsupported | io.io_failed =
+                      on: bool) -> none ! net.unsupported | io.io_failed =
         cleared(self)
         system.set_socket_flag(socket, which, on) else (problem)
             try option_failure(self, problem)
@@ -439,7 +439,7 @@ fixed if compiler.os <> windows then
     end events_set_flag
 
     events_flag: (self: host, socket: io.file, which: net.flag_option)
-                   -> (on: bool) ! net.unsupported | io.io_failed =
+                 -> (on: bool) ! net.unsupported | io.io_failed =
         cleared(self)
         on = system.socket_flag(socket, which) else (problem)
             try option_failure(self, problem)
@@ -448,8 +448,8 @@ fixed if compiler.os <> windows then
     end events_flag
 
     events_set_number: (self: host, socket: io.file,
-                          which: net.number_option, value: u32)
-                         -> none ! net.unsupported | io.io_failed =
+                        which: net.number_option, value: u32)
+                       -> none ! net.unsupported | io.io_failed =
         cleared(self)
         system.set_socket_number(socket, which, value) else (problem)
             try option_failure(self, problem)
@@ -458,7 +458,7 @@ fixed if compiler.os <> windows then
     end events_set_number
 
     events_number: (self: host, socket: io.file, which: net.number_option)
-                     -> (value: u32) ! net.unsupported | io.io_failed =
+                   -> (value: u32) ! net.unsupported | io.io_failed =
         cleared(self)
         value = system.socket_number(socket, which) else (problem)
             try option_failure(self, problem)
@@ -467,8 +467,8 @@ fixed if compiler.os <> windows then
     end events_number
 
     events_set_span: (self: host, socket: io.file, which: net.span_option,
-                        value: time.duration)
-                       -> none ! net.unsupported | io.io_failed =
+                      value: time.duration)
+                     -> none ! net.unsupported | io.io_failed =
         cleared(self)
         system.set_socket_span(socket, which, value) else (problem)
             try option_failure(self, problem)
@@ -477,7 +477,7 @@ fixed if compiler.os <> windows then
     end events_set_span
 
     events_span: (self: host, socket: io.file, which: net.span_option)
-                   -> (value: time.duration) ! net.unsupported | io.io_failed =
+                 -> (value: time.duration) ! net.unsupported | io.io_failed =
         cleared(self)
         value = system.socket_span(socket, which) else (problem)
             try option_failure(self, problem)
@@ -486,7 +486,7 @@ fixed if compiler.os <> windows then
     end events_span
 
     events_set_linger: (self: host, socket: io.file, on: bool,
-                          limit: time.duration) -> none ! io.io_failed =
+                        limit: time.duration) -> none ! io.io_failed =
         cleared(self)
         system.set_socket_linger(socket, on, limit) else (problem)
             record(self, problem)
@@ -495,7 +495,7 @@ fixed if compiler.os <> windows then
     end events_set_linger
 
     events_linger: (self: host, socket: io.file)
-                     -> (on: bool, limit: time.duration) ! io.io_failed =
+                   -> (on: bool, limit: time.duration) ! io.io_failed =
         cleared(self)
         (on: lingers, limit: kept) := system.socket_linger(socket)
             else (problem)
@@ -521,21 +521,21 @@ fixed if compiler.os <> windows then
     end membership
 
     events_join_group: (self: host, socket: io.file, group: net.address,
-                          through: net.address)
-                         -> none ! net.address_unavailable | io.io_failed =
+                        through: net.address)
+                       -> none ! net.address_unavailable | io.io_failed =
         try membership(self, socket, group, through, true)
     end events_join_group
 
     events_leave_group: (self: host, socket: io.file, group: net.address,
-                           through: net.address)
-                          -> none ! net.address_unavailable | io.io_failed =
+                         through: net.address)
+                        -> none ! net.address_unavailable | io.io_failed =
         try membership(self, socket, group, through, false)
     end events_leave_group
 
     events_set_multicast_interface: (self: host, socket: io.file,
-                                  through: net.address)
-                                 -> none ! net.address_unavailable
-                                         | io.io_failed =
+                                     through: net.address)
+                                    -> none ! net.address_unavailable
+                                            | io.io_failed =
         cleared(self)
         system.set_socket_multicast_interface(socket, through) else (problem)
             record(self, problem)
@@ -546,7 +546,7 @@ fixed if compiler.os <> windows then
     end events_set_multicast_interface
 
     events_multicast_interface: (self: host, socket: io.file)
-                             -> (through: net.address) ! io.io_failed =
+                                -> (through: net.address) ! io.io_failed =
         cleared(self)
         through = system.socket_multicast_interface(socket) else (problem)
             record(self, problem)
@@ -555,9 +555,9 @@ fixed if compiler.os <> windows then
     end events_multicast_interface
 
     events_resolve: (self: host, name: []u8, port: u16,
-                       into: []mut net.address)
-                      -> (count: usize)
-                      ! net.unknown_name | net.timed_out | io.io_failed =
+                     into: []mut net.address)
+                    -> (count: usize)
+                    ! net.unknown_name | net.timed_out | io.io_failed =
         cleared(self)
         count = try system.resolve_over(self, name, port, into)
     end events_resolve
@@ -598,9 +598,9 @@ fixed if compiler.os <> windows then
     end local_bind_failure
 
     events_listen_local: (self: host, path: text.os_string)
-                           -> (listener: io.file)
-                           ! net.address_in_use | net.invalid_address
-                           | net.unsupported | io.no_access | io.io_failed =
+                         -> (listener: io.file)
+                         ! net.address_in_use | net.invalid_address
+                         | net.unsupported | io.no_access | io.io_failed =
         cleared(self)
         at: posix.socket_address = try local_record(self, path)
         made: posix.descriptor = bound_locally(at, posix.stream, true)
@@ -612,10 +612,10 @@ fixed if compiler.os <> windows then
     end events_listen_local
 
     events_open_local_datagram: (self: host, path: text.os_string)
-                                  -> (socket: io.file)
-                                  ! net.address_in_use | net.invalid_address
-                                  | net.unsupported | io.no_access
-                                  | io.io_failed =
+                                -> (socket: io.file)
+                                ! net.address_in_use | net.invalid_address
+                                | net.unsupported | io.no_access
+                                | io.io_failed =
         cleared(self)
         at: posix.socket_address = try local_record(self, path)
         made: posix.descriptor = bound_locally(at, posix.datagram, false)
@@ -650,9 +650,9 @@ fixed if compiler.os <> windows then
     end nobody_there
 
     events_connect_local: (self: host, path: text.os_string)
-                            -> (connected: io.file)
-                            ! net.refused | net.invalid_address
-                            | net.unsupported | io.no_access | io.io_failed =
+                          -> (connected: io.file)
+                          ! net.refused | net.invalid_address
+                          | net.unsupported | io.no_access | io.io_failed =
         cleared(self)
         at: posix.socket_address = try local_record(self, path)
         made: posix.descriptor = connected_locally(self, at) else (problem)
@@ -666,9 +666,9 @@ fixed if compiler.os <> windows then
     end events_connect_local
 
     events_send_to_local: (self: host, socket: io.file, bytes: []u8,
-                             path: text.os_string)
-                            -> none ! net.refused | net.invalid_address
-                                    | net.timed_out | io.io_failed =
+                           path: text.os_string)
+                          -> none ! net.refused | net.invalid_address
+                                  | net.timed_out | io.io_failed =
         cleared(self)
         target: posix.socket_address = try local_record(self, path)
         opened: posix.descriptor = system.descriptor_of(socket)
@@ -701,24 +701,24 @@ fixed if compiler.os <> windows then
     end sender_path
 
     events_receive_from_local: (self: host, socket: io.file, into: []mut u8,
-                                  room: []mut u8)
-                                 -> (count: usize,
-                                     sender: text.os_string from room)
-                                 ! net.timed_out | io.io_failed =
+                                room: []mut u8)
+                               -> (count: usize,
+                                   sender: text.os_string from room)
+                               ! net.timed_out | io.io_failed =
         cleared(self)
         opened: posix.descriptor = system.descriptor_of(socket)
         deadline: u64 = limit_of(opened, false)
         loop do
             got: posix.received = posix.receive_from(opened, into)
                 else (problem)
-                    continue when problem == posix.eintr
-                    if would_wait(problem) then
-                        try socket_ready(self, opened, false, deadline)
-                        continue
-                    end if
-                    record(self, problem)
-                    fail io.io_failed
-                end
+                continue when problem == posix.eintr
+                if would_wait(problem) then
+                    try socket_ready(self, opened, false, deadline)
+                    continue
+                end if
+                record(self, problem)
+                fail io.io_failed
+            end
             fail io.io_failed when got.count > lenof into
             sender = try sender_path(self, got.sender, room)
             count = got.count
