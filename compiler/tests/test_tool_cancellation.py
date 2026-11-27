@@ -26,6 +26,61 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 import lane_refine  # noqa: E402
 
 
+def catches(pid, number):
+    """Whether process PID has a handler installed for signal NUMBER.
+
+    Linux says so in /proc; Darwin's and FreeBSD's ps print the same mask as
+    its `caught` column.  Both are the kernel's word, not a timing guess."""
+    status = Path('/proc/%d/status' % pid)
+    if sys.platform.startswith('linux'):
+        try:
+            text = status.read_text()
+        except FileNotFoundError:
+            return False
+        mask = next(line.split()[1] for line in text.splitlines()
+                    if line.startswith('SigCgt:'))
+    else:
+        shown = subprocess.run(['ps', '-o', 'caught=', '-p', str(pid)],
+                               capture_output=True, text=True, timeout=30)
+        mask = shown.stdout.strip()
+        if shown.returncode or not mask:
+            return False
+    return bool(int(mask, 16) >> (int(number) - 1) & 1)
+
+
+def await_handlers(process, number, ready=lambda: True, limit=60):
+    """Wait until PROCESS has installed its handler for NUMBER and READY.
+
+    A signal sent before `refine` has installed its handlers takes the
+    default action, which on a loaded host is no fault of the command."""
+    deadline = time.monotonic() + limit
+    while not (catches(process.pid, number) and ready()):
+        if process.poll() is not None:
+            raise AssertionError('refine ended before it installed its '
+                                 'handlers: exit %d' % process.returncode)
+        if time.monotonic() > deadline:
+            raise TimeoutError('refine did not install its handler for %s '
+                               'within %d seconds' % (number.name, limit))
+        time.sleep(0.002)
+
+
+def delayed(refine, root):
+    """A launcher that waits a second before it becomes REFINE.
+
+    It stands for a loaded host, on which `refine` installs its handlers
+    late: a signal sent at a fixed delay after the start would reach the
+    launcher's default action.  Python's own SIGINT handler is put back to
+    the default so that the launcher is not mistaken for refine."""
+    launcher = root / 'delayed-refine'
+    launcher.write_text('#!' + sys.executable + '\n' + '''import os, signal, sys, time
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+time.sleep(1)
+os.execv(''' + repr(str(refine)) + ''', [''' + repr(str(refine)) + '''] + sys.argv[1:])
+''')
+    launcher.chmod(0o700)
+    return launcher
+
+
 def command_controls(refine, output):
     """Interrupt an actual compile/run at the tool's readiness boundary."""
     driver = shutil.which('clang' if sys.platform == 'darwin' else 'gcc')
@@ -224,10 +279,15 @@ def unheld_commands(refine, output):
                               capture_output=True, timeout=300)
     whole = time.monotonic() - whole
     results = []
-    for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
-        process = subprocess.Popen([str(refine), 'check', str(source)], cwd=root,
+    # Each signal is sent once refine has installed its handlers; the
+    # delayed launcher's case is the control that a late start, as on a
+    # loaded host, is waited for rather than taken for a failure.
+    launcher = delayed(refine, root)
+    for number, start in ((signal.SIGINT, refine), (signal.SIGTERM, refine),
+                          (signal.SIGHUP, refine), (signal.SIGTERM, launcher)):
+        process = subprocess.Popen([str(start), 'check', str(source)], cwd=root,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(min(0.2, whole / 4))
+        await_handlers(process, number)
         sent = time.monotonic()
         process.send_signal(number)
         try:
@@ -241,12 +301,13 @@ def unheld_commands(refine, output):
         passed = (process.returncode == 128 + number
                   and took < max(0.5, whole / 2) and not stdout
                   and stderr == b'refine: cancelled by signal %d\n' % number)
-        row = dict(command='check', signal=number.name, passed=passed,
+        name = number.name + ('-delayed' if start == launcher else '')
+        row = dict(command='check', signal=name, passed=passed,
                    exit_status=process.returncode, seconds_after_signal=took,
                    whole_check_seconds=whole, complete_exit=complete.returncode,
                    stderr=stderr.decode(errors='replace')[-400:])
         results.append(row)
-        print(('PASS ' if passed else 'FAIL ') + 'unheld-check-' + number.name,
+        print(('PASS ' if passed else 'FAIL ') + 'unheld-check-' + name,
               flush=True)
         if not passed:
             raise AssertionError(row)
@@ -261,12 +322,16 @@ def unheld_commands(refine, output):
     wrapper.write_text('#!/bin/sh\n: > ' + shlex.quote(str(started))
                        + '\nexec ' + shlex.quote(driver) + ' "$@"\n')
     wrapper.chmod(0o700)
-    for number in (signal.SIGTERM, signal.SIGHUP):
+    # Sent once refine holds its directory, which it makes after its
+    # handlers are installed: the signal then always finds what it tests.
+    for number, start in ((signal.SIGTERM, refine), (signal.SIGHUP, refine),
+                          (signal.SIGTERM, launcher)):
         process = subprocess.Popen(
-            [str(refine), 'run', '--toolchain=' + str(wrapper), str(source)],
+            [str(start), 'run', '--toolchain=' + str(wrapper), str(source)],
             cwd=root, env=dict(os.environ, TMPDIR=str(temporary)),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(min(0.2, whole / 4))
+        await_handlers(process, number,
+                       ready=lambda: any(temporary.iterdir()))
         process.send_signal(number)
         try:
             stdout, stderr = process.communicate(timeout=300)
@@ -277,12 +342,13 @@ def unheld_commands(refine, output):
         passed = (process.returncode == 128 + number and not started.exists()
                   and not left and not stdout
                   and b'cancelled by signal' in stderr)
-        row = dict(command='run', signal=number.name, passed=passed,
+        name = number.name + ('-delayed' if start == launcher else '')
+        row = dict(command='run', signal=name, passed=passed,
                    exit_status=process.returncode, left=left,
                    tool_started=started.exists(),
                    stderr=stderr.decode(errors='replace')[-400:])
         results.append(row)
-        print(('PASS ' if passed else 'FAIL ') + 'held-run-' + number.name,
+        print(('PASS ' if passed else 'FAIL ') + 'held-run-' + name,
               flush=True)
         if not passed:
             raise AssertionError(row)
