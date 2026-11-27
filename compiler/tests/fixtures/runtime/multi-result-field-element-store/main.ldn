@@ -1,0 +1,104 @@
+--  Each routine below has two named results, so each result is a field of
+--  the one result aggregate its caller supplies.  A store into a part of
+--  the struct result is a store into that field, and the caller reads what
+--  was stored; each shape fails with a status of its own.
+
+pair: type = struct
+    x: u8
+    y: u16
+end pair
+
+inner: type = struct
+    a: [3]u16
+end inner
+
+box: type = struct
+    port: u32
+    a: [4]u8
+    nest: inner
+    items: [3]pair
+end box
+
+element: () -> (through: box, code: u32) =
+    through = zeroed
+    code = 0
+    through.a[0] = 127
+end element
+
+scalar: () -> (through: box, code: u32) =
+    through = zeroed
+    code = 0
+    through.port = 99
+end scalar
+
+whole: () -> (through: box, code: u32) =
+    mut o: [4]u8 = zeroed
+    o[2] = 55
+    through = zeroed
+    code = 0
+    through.a = o
+end whole
+
+array: () -> (through: [4]u8, code: u32) =
+    through = zeroed
+    code = 0
+    through[0] = 127
+end array
+
+deeper: () -> (through: box, code: u32) =
+    through = zeroed
+    code = 0
+    through.nest.a[1] = 300
+end deeper
+
+of_structs: (i: usize) -> (through: box, code: u32) =
+    through = zeroed
+    code = 0
+    through.items[1].x = 7
+    through.items[i].y = 900
+end of_structs
+
+computed: (i: usize) -> (through: box, code: u32) =
+    through = zeroed
+    code = 0
+    through.a[i] = 33
+    inc through.a[i]
+end computed
+
+read_back: (i: usize) -> (through: box, code: u32) =
+    through = zeroed
+    through.a[1] = 21
+    through.nest.a[i] = 400
+    code = u32(through.a[1]) + u32(through.nest.a[i])
+end read_back
+
+public main: () -> (code: i32) =
+    (through: e, code: e_code) := element()
+    (through: s, code: s_code) := scalar()
+    (through: w, code: w_code) := whole()
+    (through: r, code: r_code) := array()
+    (through: d, code: d_code) := deeper()
+    (through: o, code: o_code) := of_structs(2)
+    (through: c, code: c_code) := computed(3)
+    (through: b, code: b_code) := read_back(2)
+
+    if e.a[0] <> 127 or e_code <> 0 then
+        code = 1
+    elsif s.port <> 99 or s_code <> 0 then
+        code = 2
+    elsif w.a[2] <> 55 or w_code <> 0 then
+        code = 3
+    elsif r[0] <> 127 or r_code <> 0 then
+        code = 4
+    elsif d.nest.a[1] <> 300 or d_code <> 0 then
+        code = 5
+    elsif o.items[1].x <> 7 or o.items[2].y <> 900 or o_code <> 0 then
+        code = 6
+    elsif c.a[3] <> 34 or c_code <> 0 then
+        code = 7
+    elsif b_code <> 421 or b.a[1] <> 21 or b.nest.a[2] <> 400 then
+        code = 8
+    else
+        code = 42
+    end if
+end main

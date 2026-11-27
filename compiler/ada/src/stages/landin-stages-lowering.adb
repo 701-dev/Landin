@@ -14073,12 +14073,20 @@ package body Landin.Stages.Lowering is
                   --  D120: an alias for an ordinary-struct payload is not
                   --  a payload leaf; a field of it is written the way a
                   --  field of any other storage is, through the run that
-                  --  reaches it.
+                  --  reaches it.  An element below it is that run's
+                  --  element: an alias names a part of storage somewhere
+                  --  else and has no slot of its own, so an element below a
+                  --  struct alias -- a named result kept in its routine's
+                  --  result aggregate, an `inout` struct payload -- is
+                  --  stored through the alias with the selections below it
+                  --  as the nested run, the way it is read.
                   if Aliases (Declared (Means)).Active
-                    and then Syn.Kind (Of_Tree, Place)
-                      /= Syn.Member_Selection
-                    and then not Roots_At_An_Aggregate_Alias
-                      (Of_Tree, Selected)
+                    and then
+                      (Syn.Kind (Of_Tree, Place) = Syn.Element_Index
+                       or else
+                         (Syn.Kind (Of_Tree, Place) /= Syn.Member_Selection
+                          and then not Roots_At_An_Aggregate_Alias
+                            (Of_Tree, Selected)))
                   then
                      declare
                         Alias : Payload_Alias renames
@@ -14105,12 +14113,14 @@ package body Landin.Stages.Lowering is
                                     IR.Emit_Store_Element
                                       (Unit.all, Filling,
                                        Alias.Source.Datum, Index, Value, Site,
-                                       Field => Alias.Field);
+                                       Field  => Alias.Field,
+                                       Nested => Element_Path);
                                  when IR.Frame_Slot =>
                                     IR.Emit_Store_Slot_Element
                                       (Unit.all, Filling,
                                        Alias.Source.Slot, Index, Value, Site,
-                                       Field => Alias.Field);
+                                       Field  => Alias.Field,
+                                       Nested => Element_Path);
                                  when IR.Runtime_Address =>
                                     declare
                                        Address : constant IR.Value_Id :=

@@ -4498,7 +4498,14 @@ atoms. Met on the way: a binding named `any` is refused without saying
 it is a keyword, `SR-2173`; a type parameter passed to a generic call is
 refused with a count that reads as wrong, `SR-2174`; and a `refine`
 built in one checkout checks another worktree's program against its own
-library unless given `--library=.`, `SR-2175`.
+library unless given `--library=.`, `SR-2175`. Met and fixed: in a
+routine with two or more results, an element stored below a struct
+result, `through.a[i] = v`, was lowered to a slot of its own and never
+reached the caller, which made Windows' multicast interface read back as
+none; the lowering now stores it through the result as it loads it,
+`runtime/multi-result-field-element-store` pinning each shape; and
+`scripts/static_check.py` compiles a `--link=libc` fixture whose program
+another fixture holds from its directory, as the harness does.
 
 ### R22.44 — Command-line arguments parsed
 
