@@ -273,6 +273,8 @@ fixed if compiler.os <> windows then
     public ipproto_tcp: i32 = 6
     --- `setsockopt` level: IPv6.
     public ipproto_ipv6: i32 = 41
+    --- `setsockopt` level: IPv4.  The same on every hosted system.
+    public ipproto_ip: i32 = 0
     --- `ipproto_tcp` option, an `i32`: Nagle's algorithm off.  The same on
     --- every hosted system.
     public tcp_nodelay: i32 = 1
@@ -381,6 +383,31 @@ fixed if compiler.os <> windows then
     public extern(c) getsockopt: (descriptor: i32, level: i32, name: i32,
                                   value: ptr mut u8, length: ptr mut u32)
                                  -> (status: i32)
+
+    --- Resolve the NUL-terminated host name `node` through every source the
+    --- system names, its hosts file and DNS among them, as `hints`, C's
+    --- `struct addrinfo`, asks: `service` is no service, `no_address`, here.
+    --- It puts the first record of a list the C library allocated in `list`,
+    --- each record's layout `addrinfo_address` and `addrinfo_next` say, and
+    --- returns 0, or an `eai_*` code.  Free the list with `freeaddrinfo`.
+    public extern(c) getaddrinfo: (node: ptr u8, service: address_filled,
+                                   hints: ptr u8, list: ptr mut usize)
+                                  -> (error: i32)
+
+    --- Free a list `getaddrinfo` made.
+    public extern(c) freeaddrinfo: (list: usize) -> none
+
+    --- Where in C's `struct addrinfo` its family is, an `int`, and its
+    --- address's length, a `socklen_t`; the same on every hosted system.
+    public addrinfo_family: usize = 4
+    --- `ai_addrlen`'s place.
+    public addrinfo_length: usize = 16
+    --- `ai_socktype`'s place, which a hint fills.
+    public addrinfo_kind: usize = 8
+    --- `ai_next`'s place, the record after it or zero, the same everywhere.
+    public addrinfo_next: usize = 40
+    --- The size of C's `struct addrinfo` on every 64-bit hosted system.
+    public addrinfo_size: usize = 48
 
     --- Put the address the socket is bound to in `address`, as `accept` puts
     --- a peer's: 0, or -1 with the reason in errno.

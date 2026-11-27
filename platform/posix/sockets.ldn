@@ -394,16 +394,136 @@ fixed if compiler.os <> windows then
         try system_peer_name(socket, addr at.bytes[0], addr at.length)
     end peer_name
 
+    --- SO_REUSEADDR, an `integer_option`.
+    public reuse_address: atom
+    --- TCP_NODELAY, an `integer_option`.
+    public no_delay: atom
+    --- IPV6_V6ONLY, an `integer_option`.
+    public ipv6_only: atom
+    --- SO_REUSEPORT, an `integer_option`.
+    public reuse_port: atom
+    --- SO_KEEPALIVE, an `integer_option`.
+    public keep_alive: atom
+    --- SO_BROADCAST, an `integer_option`.
+    public broadcast: atom
+    --- SO_RCVBUF, an `integer_option`: bytes, which Linux doubles as it
+    --- keeps them.
+    public receive_buffer: atom
+    --- SO_SNDBUF, an `integer_option`, kept as `receive_buffer` is.
+    public send_buffer: atom
+    --- IP_TTL, an `integer_option` of an IPv4 socket.
+    public unicast_hops: atom
+    --- IPV6_UNICAST_HOPS, an `integer_option` of an IPv6 socket.
+    public unicast_hops6: atom
+    --- IP_MULTICAST_TTL, an `integer_option` of an IPv4 socket.
+    public multicast_hops: atom
+    --- IPV6_MULTICAST_HOPS, an `integer_option` of an IPv6 socket.
+    public multicast_hops6: atom
+    --- TCP_KEEPIDLE, TCP_KEEPALIVE on Darwin, an `integer_option` in
+    --- seconds.
+    public keep_alive_idle: atom
+    --- TCP_KEEPINTVL, an `integer_option` in seconds.
+    public keep_alive_interval: atom
+    --- The options `set_option` sets and `option` reads, each an `int` as C
+    --- has it, each system numbering them its own way.
+    public integer_option: type = reuse_address | no_delay | ipv6_only
+        | reuse_port | keep_alive | broadcast | receive_buffer | send_buffer
+        | unicast_hops | unicast_hops6 | multicast_hops | multicast_hops6
+        | keep_alive_idle | keep_alive_interval
+
     --  The socket options this module sets, each system numbering them its
     --  own way.
-    reuse_address: atom
-    no_delay: atom
-    ipv6_only: atom
     receive_limit: atom
     send_limit: atom
     pending: atom
-    socket_option: type = reuse_address | no_delay | ipv6_only | receive_limit
-        | send_limit | pending
+    socket_option: type = reuse_address | no_delay | ipv6_only | reuse_port
+        | keep_alive | broadcast | receive_buffer | send_buffer | unicast_hops
+        | unicast_hops6 | multicast_hops | multicast_hops6 | keep_alive_idle
+        | keep_alive_interval | receive_limit | send_limit | pending
+
+    --- Set the option `which` of `socket` to `value`, C's `setsockopt` with
+    --- an `int`: `enoprotoopt` for one the system does not have, and
+    --- `einval` or `enoprotoopt` for one of another family than the
+    --- socket's.
+    public set_option:
+        (socket: descriptor, which: integer_option, value: i32) -> none ! errno =
+        try system_set_number(socket, which, value)
+    end set_option
+
+    --- The option `which` of `socket` as the system keeps it, C's
+    --- `getsockopt` into an `int`.
+    public option:
+        (socket: descriptor, which: integer_option) -> (value: i32) ! errno =
+        value = try system_get_number(socket, which)
+    end option
+
+    --- Whether a close of `socket` waits for what it sent, SO_LINGER, and
+    --- how many seconds: `on` with zero resets the connection at the close.
+    --- Darwin's is SO_LINGER_SEC, which keeps seconds as the others do.
+    public set_linger:
+        (socket: descriptor, on: bool, seconds: i32) -> none ! errno =
+        fail einval when seconds < 0
+        mut record: [2]i32 = [if on then 1 else 0 end if, seconds]
+        try system_set_bytes(socket, linger_level, linger_name,
+                             ptr(usize(addr record[0])), 8)
+    end set_linger
+
+    --- The linger of `socket`, as `set_linger` sets it.
+    public linger_of:
+        (socket: descriptor) -> (on: bool, seconds: i32) ! errno =
+        mut record: [2]i32 = zeroed
+        mut length: u32 = 8
+        try system_get_bytes(socket, linger_level, linger_name,
+                             ptr(usize(addr record[0])), addr length)
+        on = record[0] <> 0
+        seconds = record[1]
+    end linger_of
+
+    --- Make `socket` take what is sent to the multicast group `group`, an
+    --- IPv4 or IPv6 endpoint whose port is not read, through the interface
+    --- `through` names: for IPv4 the interface's address, for IPv6 its
+    --- number in `through.scope`, and the unspecified address or zero for
+    --- the system's choice.  `eaddrnotavail` or `einval` for an address that
+    --- is no group.
+    public join_group:
+        (socket: descriptor, group: internet_endpoint, through: internet_endpoint)
+        -> none ! errno =
+        try membership(socket, group, through, true)
+    end join_group
+
+    --- Leave a group `join_group` joined: `eaddrnotavail` when it was not.
+    public leave_group:
+        (socket: descriptor, group: internet_endpoint, through: internet_endpoint)
+        -> none ! errno =
+        try membership(socket, group, through, false)
+    end leave_group
+
+    --  C's `struct ip_mreq`, eight bytes, and `struct ipv6_mreq`, twenty:
+    --  the group's address and the interface's, or its number.
+    membership: (socket: descriptor, group: internet_endpoint,
+                 through: internet_endpoint, joining: bool) -> none ! errno =
+        mut record: [20]u8 = zeroed
+        if group.family == internet then
+            fail einval when through.family <> internet
+            for index in usize(0)..<4 do
+                record[index] = group.octets[index]
+                record[4 + index] = through.octets[index]
+            end for
+            name: i32 = if joining then ipv4_join else ipv4_leave end if
+            try system_set_bytes(socket, ipv4_level, name, addr record[0], 8)
+        elsif group.family == internet6 then
+            for index in usize(0)..<16 do
+                record[index] = group.octets[index]
+            end for
+            for index in usize(0)..<4 do
+                record[16 + index] = u8((through.scope >> u32(8 * index)) & 255)
+            end for
+            name: i32 = if joining then ipv6_join else ipv6_leave end if
+            try system_set_bytes(socket, ipv6_level, name, addr record[0], 20)
+        else
+            fail eafnosupport
+        end if
+    end membership
 
     --  Set a flag option.
     flag_set: (socket: descriptor, option: socket_option, on: bool)
@@ -630,13 +750,58 @@ fixed if compiler.os <> windows then
                 reuse_address: linux.so_reuseaddr
                 no_delay: linux.tcp_nodelay
                 ipv6_only: linux.ipv6_v6only
+                reuse_port: linux.so_reuseport
+                keep_alive: linux.so_keepalive
+                broadcast: linux.so_broadcast
+                receive_buffer: linux.so_rcvbuf
+                send_buffer: linux.so_sndbuf
+                unicast_hops: linux.ip_ttl
+                unicast_hops6: linux.ipv6_unicast_hops
+                multicast_hops: linux.ip_multicast_ttl
+                multicast_hops6: linux.ipv6_multicast_hops
+                keep_alive_idle: linux.tcp_keepidle
+                keep_alive_interval: linux.tcp_keepintvl
                 receive_limit: linux.so_rcvtimeo
                 send_limit: linux.so_sndtimeo
                 pending: linux.so_error
             end match
-            if option == no_delay then level = linux.ipproto_tcp end if
-            if option == ipv6_only then level = linux.ipproto_ipv6 end if
+            if option == no_delay or option == keep_alive_idle
+              or option == keep_alive_interval then
+                level = linux.ipproto_tcp
+            end if
+            if option == ipv6_only or option == unicast_hops6
+              or option == multicast_hops6 then
+                level = linux.ipproto_ipv6
+            end if
+            if option == unicast_hops or option == multicast_hops then
+                level = linux.ipproto_ip
+            end if
         end option_of
+
+        --  The levels and names of the options set as records.
+        linger_level: i32 = linux.sol_socket
+        linger_name: i32 = linux.so_linger_seconds
+        ipv4_level: i32 = linux.ipproto_ip
+        ipv4_join: i32 = linux.ip_add_membership
+        ipv4_leave: i32 = linux.ip_drop_membership
+        ipv6_level: i32 = linux.ipproto_ipv6
+        ipv6_join: i32 = linux.ipv6_join_group
+        ipv6_leave: i32 = linux.ipv6_leave_group
+
+        system_set_bytes: (socket: descriptor, level: i32, name: i32,
+                           value: ptr u8, length: u32) -> none ! errno =
+            result: i32 = linux.setsockopt(i32(socket), level, name, value,
+                                           length)
+            fail errno_of(-result) when result < 0
+        end system_set_bytes
+
+        system_get_bytes: (socket: descriptor, level: i32, name: i32,
+                           value: ptr mut u8, length: ptr mut u32)
+                          -> none ! errno =
+            result: i32 = linux.getsockopt(i32(socket), level, name, value,
+                                           length)
+            fail errno_of(-result) when result < 0
+        end system_get_bytes
 
         system_set_number: (socket: descriptor, option: socket_option,
                             value: i32) -> none ! errno =
@@ -972,13 +1137,56 @@ fixed if compiler.os <> windows then
                 reuse_address: libc.so_reuseaddr
                 no_delay: libc.tcp_nodelay
                 ipv6_only: libc.ipv6_v6only
+                reuse_port: libc.so_reuseport
+                keep_alive: libc.so_keepalive
+                broadcast: libc.so_broadcast
+                receive_buffer: libc.so_rcvbuf
+                send_buffer: libc.so_sndbuf
+                unicast_hops: libc.ip_ttl
+                unicast_hops6: libc.ipv6_unicast_hops
+                multicast_hops: libc.ip_multicast_ttl
+                multicast_hops6: libc.ipv6_multicast_hops
+                keep_alive_idle: libc.tcp_keepidle
+                keep_alive_interval: libc.tcp_keepintvl
                 receive_limit: libc.so_rcvtimeo
                 send_limit: libc.so_sndtimeo
                 pending: libc.so_error
             end match
-            if option == no_delay then level = libc.ipproto_tcp end if
-            if option == ipv6_only then level = libc.ipproto_ipv6 end if
+            if option == no_delay or option == keep_alive_idle
+              or option == keep_alive_interval then
+                level = libc.ipproto_tcp
+            end if
+            if option == ipv6_only or option == unicast_hops6
+              or option == multicast_hops6 then
+                level = libc.ipproto_ipv6
+            end if
+            if option == unicast_hops or option == multicast_hops then
+                level = libc.ipproto_ip
+            end if
         end option_of
+
+        --  The levels and names of the options set as records.
+        linger_level: i32 = libc.sol_socket
+        linger_name: i32 = libc.so_linger_seconds
+        ipv4_level: i32 = libc.ipproto_ip
+        ipv4_join: i32 = libc.ip_add_membership
+        ipv4_leave: i32 = libc.ip_drop_membership
+        ipv6_level: i32 = libc.ipproto_ipv6
+        ipv6_join: i32 = libc.ipv6_join_group
+        ipv6_leave: i32 = libc.ipv6_leave_group
+
+        system_set_bytes: (socket: descriptor, level: i32, name: i32,
+                           value: ptr u8, length: u32) -> none ! errno =
+            fail failure() when libc.setsockopt(i32(socket), level, name, value,
+                                                length) <> 0
+        end system_set_bytes
+
+        system_get_bytes: (socket: descriptor, level: i32, name: i32,
+                           value: ptr mut u8, length: ptr mut u32)
+                          -> none ! errno =
+            fail failure() when libc.getsockopt(i32(socket), level, name, value,
+                                                length) <> 0
+        end system_get_bytes
 
         system_set_number: (socket: descriptor, option: socket_option,
                             value: i32) -> none ! errno =

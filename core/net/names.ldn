@@ -1,0 +1,550 @@
+--  Names: a hosts file's lines, a resolver's settings as resolv.conf
+--  writes them, and the questions DNS asks a name server, over UDP and
+--  over TCP after a truncated answer (RFC 1035).  A provider whose system
+--  resolves names through its C library has no use for them; one without,
+--  a static Linux program's, resolves through them, and so may a program
+--  that asks a name server of its own choosing.
+
+import core/io
+import core/mem
+import core/time
+
+--- The most name servers a `name_service` holds, as resolv.conf's
+--- readers keep: three.
+public server_room: usize = 3
+
+--- How a program asks name servers: up to three servers, each with its
+--- port, how long it waits for each answer and how many times it asks
+--- every server before it gives up.  `name_service_of` reads one from
+--- resolv.conf's text.
+public name_service: type = struct
+    servers: [3]address
+    count: usize
+    limit: time.duration
+    attempts: usize
+end name_service
+
+--  Whether a byte separates the words of a line.
+blank: (byte: u8) -> (yes: bool) =
+    yes = byte == u8(' ') or byte == u8('\t') or byte == u8('\r')
+end blank
+
+--  A byte in lower case, for an ASCII letter.
+lowered: (byte: u8) -> (result: u8) =
+    result = byte
+    if byte >= u8('A') and byte <= u8('Z') then result = byte + 32 end if
+end lowered
+
+--  Whether two names are the same, letters in either case.
+same_name: (one: []u8, other: []u8) -> (same: bool) =
+    same = lenof one == lenof other
+    return when not same
+    for index in usize(0)..<lenof one do
+        if lowered(one[index]) <> lowered(other[index]) then
+            same = false
+            return
+        end if
+    end for
+end same_name
+
+--  A name without the dot that may end it.
+undotted: (name: []u8) -> (bare: []u8 from name) =
+    bare = name
+    if lenof name > 1 and name[lenof name - 1] == u8('.') then
+        bare = name[0..<lenof name - 1]
+    end if
+end undotted
+
+--  The end of the word that begins at or after `at`, and where it begins.
+word_at: (line: []u8, at: usize) -> (begins: usize, ends: usize) =
+    begins = at
+    while begins < lenof line and blank(line[begins]) do
+        inc begins
+    end while
+    ends = begins
+    while ends < lenof line and not blank(line[ends]) do
+        inc ends
+    end while
+end word_at
+
+--  Whether `into[0..<count]` already holds `at`.
+already: (into: []mut address, count: usize, at: address) -> (yes: bool) =
+    yes = false
+    for index in usize(0)..<count do
+        if same_address(into[index], at) then yes = true end if
+    end for
+end already
+
+--  Add the address of one hosts line that names `name`.
+hosts_line: (line: []u8, name: []u8, port: u16, into: []mut address,
+             found: usize) -> (count: usize) =
+    count = found
+    hash: usize = mem.find(line, u8('#'))
+    content: []u8 = line[0..<hash]
+    (begins: first, ends: past) := word_at(content, 0)
+    return when first == past
+    at: address = parse_ip(content[first..<past]) else (problem)
+        _ = problem
+        return
+    end
+    mut next: usize = past
+    loop do
+        (begins: begins, ends: ends) := word_at(content, next)
+        return when begins == ends
+        if same_name(undotted(content[begins..<ends]), name) then
+            given: address = with_port(at, port)
+            if count < lenof into and not already(into, count, given) then
+                into[count] = given
+                inc count
+            end if
+            return
+        end if
+        next = ends
+    end loop
+end hosts_line
+
+--- Add to `into`, after the `found` addresses it already holds, the
+--- address of each line of the hosts file text `hosts` that names `name`,
+--- with `port`, and return how many it then holds: as many as fit, each
+--- once, in the file's order.  A line is an address, `parse_ip`'s, and its
+--- names, separated by spaces or tabs; a `#` begins a comment to the
+--- line's end; names match in either case, and a dot ending `name` is
+--- ignored.  A line whose address cannot be read is passed over.  `hosts`
+--- may be a part of the file, so long as it holds whole lines, which is how
+--- a provider reads a large one.
+public hosts_lookup: (hosts: []u8, name: []u8, port: u16,
+                      into: []mut address, found: usize) -> (count: usize) =
+    count = found
+    wanted: []u8 = undotted(name)
+    return when lenof wanted == 0
+    mut start: usize = 0
+    while start < lenof hosts do
+        ends: usize = start + mem.find(hosts[start..<lenof hosts], u8('\n'))
+        count = hosts_line(hosts[start..<ends], wanted, port, into, count)
+        start = ends + 1
+    end while
+end hosts_lookup
+
+--  A decimal number of at most four digits, or `fallback`.
+small_number: (source: []u8, fallback: usize) -> (value: usize) =
+    value = fallback
+    return when lenof source == 0 or lenof source > 4
+    mut read: usize = 0
+    for index in usize(0)..<lenof source do
+        return when source[index] < u8('0') or source[index] > u8('9')
+        read = read * 10 + usize(source[index] - u8('0'))
+    end for
+    value = read
+end small_number
+
+--  Whether `word` begins with `prefix`.
+begins_with: (word: []u8, prefix: []u8) -> (yes: bool) =
+    yes = lenof word >= lenof prefix
+          and same_name(word[0..<lenof prefix], prefix)
+end begins_with
+
+--- The name service resolv.conf's text `settings` describes: the address
+--- of each `nameserver` line, at most three, at port 53, and the
+--- `timeout:N` seconds, at most 30, and `attempts:N`, at most 5, of an
+--- `options` line.  Without a server it asks 127.0.0.1, as the C
+--- libraries do; without options it waits five seconds and asks twice.  A
+--- line it does not know, `search` and `domain` among them, is passed over,
+--- so a name is asked for as it is written.
+public name_service_of: (settings: []u8) -> (service: name_service) =
+    service = (servers: [3 of unspecified(ipv4, 0)], count: 0, limit: time.seconds(5), attempts: 2)
+    mut timeout: usize = 5
+    mut start: usize = 0
+    while start < lenof settings do
+        ends: usize = start + mem.find(settings[start..<lenof settings],
+                                       u8('\n'))
+        line: []u8 = settings[start..<start + mem.find(settings[start..<ends],
+                                                      u8('#'))]
+        start = ends + 1
+        (begins: first, ends: past) := word_at(line, 0)
+        keyword: []u8 = line[first..<past]
+        if same_name(keyword, "nameserver") then
+            (begins: begins, ends: finish) := word_at(line, past)
+            server: address = parse_ip(line[begins..<finish]) else (problem)
+                _ = problem
+                continue
+            end
+            if service.count < server_room then
+                service.servers[service.count] = with_port(server, 53)
+                inc service.count
+            end if
+        elsif same_name(keyword, "options") then
+            mut next: usize = past
+            loop do
+                (begins: begins, ends: finish) := word_at(line, next)
+                break when begins == finish
+                option: []u8 = line[begins..<finish]
+                if begins_with(option, "timeout:") then
+                    timeout = small_number(option[8..<lenof option], timeout)
+                    if timeout == 0 then timeout = 1 end if
+                    if timeout > 30 then timeout = 30 end if
+                elsif begins_with(option, "attempts:") then
+                    service.attempts = small_number(option[9..<lenof option],
+                                                    service.attempts)
+                    if service.attempts == 0 then service.attempts = 1 end if
+                    if service.attempts > 5 then service.attempts = 5 end if
+                end if
+                next = finish
+            end loop
+        end if
+    end while
+    service.limit = time.seconds(u64(timeout))
+    if service.count == 0 then
+        service.servers[0] = loopback(ipv4, 53)
+        service.count = 1
+    end if
+end name_service_of
+
+--- Whether `name` can be a host's name in DNS: 1 to 253 bytes, a dot
+--- ending it aside, of labels of 1 to 63 bytes separated by dots.
+public is_host_name: (name: []u8) -> (yes: bool) =
+    bare: []u8 = undotted(name)
+    yes = lenof bare > 0 and lenof bare <= 253
+    return when not yes
+    mut label: usize = 0
+    for index in usize(0)..<lenof bare do
+        if bare[index] == u8('.') then
+            if label == 0 then yes = false end if
+            label = 0
+        else
+            inc label
+            if label > 63 then yes = false end if
+        end if
+    end for
+    if label == 0 then yes = false end if
+end is_host_name
+
+--  DNS's numbers: the record types asked for and the class IN.
+type_a: u16 = 1
+type_aaaa: u16 = 28
+class_in: u16 = 1
+
+--  The most bytes a question has: a header, the longest name in labels
+--  and its type and class.
+question_room: usize = 272
+
+--  The most bytes of an answer read: UDP's 512 without extensions, and as
+--  much of a longer one over TCP as is kept.
+answer_room: usize = 1536
+
+--  The question for `name`'s records of `kind`, with recursion desired,
+--  into `into`: how long it is.
+question: (into: []mut u8, id: u16, name: []u8, kind: u16) -> (length: usize) =
+    into[0] = u8(id >> 8)
+    into[1] = u8(id & 255)
+    into[2] = 1
+    into[3] = 0
+    into[4] = 0
+    into[5] = 1
+    for index in usize(6)..<12 do
+        into[index] = 0
+    end for
+    bare: []u8 = undotted(name)
+    mut at: usize = 12
+    mut start: usize = 0
+    for index in usize(0)..<lenof bare + 1 do
+        if index == lenof bare or bare[index] == u8('.') then
+            into[at] = u8(index - start)
+            inc at
+            for byte in start..<index do
+                into[at] = bare[byte]
+                inc at
+            end for
+            start = index + 1
+        end if
+    end for
+    into[at] = 0
+    into[at + 1] = u8(kind >> 8)
+    into[at + 2] = u8(kind & 255)
+    into[at + 3] = 0
+    into[at + 4] = u8(class_in)
+    length = at + 5
+end question
+
+--  What an answer said: its records were read, the name does not exist,
+--  the server could not answer, or it was cut short and must be asked
+--  again over TCP.
+answered: atom
+no_such_name: atom
+server_failed: atom
+truncated: atom
+answer_kind: type = answered | no_such_name | server_failed | truncated
+
+--  Where the name that begins at `at` in `message` ends, or past its
+--  length when it runs over.
+name_end: (message: []u8, at: usize) -> (ends: usize) =
+    ends = at
+    loop do
+        if ends >= lenof message then
+            ends = lenof message + 1
+            return
+        end if
+        length: u8 = message[ends]
+        if length == 0 then
+            ends = ends + 1
+            return
+        end if
+        if (length & 192) == 192 then
+            ends = ends + 2
+            return
+        end if
+        ends = ends + 1 + usize(length)
+    end loop
+end name_end
+
+--  A 16-bit number at `at` in network order.
+word16: (message: []u8, at: usize) -> (value: u16) =
+    value = (u16(message[at]) << 8) | u16(message[at + 1])
+end word16
+
+--  Read the answer `message` to question `id` for records of `kind`,
+--  adding each address to `into` after the `found` it holds, with `port`.
+--  A record cut off by the end of what was read ends the reading.
+answer_of: (message: []u8, id: u16, kind: u16, port: u16,
+            into: []mut address, found: usize)
+           -> (kind_of: answer_kind, count: usize) =
+    count = found
+    kind_of = server_failed
+    return when lenof message < 12 or word16(message, 0) <> id
+    flags: u16 = word16(message, 2)
+    return when (flags & 32768) == 0
+    if (flags & 512) <> 0 then
+        kind_of = truncated
+        return
+    end if
+    code: u16 = flags & 15
+    if code == 3 then
+        kind_of = no_such_name
+        return
+    end if
+    return when code <> 0
+    kind_of = answered
+    questions: u16 = word16(message, 4)
+    answers: u16 = word16(message, 6)
+    mut at: usize = 12
+    for index in u16(0)..<questions do
+        _ = index
+        at = name_end(message, at) + 4
+        return when at > lenof message
+    end for
+    for index in u16(0)..<answers do
+        _ = index
+        at = name_end(message, at)
+        return when at + 10 > lenof message
+        record_type: u16 = word16(message, at)
+        record_class: u16 = word16(message, at + 2)
+        length: usize = usize(word16(message, at + 8))
+        at = at + 10
+        return when at + length > lenof message
+        if record_type == kind and record_class == class_in
+          and ((kind == type_a and length == 4)
+               or (kind == type_aaaa and length == 16)) then
+            mut given: address = unspecified(ipv4, port)
+            if kind == type_aaaa then given.family = ipv6 end if
+            for octet in usize(0)..<length do
+                given.octets[octet] = message[at + octet]
+            end for
+            if count < lenof into and not already(into, count, given) then
+                into[count] = given
+                inc count
+            end if
+        end if
+        at = at + length
+    end for
+end answer_of
+
+--  Ask `server` over UDP, waiting `limit` for an answer from it to `id`:
+--  what was read, into `answer`.  An answer from elsewhere, or to
+--  another question, is passed over while the wait lasts.
+asked_over_udp: (provider: type is network, host: provider, server: address,
+                 query: []u8, id: u16, limit: time.duration,
+                 answer: []mut u8)
+                -> (length: usize) ! timed_out | io.io_failed =
+    socket: io.file = provider.open_datagram(host, unspecified(server.family, 0))
+        else (problem)
+        _ = problem
+        fail io.io_failed
+    end
+    length = udp_exchange(host, socket, server, query, id, limit,
+                          answer) else (problem)
+        provider.close(host, socket) else none
+        fail problem
+    end
+    provider.close(host, socket) else none
+end asked_over_udp
+
+udp_exchange: (provider: type is network, host: provider, socket: io.file,
+               server: address, query: []u8, id: u16, limit: time.duration,
+               answer: []mut u8)
+              -> (length: usize) ! timed_out | io.io_failed =
+    try provider.set_timeouts(host, socket, limit, limit)
+    provider.send_to(host, socket, query, server) else (problem)
+        fail timed_out when problem == timed_out
+        fail io.io_failed
+    end
+    loop do
+        got: datagram = try provider.receive_from(host, socket, answer)
+        if same_address(got.sender, server) and got.count >= 2
+          and word16(answer, 0) == id then
+            length = got.count
+            return
+        end if
+    end loop
+end udp_exchange
+
+--  Receive exactly `into`'s length over a connection, or what came before
+--  its peer finished.
+received_all: (provider: type is network, host: provider, connection: io.file,
+               into: []mut u8) -> (count: usize) ! timed_out | io.io_failed =
+    count = 0
+    while count < lenof into do
+        got: usize = provider.receive(host, connection,
+                                      into[count..<lenof into]) else (problem)
+            fail timed_out when problem == timed_out
+            fail io.io_failed
+        end
+        return when got == 0
+        count += got
+    end while
+end received_all
+
+--  Ask `server` over TCP, after it cut its UDP answer short: what was
+--  read of the answer, as much as `answer` holds.
+asked_over_tcp: (provider: type is network, host: provider, server: address,
+                 query: []u8, limit: time.duration, answer: []mut u8)
+                -> (length: usize) ! timed_out | io.io_failed =
+    connection: io.file = provider.connect_within(host, server, limit)
+        else (problem)
+        fail timed_out when problem == timed_out
+        fail io.io_failed
+    end
+    length = tcp_exchange(host, connection, query, limit, answer)
+        else (problem)
+        provider.close(host, connection) else none
+        fail problem
+    end
+    provider.close(host, connection) else none
+end asked_over_tcp
+
+tcp_exchange: (provider: type is network, host: provider, connection: io.file,
+               query: []u8, limit: time.duration, answer: []mut u8)
+              -> (length: usize) ! timed_out | io.io_failed =
+    try provider.set_timeouts(host, connection, limit, limit)
+    mut prefix: [2]u8 = [u8(lenof query >> 8), u8(lenof query & 255)]
+    provider.send(host, connection, prefix[0..<2]) else (problem)
+        fail timed_out when problem == timed_out
+        fail io.io_failed
+    end
+    provider.send(host, connection, query) else (problem)
+        fail timed_out when problem == timed_out
+        fail io.io_failed
+    end
+    fail io.io_failed when try received_all(host, connection,
+                                             prefix[0..<2]) < 2
+    mut wanted: usize = usize(word16(prefix[0..<2], 0))
+    if wanted > lenof answer then wanted = lenof answer end if
+    length = try received_all(host, connection, answer[0..<wanted])
+end tcp_exchange
+
+--  Ask the service's servers for `name`'s records of `kind`, each server in
+--  turn and every one as many times as the service says, until one
+--  answers: whether it said the name does not exist, and the addresses
+--  added after the `found` `into` holds.
+records_of: (provider: type is network, host: provider, service: name_service,
+             name: []u8, kind: u16, id: u16, port: u16, into: []mut address,
+             found: usize) -> (missing: bool, count: usize)
+            ! timed_out | io.io_failed =
+    count = found
+    missing = false
+    mut query: [272]u8 = zeroed
+    length: usize = question(query[0..<question_room], id, name, kind)
+    mut answer: [1536]u8 = zeroed
+    mut silent: bool = true
+    for attempt in usize(0)..<service.attempts do
+        _ = attempt
+        for index in usize(0)..<service.count do
+            server: address = service.servers[index]
+            mut read: usize = asked_over_udp(host, server,
+                                             query[0..<length], id,
+                                             service.limit,
+                                             answer[0..<answer_room])
+                else (problem)
+                if problem <> timed_out then silent = false end if
+                continue
+            end
+            (kind_of: kind_of, count: added) :=
+                answer_of(answer[0..<read], id, kind, port, into, count)
+            if kind_of == truncated then
+                read = asked_over_tcp(host, server,
+                                      query[0..<length], service.limit,
+                                      answer[0..<answer_room]) else (problem)
+                    if problem <> timed_out then silent = false end if
+                    continue
+                end
+                (kind_of: again, count: more) :=
+                    answer_of(answer[0..<read], id, kind, port, into, count)
+                if again == answered then
+                    count = more
+                    return
+                end if
+                if again == no_such_name then
+                    missing = true
+                    return
+                end if
+                silent = false
+                continue
+            end if
+            if kind_of == answered then
+                count = added
+                return
+            end if
+            if kind_of == no_such_name then
+                missing = true
+                return
+            end if
+            silent = false
+        end for
+    end for
+    fail timed_out when silent
+    fail io.io_failed
+end records_of
+
+--- Ask the name servers of `service` for the IPv4 and then the IPv6
+--- addresses of `name`, each with `port`, writing them into `into` and
+--- returning how many, as many as it holds.  Each question goes to each
+--- server in turn, as many times as the service says, waiting its limit
+--- for each answer over UDP, and over TCP when the answer comes back
+--- truncated; the first answer decides.  The questions are numbered `id`
+--- and `id ^ 1`, which a caller draws from its entropy, and an answer
+--- from another address or to another question is passed over.  A name
+--- `is_host_name` refuses, or one a server says does not exist or which
+--- has no address of either family, is `unknown_name`; servers that never
+--- answer are `timed_out`, and ones that answered only with a failure, or
+--- could not be asked, `io_failed`.  It asks over `host`'s own network, so
+--- under an event provider it waits as a fibre does.
+public ask: (provider: type is network, host: provider, service: name_service,
+             name: []u8, port: u16, into: []mut address, id: u16)
+            -> (count: usize) ! unknown_name | timed_out | io.io_failed =
+    count = 0
+    fail unknown_name when not is_host_name(name)
+    fail io.io_failed when service.count == 0 or service.attempts == 0
+    (missing: missing, count: four) :=
+        try records_of(host, service, name, type_a, id, port,
+                       into, 0)
+    fail unknown_name when missing
+    count = four
+    --  The IPv4 addresses found stand when the second question fails.
+    (missing: absent, count: both) :=
+        records_of(host, service, name, type_aaaa, id ^ 1, port,
+                   into, four) else (problem)
+            fail problem when four == 0
+            return
+        end
+    _ = absent
+    count = both
+    fail unknown_name when count == 0
+end ask

@@ -7,6 +7,7 @@ import core/fibre
 import core/io
 import core/mem
 import core/net
+import core/text
 import core/time
 
 --- Caller-owned state of a memory network: the next port it gives a socket
@@ -71,6 +72,16 @@ public network_socket: type = struct
     receive_limit: u64
     send_limit: u64
     no_delay: bool
+    named: bool
+    path: [108]u8
+    path_length: usize
+    flags: u8
+    numbers: [4]u32
+    spans: [2]u64
+    lingering: bool
+    linger_limit: u64
+    group: net.address
+    joined: bool
 end network_socket
 
 --- A free socket record whose received bytes wait in `buffer`.
@@ -81,7 +92,10 @@ public socket_over: (buffer: []mut u8)
             partner: 0, listener: 0, order: 0, pending: false, start: 0,
             filled: 0, receiving_closed: false, sending_closed: false,
             peer_finished: false, peer_gone: false, receive_limit: 0,
-            send_limit: 0, no_delay: false)
+            send_limit: 0, no_delay: false, named: false, path: zeroed,
+            path_length: 0, flags: 0, numbers: zeroed, spans: zeroed,
+            lingering: false, linger_limit: 0,
+            group: net.unspecified(net.ipv4, 0), joined: false)
 end socket_over
 
 network_value: type = struct
@@ -89,6 +103,7 @@ network_value: type = struct
     sockets: []mut network_socket
     runs: any fibre.turns
     takes_turns: bool
+    names: []u8
 end network_value
 
 --- A network of one machine in memory, a provider of `network`, `reader`
@@ -166,7 +181,7 @@ public network_over: (inout state: network_space,
                      -> (host: network from state, sockets) =
     freed(state, sockets)
     host = (state: addr state, sockets: sockets, runs: any(addr nobody),
-            takes_turns: false)
+            takes_turns: false, names: "")
 end network_over
 
 --- Fill `state` for a memory network over `sockets` whose calls take
@@ -179,8 +194,18 @@ public network_over_turns: (inout state: network_space,
                            -> (host: network from state, sockets, runs) =
     freed(state, sockets)
     host = (state: addr state, sockets: sockets, runs: runs,
-            takes_turns: true)
+            takes_turns: true, names: "")
 end network_over_turns
+
+--- The network `host` whose `resolve` answers from `names`, the text of
+--- a hosts file as `net.hosts_lookup` reads one, which it borrows; a
+--- network made without names knows none, and every name is
+--- `unknown_name` to it.  It never waits for a name.
+public with_names: (host: network, names: []u8)
+                   -> (named: network from host, names) =
+    named = host
+    named.names = names
+end with_names
 
 --  Fill `state` and free every socket.
 freed: (inout state: network_space, sockets: []mut network_socket)
@@ -274,7 +299,8 @@ port_taken: (self: network, at: net.address, role: socket_role)
     taken = false
     for index in usize(0)..<lenof self.sockets do
         held: ptr network_socket = addr self.sockets[index]
-        same_kind: bool = if role == datagram_slot
+        same_kind: bool = if held.val.named then false
+                          elsif role == datagram_slot
                           then held.val.role == datagram_slot
                           elsif role == listening_slot then held.val.role == listening_slot
                           else held.val.role == listening_slot
@@ -330,6 +356,20 @@ opened: (self: network, index: usize, role: socket_role, local: net.address)
     slot.val.receive_limit = 0
     slot.val.send_limit = 0
     slot.val.no_delay = false
+    slot.val.named = false
+    slot.val.path_length = 0
+    slot.val.flags = 0
+    if local.family == net.ipv6 then slot.val.flags = ipv6_only_bit end if
+    slot.val.numbers[0] = u32(lenof slot.val.buffer)
+    slot.val.numbers[1] = u32(lenof slot.val.buffer)
+    slot.val.numbers[2] = 64
+    slot.val.numbers[3] = 1
+    slot.val.spans[0] = 7200
+    slot.val.spans[1] = 75
+    slot.val.lingering = false
+    slot.val.linger_limit = 0
+    slot.val.group = net.unspecified(local.family, 0)
+    slot.val.joined = false
 end opened
 
 --  The open socket a file is, of `role` when that is not free.
@@ -379,6 +419,7 @@ network_connect: (self: network, to: net.address) -> (connected: io.file)
     mut listener: usize = lenof self.sockets
     for index in usize(0)..<lenof self.sockets do
         if self.sockets[index].role == listening_slot
+          and not self.sockets[index].named
           and takes(self.sockets[index].local, to) then
             listener = index
         end if
@@ -576,18 +617,34 @@ network_send_to: (self: network, socket: io.file, bytes: []u8,
                  ! net.unreachable | net.timed_out | io.io_failed =
     try counted(self)
     slot: ptr mut network_socket = try slot_of(self, socket, datagram_slot)
-    fail io.io_failed when lenof bytes > longest_datagram
+    fail io.io_failed when lenof bytes > longest_datagram or slot.val.named
       or to.family <> slot.val.local.family
+    state: ptr mut network_space = self.state
+    if is_group(to) then
+        --  Every socket that joined the group at the port takes a copy.
+        mut taken: bool = false
+        for index in usize(0)..<lenof self.sockets do
+            member: ptr mut network_socket = addr self.sockets[index]
+            if member.val.role == datagram_slot and member.val.joined
+              and same_host(member.val.group, to)
+              and member.val.local.family == to.family
+              and member.val.local.port == to.port then
+                try queued(self, member, slot.val.local, bytes)
+                taken = true
+            end if
+        end for
+        if not taken then inc state.val.losses end if
+        return
+    end if
     fail net.unreachable when not is_local(to)
     for index in usize(0)..<lenof self.sockets do
         receiver: ptr mut network_socket = addr self.sockets[index]
-        if receiver.val.role == datagram_slot
+        if receiver.val.role == datagram_slot and not receiver.val.named
           and takes(receiver.val.local, to) then
             try queued(self, receiver, slot.val.local, bytes)
             return
         end if
     end for
-    state: ptr mut network_space = self.state
     inc state.val.losses
 end network_send_to
 
@@ -599,6 +656,7 @@ network_receive_from: (self: network, socket: io.file,
         --  A socket closed while the call waited fails it here.
         held: ptr mut network_socket = try slot_of(self, socket,
                                                    datagram_slot)
+        fail io.io_failed when held.val.named
         break when held.val.filled - held.val.start >= datagram_header
         fail net.timed_out when not waited(self)
     end loop
@@ -754,6 +812,351 @@ network_write_some: (self: network, opened: io.file, bytes: []u8)
     fail io.io_failed when count == 0 and lenof bytes > 0
 end network_write_some
 
+--  The bit of a socket's `flags` each flag option keeps.
+reuse_address_bit: u8 = 1
+reuse_port_bit: u8 = 2
+keep_alive_bit: u8 = 4
+broadcast_bit: u8 = 8
+ipv6_only_bit: u8 = 16
+
+flag_bit: (which: net.flag_option) -> (bit: u8) =
+    bit = match which
+        net.reuse_address: reuse_address_bit
+        net.reuse_port: reuse_port_bit
+        net.keep_alive: keep_alive_bit
+        net.broadcast: broadcast_bit
+        net.ipv6_only: ipv6_only_bit
+    end match
+end flag_bit
+
+--  An open internet socket, whose options these are.
+optioned: (self: network, socket: io.file)
+          -> (slot: ptr mut network_socket from self) ! io.io_failed =
+    slot = try slot_of(self, socket, free_slot)
+    fail io.io_failed when slot.val.named
+end optioned
+
+network_set_flag: (self: network, socket: io.file, which: net.flag_option,
+                   on: bool) -> none ! net.unsupported | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    fail io.io_failed when which == net.ipv6_only
+      and slot.val.local.family <> net.ipv6
+    bit: u8 = flag_bit(which)
+    slot.val.flags = if on then slot.val.flags | bit
+                     else slot.val.flags & (255 ^ bit) end if
+end network_set_flag
+
+network_flag: (self: network, socket: io.file, which: net.flag_option)
+              -> (on: bool) ! net.unsupported | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    fail io.io_failed when which == net.ipv6_only
+      and slot.val.local.family <> net.ipv6
+    on = (slot.val.flags & flag_bit(which)) <> 0
+end network_flag
+
+number_index: (which: net.number_option) -> (index: usize) =
+    index = match which
+        net.receive_buffer: 0
+        net.send_buffer: 1
+        net.unicast_hops: 2
+        net.multicast_hops: 3
+    end match
+end number_index
+
+network_set_number: (self: network, socket: io.file,
+                     which: net.number_option, value: u32)
+                    -> none ! net.unsupported | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    fail io.io_failed when value > 255
+      and (which == net.unicast_hops or which == net.multicast_hops)
+    fail io.io_failed when value == 0 and which <> net.multicast_hops
+    slot.val.numbers[number_index(which)] = value
+end network_set_number
+
+network_number: (self: network, socket: io.file, which: net.number_option)
+                -> (value: u32) ! net.unsupported | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    value = slot.val.numbers[number_index(which)]
+end network_number
+
+--  A span in whole seconds, a part of one rounded up.
+whole_seconds: (span: time.duration) -> (count: u64) =
+    count = u64(span) / 1000000000
+    if u64(span) - count * 1000000000 > 0 then inc count end if
+end whole_seconds
+
+network_set_span: (self: network, socket: io.file, which: net.span_option,
+                   value: time.duration) -> none ! net.unsupported | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    fail io.io_failed when u64(value) == 0
+    index: usize = if which == net.keep_alive_idle then 0 else 1 end if
+    slot.val.spans[index] = whole_seconds(value)
+end network_set_span
+
+network_span: (self: network, socket: io.file, which: net.span_option)
+              -> (value: time.duration) ! net.unsupported | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    index: usize = if which == net.keep_alive_idle then 0 else 1 end if
+    value = time.seconds(slot.val.spans[index])
+end network_span
+
+network_set_linger: (self: network, socket: io.file, on: bool,
+                     limit: time.duration) -> none ! io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    slot.val.lingering = on
+    slot.val.linger_limit = if on then whole_seconds(limit) else 0 end if
+end network_set_linger
+
+network_linger: (self: network, socket: io.file)
+                -> (on: bool, limit: time.duration) ! io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try optioned(self, socket)
+    on = slot.val.lingering
+    limit = time.seconds(slot.val.linger_limit)
+end network_linger
+
+--  Whether an address is a multicast group's: 224.0.0.0/4 or ff00::/8.
+is_group: (at: net.address) -> (yes: bool) =
+    yes = if at.family == net.ipv4 then at.octets[0] >= 224 and at.octets[0] <= 239
+          else at.octets[0] == 255 end if
+end is_group
+
+--  The datagram socket a group is joined on, the group's family its own,
+--  through one of this machine's interfaces.
+grouped_socket: (self: network, socket: io.file, group: net.address,
+                 through: net.address)
+                -> (slot: ptr mut network_socket from self)
+                ! net.address_unavailable | io.io_failed =
+    slot = try slot_of(self, socket, datagram_slot)
+    fail io.io_failed when slot.val.named
+    fail net.address_unavailable when not is_group(group)
+      or group.family <> slot.val.local.family
+      or not (net.is_unspecified(through) or is_local(through))
+end grouped_socket
+
+network_join_group: (self: network, socket: io.file, group: net.address,
+                     through: net.address)
+                    -> none ! net.address_unavailable | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try grouped_socket(self, socket, group,
+                                                      through)
+    fail io.io_failed when slot.val.joined
+    slot.val.group = group
+    slot.val.joined = true
+end network_join_group
+
+network_leave_group: (self: network, socket: io.file, group: net.address,
+                      through: net.address)
+                     -> none ! net.address_unavailable | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try grouped_socket(self, socket, group,
+                                                      through)
+    fail net.address_unavailable when not slot.val.joined
+      or not same_host(slot.val.group, group)
+    slot.val.joined = false
+end network_leave_group
+
+--  Names come from the hosts text the test put in the space, and nothing
+--  waits.
+network_resolve: (self: network, name: []u8, port: u16,
+                  into: []mut net.address)
+                 -> (count: usize) ! net.unknown_name | net.timed_out
+                                   | io.io_failed =
+    try counted(self)
+    fail net.unknown_name when not net.is_host_name(name)
+    count = net.hosts_lookup(self.names, name, port, into, 0)
+    fail net.unknown_name when count == 0
+end network_resolve
+
+--  A Unix-domain path's bytes, as a socket record keeps them: 1 to 107
+--  bytes, none of them NUL.
+path_bytes: (path: text.os_string) -> (bytes: []u8 from path)
+            ! net.invalid_address =
+    bytes = text.os_string_bytes(path)
+    fail net.invalid_address when lenof bytes == 0 or lenof bytes >= 108
+      or mem.find(bytes, 0) < lenof bytes
+end path_bytes
+
+--  Whether the record at `index` is a Unix-domain socket of `role` bound
+--  to `bytes`.
+named_at: (self: network, index: usize, role: socket_role, bytes: []u8)
+          -> (yes: bool) =
+    slot: ptr network_socket = addr self.sockets[index]
+    yes = slot.val.named and slot.val.role == role and not slot.val.pending
+          and slot.val.path_length == lenof bytes
+    return when not yes
+    for at in usize(0)..<lenof bytes do
+        if slot.val.path[at] <> bytes[at] then yes = false end if
+    end for
+end named_at
+
+--  Name the record at `index` by `bytes`.
+named_as: (self: network, index: usize, bytes: []u8) -> none =
+    slot: ptr mut network_socket = addr self.sockets[index]
+    slot.val.named = true
+    slot.val.path = zeroed
+    for at in usize(0)..<lenof bytes do
+        slot.val.path[at] = bytes[at]
+    end for
+    slot.val.path_length = lenof bytes
+end named_as
+
+--  Bind a Unix-domain socket of `role` at `path`: a path another such
+--  socket holds is in use, as long as that socket is open.
+named_bound: (self: network, path: text.os_string, role: socket_role)
+             -> (socket: io.file)
+             ! net.address_in_use | net.invalid_address | io.io_failed =
+    try counted(self)
+    bytes: []u8 = try path_bytes(path)
+    for index in usize(0)..<lenof self.sockets do
+        fail net.address_in_use when named_at(self, index, listening_slot, bytes)
+          or named_at(self, index, datagram_slot, bytes)
+    end for
+    index: usize = try free_index(self)
+    opened(self, index, role, net.unspecified(net.ipv4, 0))
+    named_as(self, index, bytes)
+    socket = io.file(index)
+end named_bound
+
+network_listen_local: (self: network, path: text.os_string)
+                      -> (listener: io.file)
+                      ! net.address_in_use | net.invalid_address
+                      | net.unsupported | io.no_access | io.io_failed =
+    listener = try named_bound(self, path, listening_slot)
+end network_listen_local
+
+network_open_local_datagram: (self: network, path: text.os_string)
+                             -> (socket: io.file)
+                             ! net.address_in_use | net.invalid_address
+                             | net.unsupported | io.no_access | io.io_failed =
+    socket = try named_bound(self, path, datagram_slot)
+end network_open_local_datagram
+
+network_connect_local: (self: network, path: text.os_string)
+                       -> (connected: io.file)
+                       ! net.refused | net.invalid_address | net.unsupported
+                       | io.no_access | io.io_failed =
+    try counted(self)
+    bytes: []u8 = try path_bytes(path)
+    mut listener: usize = lenof self.sockets
+    for index in usize(0)..<lenof self.sockets do
+        if named_at(self, index, listening_slot, bytes) then listener = index end if
+    end for
+    fail net.refused when listener == lenof self.sockets
+    client: usize = try free_index(self)
+    self.sockets[client].role = connection_slot
+    server: usize = free_index(self) else (problem)
+        self.sockets[client].role = free_slot
+        fail problem
+    end
+    nowhere: net.address = net.unspecified(net.ipv4, 0)
+    opened(self, client, connection_slot, nowhere)
+    opened(self, server, connection_slot, nowhere)
+    self.sockets[client].named = true
+    named_as(self, server, bytes)
+    state: ptr mut network_space = self.state
+    self.sockets[client].partner = server
+    self.sockets[server].partner = client
+    self.sockets[server].pending = true
+    self.sockets[server].listener = listener
+    self.sockets[server].order = state.val.arrivals
+    inc state.val.arrivals
+    inc state.val.connections
+    moved(self)
+    connected = io.file(client)
+end network_connect_local
+
+--  Put a Unix-domain datagram in `receiver`'s buffer, behind the header
+--  whose family byte is 1 and whose next byte counts the sender's path,
+--  which comes before the bytes; or count it lost when it has no room.
+queued_named: (self: network, receiver: ptr mut network_socket,
+               sender: ptr network_socket, bytes: []u8)
+              -> none ! io.io_failed =
+    state: ptr mut network_space = self.state
+    compacted(receiver)
+    named: usize = sender.val.path_length
+    needed: usize = datagram_header + named + lenof bytes
+    if needed > lenof receiver.val.buffer - receiver.val.filled then
+        inc state.val.losses
+        return
+    end if
+    at: usize = receiver.val.filled
+    receiver.val.buffer[at] = 1
+    receiver.val.buffer[at + 1] = u8(named)
+    receiver.val.buffer[at + 19] = u8(lenof bytes >> 8)
+    receiver.val.buffer[at + 20] = u8(lenof bytes & 255)
+    for index in usize(0)..<named do
+        receiver.val.buffer[at + datagram_header + index] =
+            sender.val.path[index]
+    end for
+    begins: usize = at + datagram_header + named
+    mem.copy(receiver.val.buffer[begins..<at + needed], bytes) else (problem)
+        _ = problem
+        fail io.io_failed
+    end
+    receiver.val.filled = at + needed
+    inc state.val.datagrams
+    moved(self)
+end queued_named
+
+network_send_to_local: (self: network, socket: io.file, bytes: []u8,
+                        path: text.os_string)
+                       -> none ! net.refused | net.invalid_address
+                               | net.timed_out | io.io_failed =
+    try counted(self)
+    slot: ptr mut network_socket = try slot_of(self, socket, datagram_slot)
+    fail io.io_failed when not slot.val.named or lenof bytes > longest_datagram
+    wanted: []u8 = try path_bytes(path)
+    for index in usize(0)..<lenof self.sockets do
+        if named_at(self, index, datagram_slot, wanted) then
+            try queued_named(self, addr self.sockets[index], slot, bytes)
+            return
+        end if
+    end for
+    fail net.refused
+end network_send_to_local
+
+network_receive_from_local: (self: network, socket: io.file, into: []mut u8,
+                             room: []mut u8)
+                            -> (count: usize, sender: text.os_string from room)
+                            ! net.timed_out | io.io_failed =
+    try counted(self)
+    loop do
+        held: ptr mut network_socket = try slot_of(self, socket,
+                                                   datagram_slot)
+        fail io.io_failed when not held.val.named
+        break when held.val.filled - held.val.start >= datagram_header
+        fail net.timed_out when not waited(self)
+    end loop
+    slot: ptr mut network_socket = addr self.sockets[usize(socket)]
+    at: usize = slot.val.start
+    named: usize = usize(slot.val.buffer[at + 1])
+    length: usize = (usize(slot.val.buffer[at + 19]) << 8)
+                    | usize(slot.val.buffer[at + 20])
+    fail io.io_failed when named > lenof room
+    for index in usize(0)..<named do
+        room[index] = slot.val.buffer[at + datagram_header + index]
+    end for
+    begins: usize = at + datagram_header + named
+    count = if length < lenof into then length else lenof into end if
+    mem.copy(into[0..<count], slot.val.buffer[begins..<begins + count])
+        else (problem)
+        _ = problem
+        fail io.io_failed
+    end
+    slot.val.start = begins + length
+    moved(self)
+    sender = text.os_string_over(room[0..<named])
+end network_receive_from_local
+
+
 network is io.reader (read: network_read)
 network is io.writer (write: network_write,
                       write_some: network_write_some)
@@ -767,4 +1170,14 @@ network is net.network
      peer_address: network_peer_address,
      set_timeouts: network_set_timeouts,
      set_no_delay: network_set_no_delay,
-     close: network_close_socket)
+     close: network_close_socket,
+     set_flag: network_set_flag, flag: network_flag,
+     set_number: network_set_number, number: network_number,
+     set_span: network_set_span, span: network_span,
+     set_linger: network_set_linger, linger: network_linger,
+     join_group: network_join_group, leave_group: network_leave_group,
+     resolve: network_resolve,
+     connect_local: network_connect_local, listen_local: network_listen_local,
+     open_local_datagram: network_open_local_datagram,
+     send_to_local: network_send_to_local,
+     receive_from_local: network_receive_from_local)

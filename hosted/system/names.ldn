@@ -1,0 +1,190 @@
+--  Host names resolved for the hosted providers' networks, where the
+--  system's resolver is the authority (D3075): through the C library's
+--  `getaddrinfo` wherever a C runtime started the program, on Darwin,
+--  FreeBSD and Linux under --link=libc; and in a static Linux program,
+--  which has no C library, by reading /etc/hosts and then asking the
+--  name servers /etc/resolv.conf names over the provider's own network,
+--  through core/net, so that an event provider's fibre waits for them as
+--  it waits for any socket.
+
+import core/io
+import core/net
+import core/text
+import platform/posix
+
+fixed if compiler.os == linux and not compiler.c_runtime then
+    --  The files a static program reads, as the C libraries do.
+    hosts_path: []u8 = "/etc/hosts"
+    settings_path: []u8 = "/etc/resolv.conf"
+
+    --  How much of a file is read at a time: whole lines of a hosts file,
+    --  and all of resolv.conf that is kept.
+    chunk_room: usize = 2048
+
+    --  The file at `path`, open to read, or none when it does not exist.
+    opened_file: (path: []u8) -> (found: bool, opened: posix.descriptor)
+                 ! posix.errno =
+        found = false
+        opened = posix.descriptor(0)
+        loop do
+            opened = posix.open_at(posix.working_directory,
+                                   text.os_string_over(path), posix.reading,
+                                   0) else (problem)
+                continue when problem == posix.eintr
+                return when problem == posix.enoent
+                fail problem
+            end
+            found = true
+            return
+        end loop
+    end opened_file
+
+    --  Read what `opened` holds next into `into`.
+    read_some: (opened: posix.descriptor, into: []mut u8) -> (count: usize)
+               ! posix.errno =
+        loop do
+            count = posix.read(opened, into) else (problem)
+                continue when problem == posix.eintr
+                fail problem
+            end
+            return
+        end loop
+    end read_some
+
+    --  Where the last newline in `bytes` is, or its length when none is.
+    last_newline: (bytes: []u8) -> (index: usize) =
+        index = lenof bytes
+        mut at: usize = lenof bytes
+        while at > 0 do
+            dec at
+            if bytes[at] == u8('\n') then
+                index = at
+                return
+            end if
+        end while
+    end last_newline
+
+    --  The addresses /etc/hosts gives `name`, read a chunk of whole lines at
+    --  a time; a line longer than a chunk is cut where the chunk ends.
+    hosts_named: (name: []u8, port: u16, into: []mut net.address)
+                 -> (count: usize) ! posix.errno =
+        count = 0
+        (found: found, opened: opened) := try opened_file(hosts_path)
+        return when not found
+        mut chunk: [2048]u8 = zeroed
+        mut held: usize = 0
+        loop do
+            got: usize = read_some(opened, chunk[held..<chunk_room])
+                else (problem)
+                posix.close(opened) else none
+                fail problem
+            end
+            total: usize = held + got
+            if got == 0 then
+                count = net.hosts_lookup(chunk[0..<total], name, port, into,
+                                         count)
+                break
+            end if
+            ends: usize = last_newline(chunk[0..<total])
+            if ends == total then
+                --  No line ends in a full chunk: read it as one cut line.
+                if total == chunk_room then
+                    count = net.hosts_lookup(chunk[0..<total], name, port,
+                                             into, count)
+                    held = 0
+                else
+                    held = total
+                end if
+                continue
+            end if
+            count = net.hosts_lookup(chunk[0..<ends], name, port, into, count)
+            held = total - ends - 1
+            for index in usize(0)..<held do
+                chunk[index] = chunk[ends + 1 + index]
+            end for
+        end loop
+        posix.close(opened) else none
+    end hosts_named
+
+    --  The name service /etc/resolv.conf describes, the first 2 KB of it,
+    --  or the C libraries' defaults when it cannot be read.
+    service: () -> (result: net.name_service) =
+        mut settings: [2048]u8 = zeroed
+        mut length: usize = 0
+        (found: found, opened: opened) := opened_file(settings_path)
+            else (problem)
+            _ = problem
+            result = net.name_service_of(settings[0..<0])
+            return
+        end
+        if found then
+            while length < chunk_room do
+                got: usize = read_some(opened, settings[length..<chunk_room])
+                    else (problem)
+                    _ = problem
+                    break
+                end
+                break when got == 0
+                length += got
+            end while
+            posix.close(opened) else none
+        end if
+        result = net.name_service_of(settings[0..<length])
+    end service
+
+    --  A question's number, drawn from the system's random bytes so that an
+    --  answer forged by another host is unlikely to match it.
+    question_id: () -> (id: u16) =
+        mut drawn: [2]u8 = zeroed
+        id = 0x5aa5
+        count: usize = posix.random_bytes(drawn[0..<2]) else (problem)
+            _ = problem
+            return
+        end
+        if count == 2 then id = (u16(drawn[0]) << 8) | u16(drawn[1]) end if
+    end question_id
+
+    --- Write into `into` the addresses the host name `name` has, each with
+    --- `port`: those /etc/hosts gives it, in its order, or when it gives
+    --- none, the IPv4 and then the IPv6 ones the name servers
+    --- /etc/resolv.conf names answer with, asked over `host`'s own network
+    --- as `net.ask` asks.  It returns how many, as many as `into` holds.
+    public resolve_over: (provider: type is net.network, host: provider,
+                          name: []u8, port: u16, into: []mut net.address)
+                         -> (count: usize)
+                         ! net.unknown_name | net.timed_out | io.io_failed =
+        fail net.unknown_name when not net.is_host_name(name)
+        count = hosts_named(name, port, into) else (problem)
+            _ = problem
+            fail io.io_failed
+        end
+        return when count > 0
+        count = try net.ask(host, service(), name, port, into, question_id())
+    end resolve_over
+elsif compiler.os <> windows then
+    --- Write into `into` the addresses the host name `name` has, each with
+    --- `port`, as the C library's `getaddrinfo` gives them, through every
+    --- source the system is set up to ask, and return how many: as many as
+    --- `into` holds, sixteen at most.  The call holds the thread while the
+    --- C library asks, under an event provider too, which has no way to
+    --- wait for it.
+    public resolve_over: (provider: type is net.network, host: provider,
+                          name: []u8, port: u16, into: []mut net.address)
+                         -> (count: usize)
+                         ! net.unknown_name | net.timed_out | io.io_failed =
+        _ = host
+        fail net.unknown_name when not net.is_host_name(name)
+        mut found: [16]posix.internet_endpoint =
+            [16 of (family: posix.internet, octets: zeroed, port: 0, scope: 0)]
+        room: usize = if lenof into < 16 then lenof into else 16 end if
+        count = posix.resolve_name(name, found[0..<room]) else (problem)
+            fail net.unknown_name when problem == posix.no_such_name
+            fail net.timed_out when problem == posix.no_answer
+            fail io.io_failed
+        end
+        for index in usize(0)..<count do
+            into[index] = net.with_port(endpoint_address(found[index]), port)
+        end for
+        fail net.unknown_name when count == 0
+    end resolve_over
+end if

@@ -173,6 +173,51 @@ fixed if compiler.os == darwin then
     public so_sndtimeo: i32 = 4101
     --- `ipproto_ipv6` option, an `i32`: an IPv6 socket takes IPv6 alone.
     public ipv6_v6only: i32 = 27
+
+    --- `ai_addr`'s place in C's `struct addrinfo`, after `ai_canonname`.
+    public addrinfo_address: usize = 32
+    --- `getaddrinfo`'s codes: the name servers could not be reached now.
+    public eai_again: i32 = 2
+    --- `getaddrinfo`'s code: the name servers failed for good.
+    public eai_fail: i32 = 4
+    --- `getaddrinfo`'s code: the name is not known.
+    public eai_noname: i32 = 8
+    --- `getaddrinfo`'s code: the name is known and has no address.
+    public eai_nodata: i32 = 7
+    --- `getaddrinfo`'s code: the reason is in errno.
+    public eai_system: i32 = 11
+    --- `sol_socket` option, an `i32`: a datagram socket may send to a broadcast address.
+    public so_broadcast: i32 = 32
+    --- `sol_socket` option, an `i32`: an idle connection is probed.
+    public so_keepalive: i32 = 8
+    --- `sol_socket` option, an `i32`: the bytes kept for what is sent.
+    public so_sndbuf: i32 = 4097
+    --- `sol_socket` option, an `i32`: the bytes kept for what arrives.
+    public so_rcvbuf: i32 = 4098
+    --- `sol_socket` option, an `i32`: several sockets may bind one address and port.
+    public so_reuseport: i32 = 512
+    --- `sol_socket` option, a `linger_record`: how long a close waits, in seconds; Darwin's SO_LINGER_SEC, SO_LINGER elsewhere.
+    public so_linger_seconds: i32 = 4224
+    --- `ipproto_ip` option, an `i32`: the hops a unicast IPv4 packet may cross.
+    public ip_ttl: i32 = 4
+    --- `ipproto_ip` option, an `i32`: the hops a multicast IPv4 datagram may cross.
+    public ip_multicast_ttl: i32 = 10
+    --- `ipproto_ip` option, a `group_request`: join an IPv4 multicast group.
+    public ip_add_membership: i32 = 12
+    --- `ipproto_ip` option, a `group_request`: leave an IPv4 multicast group.
+    public ip_drop_membership: i32 = 13
+    --- `ipproto_ipv6` option, an `i32`: the hops a unicast IPv6 packet may cross.
+    public ipv6_unicast_hops: i32 = 4
+    --- `ipproto_ipv6` option, an `i32`: the hops a multicast IPv6 datagram may cross.
+    public ipv6_multicast_hops: i32 = 10
+    --- `ipproto_ipv6` option, a `group6_request`: join an IPv6 multicast group.
+    public ipv6_join_group: i32 = 12
+    --- `ipproto_ipv6` option, a `group6_request`: leave an IPv6 multicast group.
+    public ipv6_leave_group: i32 = 13
+    --- `ipproto_tcp` option, an `i32`: the seconds a connection is idle before its first probe; Darwin's TCP_KEEPALIVE.
+    public tcp_keepidle: i32 = 16
+    --- `ipproto_tcp` option, an `i32`: the seconds between probes.
+    public tcp_keepintvl: i32 = 257
     --- `sol_socket` option, an `i32`: a write or send to a peer that has
     --- gone fails with EPIPE and raises no SIGPIPE.  Linux has none.
     public so_nosigpipe: i32 = 4130

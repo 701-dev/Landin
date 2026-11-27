@@ -8,6 +8,7 @@
 
 import core/io
 import core/net
+import core/text
 import core/time
 import hosted/system
 import platform/posix
@@ -418,6 +419,291 @@ fixed if compiler.os <> windows then
         end
     end events_close_socket
 
+    --  The errno an option failed with, as the concept's atoms: an option
+    --  the system does not have is `unsupported`.
+    option_failure: (self: host, problem: posix.errno)
+                    -> none ! net.unsupported | io.io_failed =
+        record(self, problem)
+        fail net.unsupported when problem == posix.enoprotoopt
+          or problem == posix.eopnotsupp
+        fail io.io_failed
+    end option_failure
+
+    events_set_flag: (self: host, socket: io.file, which: net.flag_option,
+                        on: bool) -> none ! net.unsupported | io.io_failed =
+        cleared(self)
+        system.set_socket_flag(socket, which, on) else (problem)
+            try option_failure(self, problem)
+            fail io.io_failed
+        end
+    end events_set_flag
+
+    events_flag: (self: host, socket: io.file, which: net.flag_option)
+                   -> (on: bool) ! net.unsupported | io.io_failed =
+        cleared(self)
+        on = system.socket_flag(socket, which) else (problem)
+            try option_failure(self, problem)
+            fail io.io_failed
+        end
+    end events_flag
+
+    events_set_number: (self: host, socket: io.file,
+                          which: net.number_option, value: u32)
+                         -> none ! net.unsupported | io.io_failed =
+        cleared(self)
+        system.set_socket_number(socket, which, value) else (problem)
+            try option_failure(self, problem)
+            fail io.io_failed
+        end
+    end events_set_number
+
+    events_number: (self: host, socket: io.file, which: net.number_option)
+                     -> (value: u32) ! net.unsupported | io.io_failed =
+        cleared(self)
+        value = system.socket_number(socket, which) else (problem)
+            try option_failure(self, problem)
+            fail io.io_failed
+        end
+    end events_number
+
+    events_set_span: (self: host, socket: io.file, which: net.span_option,
+                        value: time.duration)
+                       -> none ! net.unsupported | io.io_failed =
+        cleared(self)
+        system.set_socket_span(socket, which, value) else (problem)
+            try option_failure(self, problem)
+            fail io.io_failed
+        end
+    end events_set_span
+
+    events_span: (self: host, socket: io.file, which: net.span_option)
+                   -> (value: time.duration) ! net.unsupported | io.io_failed =
+        cleared(self)
+        value = system.socket_span(socket, which) else (problem)
+            try option_failure(self, problem)
+            fail io.io_failed
+        end
+    end events_span
+
+    events_set_linger: (self: host, socket: io.file, on: bool,
+                          limit: time.duration) -> none ! io.io_failed =
+        cleared(self)
+        system.set_socket_linger(socket, on, limit) else (problem)
+            record(self, problem)
+            fail io.io_failed
+        end
+    end events_set_linger
+
+    events_linger: (self: host, socket: io.file)
+                     -> (on: bool, limit: time.duration) ! io.io_failed =
+        cleared(self)
+        (on: lingers, limit: kept) := system.socket_linger(socket)
+            else (problem)
+            record(self, problem)
+            fail io.io_failed
+        end
+        on = lingers
+        limit = kept
+    end events_linger
+
+    --  Join or leave a group, its errno as the concept's atoms.
+    membership: (self: host, socket: io.file, group: net.address,
+                 through: net.address, joining: bool)
+                -> none ! net.address_unavailable | io.io_failed =
+        cleared(self)
+        system.socket_membership(socket, group, through, joining)
+            else (problem)
+            record(self, problem)
+            fail net.address_unavailable when unavailable(problem)
+              or problem == posix.einval
+            fail io.io_failed
+        end
+    end membership
+
+    events_join_group: (self: host, socket: io.file, group: net.address,
+                          through: net.address)
+                         -> none ! net.address_unavailable | io.io_failed =
+        try membership(self, socket, group, through, true)
+    end events_join_group
+
+    events_leave_group: (self: host, socket: io.file, group: net.address,
+                           through: net.address)
+                          -> none ! net.address_unavailable | io.io_failed =
+        try membership(self, socket, group, through, false)
+    end events_leave_group
+
+    events_resolve: (self: host, name: []u8, port: u16,
+                       into: []mut net.address)
+                      -> (count: usize)
+                      ! net.unknown_name | net.timed_out | io.io_failed =
+        cleared(self)
+        count = try system.resolve_over(self, name, port, into)
+    end events_resolve
+
+    --  The system's record of a Unix-domain path: a path it cannot hold is
+    --  `invalid_address`.
+    local_record: (self: host, path: text.os_string)
+                  -> (made: posix.socket_address) ! net.invalid_address =
+        made = posix.unix_address(path) else (problem)
+            record(self, problem)
+            fail net.invalid_address
+        end
+    end local_record
+
+    --  A non-blocking Unix-domain socket of `kind` bound to `at`, a
+    --  listener when `listening`.
+    bound_locally: (at: posix.socket_address, kind: posix.socket_kind,
+                    listening: bool) -> (socket: posix.descriptor) ! posix.errno =
+        socket = try posix.socket(posix.local, kind)
+        undo quietly_closed(socket)
+        try posix.set_non_blocking(socket, true)
+        try posix.bind(socket, at)
+        if listening then
+            try posix.listen(socket, backlog)
+        end if
+    end bound_locally
+
+    --  The errno a Unix-domain binding failed with, as the concept's atoms.
+    local_bind_failure: (self: host, problem: posix.errno)
+                        -> none ! net.address_in_use | net.unsupported
+                                | io.no_access | io.io_failed =
+        record(self, problem)
+        fail net.address_in_use when problem == posix.eaddrinuse
+        fail net.unsupported when problem == posix.eafnosupport
+          or problem == posix.eprotonosupport
+        fail io.no_access when refused(problem)
+        fail io.io_failed
+    end local_bind_failure
+
+    events_listen_local: (self: host, path: text.os_string)
+                           -> (listener: io.file)
+                           ! net.address_in_use | net.invalid_address
+                           | net.unsupported | io.no_access | io.io_failed =
+        cleared(self)
+        at: posix.socket_address = try local_record(self, path)
+        made: posix.descriptor = bound_locally(at, posix.stream, true)
+            else (problem)
+            try local_bind_failure(self, problem)
+            fail io.io_failed
+        end
+        listener = system.socket_of(made)
+    end events_listen_local
+
+    events_open_local_datagram: (self: host, path: text.os_string)
+                                  -> (socket: io.file)
+                                  ! net.address_in_use | net.invalid_address
+                                  | net.unsupported | io.no_access
+                                  | io.io_failed =
+        cleared(self)
+        at: posix.socket_address = try local_record(self, path)
+        made: posix.descriptor = bound_locally(at, posix.datagram, false)
+            else (problem)
+            try local_bind_failure(self, problem)
+            fail io.io_failed
+        end
+        socket = system.socket_of(made)
+    end events_open_local_datagram
+
+    --  A non-blocking Unix-domain connection to `at`, waited for as a fibre
+    --  does when the listener's queue is full, as an internet connection's
+    --  is.
+    connected_locally: (self: host, at: posix.socket_address)
+                       -> (socket: posix.descriptor) ! posix.errno =
+        socket = try posix.socket(posix.local, posix.stream)
+        undo quietly_closed(socket)
+        try posix.set_non_blocking(socket, true)
+        posix.connect(socket, at) else (problem)
+            fail problem when problem <> posix.einprogress
+              and problem <> posix.eintr and problem <> posix.eagain
+            answer: u8 = try await(self, socket, true, 0)
+            fail posix.ebadf when answer <> ready
+            try posix.pending_error(socket)
+        end
+    end connected_locally
+
+    --  Whether an errno says nothing is bound at a Unix-domain path.
+    nobody_there: (problem: posix.errno) -> (yes: bool) =
+        yes = problem == posix.econnrefused or problem == posix.enoent
+              or problem == posix.enotsock or problem == posix.eprototype
+    end nobody_there
+
+    events_connect_local: (self: host, path: text.os_string)
+                            -> (connected: io.file)
+                            ! net.refused | net.invalid_address
+                            | net.unsupported | io.no_access | io.io_failed =
+        cleared(self)
+        at: posix.socket_address = try local_record(self, path)
+        made: posix.descriptor = connected_locally(self, at) else (problem)
+            record(self, problem)
+            fail net.refused when nobody_there(problem)
+            fail net.unsupported when problem == posix.eafnosupport
+            fail io.no_access when refused(problem)
+            fail io.io_failed
+        end
+        connected = system.socket_of(made)
+    end events_connect_local
+
+    events_send_to_local: (self: host, socket: io.file, bytes: []u8,
+                             path: text.os_string)
+                            -> none ! net.refused | net.invalid_address
+                                    | net.timed_out | io.io_failed =
+        cleared(self)
+        target: posix.socket_address = try local_record(self, path)
+        opened: posix.descriptor = system.descriptor_of(socket)
+        deadline: u64 = limit_of(opened, true)
+        loop do
+            accepted: usize =
+                posix.send_to(opened, bytes, target)
+                else (problem)
+                    continue when problem == posix.eintr
+                    if would_wait(problem) then
+                        try socket_ready(self, opened, true, deadline)
+                        continue
+                    end if
+                    record(self, problem)
+                    fail net.refused when nobody_there(problem)
+                    fail io.io_failed
+                end
+            fail io.io_failed when accepted <> lenof bytes
+            return
+        end loop
+    end events_send_to_local
+
+    --  The path of a Unix-domain sender, into `room`.
+    sender_path: (self: host, sender: posix.socket_address, room: []mut u8)
+                 -> (path: text.os_string from room) ! io.io_failed =
+        path = posix.unix_path(sender, room) else (problem)
+            record(self, problem)
+            fail io.io_failed
+        end
+    end sender_path
+
+    events_receive_from_local: (self: host, socket: io.file, into: []mut u8,
+                                  room: []mut u8)
+                                 -> (count: usize,
+                                     sender: text.os_string from room)
+                                 ! net.timed_out | io.io_failed =
+        cleared(self)
+        opened: posix.descriptor = system.descriptor_of(socket)
+        deadline: u64 = limit_of(opened, false)
+        loop do
+            got: posix.received = posix.receive_from(opened, into)
+                else (problem)
+                    continue when problem == posix.eintr
+                    if would_wait(problem) then
+                        try socket_ready(self, opened, false, deadline)
+                        continue
+                    end if
+                    record(self, problem)
+                    fail io.io_failed
+                end
+            fail io.io_failed when got.count > lenof into
+            sender = try sender_path(self, got.sender, room)
+            count = got.count
+            return
+        end loop
+    end events_receive_from_local
+
     host is net.network
         (connect: events_connect, connect_within: events_connect_within,
          listen: events_listen,
@@ -427,5 +713,16 @@ fixed if compiler.os <> windows then
          local_address: events_local_address,
          peer_address: events_peer_address,
          set_timeouts: events_set_timeouts, set_no_delay: events_set_no_delay,
-         close: events_close_socket)
+         close: events_close_socket,
+         set_flag: events_set_flag, flag: events_flag,
+         set_number: events_set_number, number: events_number,
+         set_span: events_set_span, span: events_span,
+         set_linger: events_set_linger, linger: events_linger,
+         join_group: events_join_group, leave_group: events_leave_group,
+         resolve: events_resolve,
+         connect_local: events_connect_local,
+         listen_local: events_listen_local,
+         open_local_datagram: events_open_local_datagram,
+         send_to_local: events_send_to_local,
+         receive_from_local: events_receive_from_local)
 end if
