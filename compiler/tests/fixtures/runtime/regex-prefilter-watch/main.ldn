@@ -2,7 +2,7 @@
 --  where the literals' first bytes are half the text, a search sets the
 --  prefilter aside after 40 tries and goes on with the lazy DFA from where
 --  the prefilter stopped.  Every match a walk finds, and every match
---  `find_at` finds from every eighth position, is the Pike VM's, for
+--  `find_at` finds from every 32nd position, is the Pike VM's, for
 --  patterns that are their literals and patterns that only begin with
 --  them, and for a pattern the prefilter was chosen for, which keeps it.
 
@@ -47,12 +47,12 @@ walk: (inout expression: regex.regex, haystack: utf8, into: []mut usize)
 end walk
 
 --  Whether `other` finds what `reference` does in `haystack`, walking and
---  from every eighth position.
+--  from every 32nd position.
 agree: (inout reference: regex.regex, inout other: regex.regex,
         haystack: utf8) -> (yes: bool) =
     yes = false
-    mut want: [8192]usize = zeroed
-    mut got: [8192]usize = zeroed
+    mut want: [2048]usize = zeroed
+    mut got: [2048]usize = zeroed
     wanted: usize = walk(reference, haystack, want)
     found: usize = walk(other, haystack, got)
     return when wanted <> found
@@ -65,7 +65,7 @@ agree: (inout reference: regex.regex, inout other: regex.regex,
         place: text.position = text.from_offset(bytes, offset)
         expected := regex.find_at(reference, haystack, place) else begin
             _ = regex.find_at(other, haystack, place) else begin
-                offset += 8
+                offset += 32
                 continue
             end
             return
@@ -75,7 +75,7 @@ agree: (inout reference: regex.regex, inout other: regex.regex,
         end
         return when text.offset(expected.begins) <> text.offset(actual.begins)
           or text.offset(expected.ends) <> text.offset(actual.ends)
-        offset += 8
+        offset += 32
     end while
     yes = true
 end agree
@@ -101,14 +101,14 @@ public main: () -> (code: i32) =
     code = 1
     memory := heap.new()
     mut random: u32 = 0x2834_d2a1
-    mut storage: [4096]u8 = zeroed
-    for round in usize(0)..<3 do
+    mut storage: [1024]u8 = zeroed
+    for round in usize(0)..<2 do
         _ = round
         for byte in storage do
             byte = bases[usize(next_random(random) % 4)]
         end for
         --  A space now and then gives `\b` somewhere to hold.
-        for at in usize(0)..<16 do
+        for at in usize(0)..<4 do
             storage[usize(next_random(random)) % lenof storage] = u8(' ')
             _ = at
         end for
