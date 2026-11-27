@@ -395,9 +395,11 @@ print_report: (host: blocking.host, names: []utf8)
 end print_report
 ```
 
-A template has no letters for width, padding or hexadecimal. Those are
-typed calls on a builder, `align_right` and `append_hex_u32` among them. A
-line with `%5u` in it is therefore built first and then written:
+A placeholder can say how its value is written, in Rust's spelling
+rather than C's letters, since the value says its own type: `{:5}` is
+`%5u`, `{:<10}` is `%-10s`, `{:05}` is `%05d`, `{:x}` is `%x`, `{:#x}` is
+`%#x`, `{:.2}` is `%.2f` and `{:.3e}` is `%.3e`. A float's rounded text is
+`printf`'s byte for byte, the exact value rounded once:
 
 ```landin
 import core/io
@@ -405,25 +407,20 @@ import core/mem
 import core/text
 import hosted/blocking
 
---- The same line with the count right-aligned in five columns, as `%5u`
---- would: the line is built first, because a template has no widths.
+--- `printf("%-10s %5u %8.2f\n", name, count, share)`: the name left in
+--- ten columns, the count right in five and the share to two places in
+--- eight.
 report_aligned: (inout out: io.buffered_writer(blocking.host), name: utf8,
-                 count: u32)
+                 count: u32, share: f64)
                 -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
-    mut storage: [128]u8 = zeroed
-    mut line := text.over(storage)
-    try text.format(line, "{}: ", [any(addr name)])
-    start := text.length(line)
-    try text.append_u32(line, count)
-    try text.align_right(line, start, 5, u8(' '))
-    try text.append(line, " items\n")
-    try io.put(out, text.used(line))
+    try io.format(out, "{:<10} {:5} {:8.2}\n",
+                  [any(addr name), any(addr count), any(addr share)])
 end report_aligned
 ```
 
-[The library reference](library.md) lists the builder's calls. A float has
-no `{}` yet; [What has no answer yet](#what-has-no-answer-yet) says what to
-write.
+A plain `{}` writes a float as the shortest text that reads back as the
+same value, `0.1` rather than `%f`'s `0.100000`. [The library
+reference](library.md#formatting) lists every part of a placeholder.
 
 ### `malloc` and `free`
 
@@ -1408,7 +1405,6 @@ takes an hour or two. These parts have the least in common with C:
 | C habit | what to write today |
 | --- | --- |
 | pointer arithmetic that keeps the base's origin | the address as an integer; the result borrows nothing |
-| printing a float, `%f` | scale it to a whole number and print the parts, as [Printing formatted values](../examples.md#printing-formatted-values) does with tenths |
 
 Open work belongs to `ROADMAP.md`. Its register says for each gap what
 would close it and when it will be taken up.

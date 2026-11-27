@@ -1,0 +1,156 @@
+--  A placeholder's format specification, `{:fill align + # 0 width
+--  .precision kind}`, as Rust spells it.  The width counts scalars and
+--  pads a number to the right and anything else to the left unless an
+--  alignment says otherwise; `0` puts zeros after a number's sign and
+--  prefix; the library's integers read the radix, `+` and `#`, its
+--  floats the precision and `e`, and text the precision as scalars.  A
+--  conformance of the program's own reads the placeholder too, and a
+--  format inside it has placeholders of its own.  A specification that
+--  does not parse is `invalid_format` and writes nothing, and a value
+--  padded through `format_onto` is padded in the store.
+import core/cmp
+import core/mem
+import core/text
+
+--  A program's own number, written in hexadecimal when its placeholder
+--  asks for `x`, as the library's integers are.
+reading: type = struct
+    value: u32
+end reading
+
+reading_text: (self: ptr reading, inout into: text.builder)
+              -> none ! mem.out_of_memory =
+    asked: text.format_spec = text.placeholder(into)
+    if asked.kind == u8('x') then
+        try text.append_hex_u32(into, self.val.value)
+    else
+        try text.append_u32(into, self.val.value)
+    end if
+end reading_text
+
+reading is text.formattable (append: reading_text)
+
+--  A pair written through a format of its own, whose `{}` placeholders
+--  ask for nothing whatever the outer one asked.
+pair: type = struct
+    first: i32
+    second: i32
+end pair
+
+pair_text: (self: ptr pair, inout into: text.builder)
+           -> none ! mem.out_of_memory =
+    first: i32 = self.val.first
+    second: i32 = self.val.second
+    text.format(into, "({}, {})", [any(addr first), any(addr second)])
+        else (problem)
+        fail mem.out_of_memory when problem == mem.out_of_memory
+        return
+    end
+    outer: text.format_spec = text.placeholder(into)
+    fail mem.out_of_memory when outer.width <> 9
+end pair_text
+
+pair is text.formattable (append: pair_text)
+
+--  An outlet that keeps what it is handed.
+keeper: type = struct
+    bytes: [64]u8
+    count: usize
+end keeper
+
+keeper_take: (self: ptr mut keeper, bytes: []u8) -> none ! mem.out_of_memory =
+    fail mem.out_of_memory when lenof bytes > 64 - self.val.count
+    for at in usize(0)..<lenof bytes do
+        self.val.bytes[self.val.count + at] = bytes[at]
+    end for
+    self.val.count += lenof bytes
+end keeper_take
+
+keeper is text.outlet (take: keeper_take)
+
+holds: (line: text.builder, expected: []u8) -> (yes: bool) =
+    yes = cmp.compare(text.used(line), expected) == cmp.equal
+end holds
+
+refused: (template: utf8) -> (yes: bool) =
+    mut storage: [16]u8 = zeroed
+    mut line := text.over(storage[0..<16])
+    count: u32 = 7
+    yes = false
+    text.format(line, template, [any(addr count)]) else (problem)
+        yes = problem == text.invalid_format and text.length(line) == 0
+        return
+    end
+end refused
+
+checked: () -> (ok: bool) ! mem.out_of_memory | text.invalid_format =
+    ok = false
+    mut storage: [240]u8 = zeroed
+    mut line := text.over(storage[0..<240])
+    negative: i32 = -42
+    count: u32 = 255
+    small: i8 = -1
+    wide: i64 = -1
+    most: u64 = 18446744073709551615
+    try text.format(line, "[{:5}][{:<5}][{:^7}][{:>5}][{:*^7}][{:05}][{:+}][{:+06}]",
+                    [any(addr negative), any(addr negative), any(addr negative),
+                     any(addr negative), any(addr negative), any(addr negative),
+                     any(addr count), any(addr count)])
+    return when not holds(line, "[  -42][-42  ][  -42  ][  -42][**-42**][-0042][+255][+00255]")
+    text.clear(line)
+    try text.format(line, "[{:x}][{:X}][{:#x}][{:#010x}][{:o}][{:#o}][{:b}][{:#b}][{:x}][{:x}][{:X}][{:2}]",
+                    [any(addr count), any(addr count), any(addr count), any(addr count),
+                     any(addr count), any(addr count), any(addr count), any(addr count),
+                     any(addr small), any(addr wide), any(addr most), any(addr count)])
+    return when not holds(line, "[ff][FF][0xff][0x000000ff][377][0o377][11111111][0b11111111][ff][ffffffffffffffff][FFFFFFFFFFFFFFFF][255]")
+    text.clear(line)
+    pi: f64 = 3.141592653589793
+    third: f32 = 0.33333334
+    tiny: f64 = 0.000012
+    large: f64 = 6.02214076e23
+    loss: f64 = -2.5
+    infinite: f64 = 1.0 / 0.0
+    try text.format(line, "[{}][{:.0}][{:.3}][{:e}][{:E}][{:.2e}][{}][{}][{}][{:+}][{:08.2}][{:>9.3}][{:<6}][{:05}][{:.1}]",
+                    [any(addr pi), any(addr pi), any(addr pi), any(addr pi), any(addr large),
+                     any(addr large), any(addr tiny), any(addr large), any(addr third),
+                     any(addr pi), any(addr loss), any(addr pi), any(addr loss),
+                     any(addr infinite), any(addr loss)])
+    return when not holds(line, "[3.141592653589793][3][3.142][3.141592653589793e0][6.02214076E23][6.02e23][1.2e-5][6.02214076e23][0.33333334][+3.141592653589793][-0002.50][    3.142][-2.5  ][  inf][-2.5]")
+    text.clear(line)
+    word: utf8 = "naïve"
+    yes: bool = true
+    try text.format(line, "[{:8}][{:>8}][{:^9}][{:é<7}][{:.2}][{:.3}][{:>6.1}][{:6}][{:08}]",
+                    [any(addr word), any(addr word), any(addr word), any(addr word),
+                     any(addr word), any(addr word), any(addr word), any(addr yes),
+                     any(addr word)])
+    return when not holds(line, "[naïve   ][   naïve][  naïve  ][naïveéé][na][naï][     n][true  ][naïve   ]")
+    text.clear(line)
+    plain: reading = (value: 200)
+    both: pair = (first: 3, second: -4)
+    try text.format(line, "[{}][{:x}][{:6x}][{:>9}][{:9}][{:}]",
+                    [any(addr plain), any(addr plain), any(addr plain), any(addr both),
+                     any(addr both), any(addr count)])
+    return when not holds(line, "[200][c8][c8    ][  (3, -4)][(3, -4)  ][255]")
+    --  Outside a format the placeholder is plain.
+    outside: text.format_spec = text.placeholder(line)
+    return when outside.width <> 0 or outside.kind <> 0 or outside.precise
+    malformed: [13]utf8 = ["{:q}", "{:.}", "{:.x}", "{:<<<}", "{:5", "{:+-}", "{: 5}",
+                           "{:{>5}", "{:}>5}", "{:2000000}", "{:5.2.1}", "{x}", "{:#}0}"]
+    for template in malformed do
+        return when not refused(template)
+    end for
+    --  Through format_onto, a padded value fits the store and goes on whole.
+    mut kept: keeper = (bytes: zeroed, count: 0)
+    onto: any text.outlet = any(addr kept)
+    mut store: [12]u8 = zeroed
+    try text.format_onto(store[0..<12], onto, "<{:>8}>{:<4}|",
+                         [any(addr negative), any(addr count)])
+    return when cmp.compare(kept.bytes[0..<kept.count], "<     -42>255 |") <> cmp.equal
+    ok = true
+end checked
+
+public main: () -> (code: i32) =
+    code = 1
+    ok: bool = checked() else false
+    if ok then code = 42 end if
+end main

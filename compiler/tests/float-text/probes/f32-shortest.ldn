@@ -1,0 +1,13 @@
+--  A Cortex-M0 size probe, compiler/tests/float-text/README.md: f32-shortest.
+import core/cmp
+import core/text
+
+public main: () -> (code: i32) =
+    code = 1
+    mut storage: [64]u8 = zeroed
+    mut line := text.over(storage[0..<64])
+    value: f32 = 0.1
+    text.append_f32(line, value) else begin return end
+    return when cmp.compare(text.used(line), "0.1") <> cmp.equal
+    code = 42
+end main

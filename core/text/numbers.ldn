@@ -242,3 +242,29 @@ public parse_hex_usize: (source: []u8)
     end for
     result = value
 end parse_hex_usize
+
+--- Parse decimal text into the `f64` nearest it, ties to even: an
+--- optional `-`, digits with an optional point and at least one digit
+--- beside it, `1.5`, `2.`, `.25`, and an optional exponent, `e` or `E`
+--- with an optional sign, `6.02e23`, `1e-7`; or `inf`, `infinity` or
+--- `nan` in any case, after an optional `-`.  So it reads back
+--- everything `append_f64` and the formats write, and C's and Rust's
+--- decimal floats.  Refuses an empty slice, a `+` before the number,
+--- whitespace, `_`, hexadecimal and any other byte with
+--- `invalid_number`, and a finite decimal whose nearest `f64` is beyond
+--- the greatest with `number_overflow`.  A decimal too small for the
+--- least subnormal is zero of its sign.  Any number of digits is read,
+--- and rounded once.
+public parse_f64: (source: []u8) -> (result: f64) ! invalid_number | number_overflow =
+    bits: u64 = try f64_bits(source)
+    view: ptr f64 = ptr(usize(addr bits))
+    result = view.val
+end parse_f64
+
+--- Parse decimal text into the `f32` nearest it, as `parse_f64` does,
+--- rounded once from the decimal rather than through an `f64`.
+public parse_f32: (source: []u8) -> (result: f32) ! invalid_number | number_overflow =
+    bits: u32 = try f32_bits(source)
+    view: ptr f32 = ptr(usize(addr bits))
+    result = view.val
+end parse_f32

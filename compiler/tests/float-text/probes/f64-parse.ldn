@@ -1,0 +1,10 @@
+--  A Cortex-M0 size probe, compiler/tests/float-text/README.md: f64-parse.
+import core/cmp
+import core/text
+
+public main: () -> (code: i32) =
+    code = 1
+    value: f64 = text.parse_f64("0.1e-300") else begin return end
+    return when value <> f64(1.0e-301)
+    code = 42
+end main

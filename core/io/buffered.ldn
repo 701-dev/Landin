@@ -111,10 +111,9 @@ end buffered_length
 --- larger than the whole buffer is `mem.out_of_memory` and leaves nothing of
 --- itself waiting; a template that does not fit its values is
 --- `text.invalid_format`; a failed flush is the writer's `io_failed`.  The
---- values are `text.formattable`'s types.  Floats are not formattable yet:
---- scale one to an integer and print the parts, as `core/text`'s reference
---- program does for two decimals.  The buffered writer and the builder are
---- the byte sinks a template is formatted into.
+--- values are `text.formattable`'s types and the placeholders
+--- `text.format`'s.  The buffered writer and the builder are the byte
+--- sinks a template is formatted into.
 public format: (provider: type is writer,
                 inout out: buffered_writer(provider), template: utf8,
                 values: []any text.formattable)
