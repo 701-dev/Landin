@@ -73,14 +73,12 @@ public network_socket: type = struct
     send_limit: u64
     no_delay: bool
     named: bool
-    path: [32]u8
-    path_length: u8
     flags: u8
-    numbers: [4]u32
-    spans: [2]u32
+    buffers: [2]u32
+    hops: [2]u8
+    spans: [2]u16
     lingering: bool
-    linger_limit: u32
-    group: [16]u8
+    linger_limit: u16
     joined: bool
     through_loopback: bool
 end network_socket
@@ -93,10 +91,9 @@ public socket_over: (buffer: []mut u8)
             partner: 0, listener: 0, order: 0, pending: false, start: 0,
             filled: 0, receiving_closed: false, sending_closed: false,
             peer_finished: false, peer_gone: false, receive_limit: 0,
-            send_limit: 0, no_delay: false, named: false, path: zeroed,
-            path_length: 0, flags: 0, numbers: zeroed, spans: zeroed,
-            lingering: false, linger_limit: 0,
-            group: zeroed, joined: false, through_loopback: false)
+            send_limit: 0, no_delay: false, named: false, flags: 0,
+            buffers: zeroed, hops: zeroed, spans: zeroed, lingering: false,
+            linger_limit: 0, joined: false, through_loopback: false)
 end socket_over
 
 network_value: type = struct
@@ -144,14 +141,14 @@ end network_value
 --- socket bound to the unspecified address arrives from the loopback
 --- address of its family, as a system fills in the address it leaves by.
 ---
---- The network keeps every option a socket is given and reads it back as
---- it was set, a span in whole seconds, without any changing what it does
---- (D3078).  It knows the names `with_names` gave it, and `resolve` never
---- waits.  A Unix-domain socket keeps its path, shorter than `path_room`,
---- in its record, and a path is in use while a socket bound to it is open,
---- since the network has no files.  A datagram socket joins one group at
---- a time, through the unspecified or a loopback address, and a datagram
---- sent to a group goes to every socket that joined it at the port.
+--- The network keeps every option a socket is given and reads it back as it
+--- was set, a span in whole seconds up to 65535, without any changing what it
+--- does (D3078).  It knows the names `with_names` gave it, and `resolve` never
+--- waits.  A Unix-domain socket keeps its path, shorter than `path_room`, in
+--- its record, and a path is in use while a socket bound to it is open, since
+--- the network has no files.  A datagram socket joins one group at a time,
+--- through the unspecified or a loopback address, and a datagram sent to a
+--- group goes to every socket that joined it at the port.
 public network: type = network_value
 
 --  The scheduler of a network that does not take turns: it runs nothing
@@ -369,18 +366,16 @@ opened: (self: network, index: usize, role: socket_role, local: net.address)
     slot.val.send_limit = 0
     slot.val.no_delay = false
     slot.val.named = false
-    slot.val.path_length = 0
     slot.val.flags = 0
     if local.family == net.ipv6 then slot.val.flags = ipv6_only_bit end if
-    slot.val.numbers[0] = u32(lenof slot.val.buffer)
-    slot.val.numbers[1] = u32(lenof slot.val.buffer)
-    slot.val.numbers[2] = 64
-    slot.val.numbers[3] = 1
+    slot.val.buffers[0] = u32(lenof slot.val.buffer)
+    slot.val.buffers[1] = u32(lenof slot.val.buffer)
+    slot.val.hops[0] = 64
+    slot.val.hops[1] = 1
     slot.val.spans[0] = 7200
     slot.val.spans[1] = 75
     slot.val.lingering = false
     slot.val.linger_limit = 0
-    slot.val.group = zeroed
     slot.val.joined = false
     slot.val.through_loopback = false
 end opened
@@ -639,7 +634,7 @@ network_send_to: (self: network, socket: io.file, bytes: []u8,
         for index in usize(0)..<lenof self.sockets do
             member: ptr mut network_socket = addr self.sockets[index]
             if member.val.role == datagram_slot and member.val.joined
-              and same_octets(member.val.group, to)
+              and same_host(member.val.peer, to)
               and member.val.local.family == to.family
               and member.val.local.port == to.port then
                 try queued(self, member, slot.val.local, bytes)
@@ -726,6 +721,8 @@ network_local_address: (self: network, socket: io.file)
                        -> (at: net.address) ! io.io_failed =
     try counted(self)
     slot: ptr mut network_socket = try slot_of(self, socket, free_slot)
+    --  A Unix-domain socket's `local` keeps its path, no address.
+    fail io.io_failed when slot.val.named
     at = slot.val.local
 end network_local_address
 
@@ -892,22 +889,31 @@ network_set_number: (self: network, socket: io.file,
     fail io.io_failed when value > 255
       and (which == net.unicast_hops or which == net.multicast_hops)
     fail io.io_failed when value == 0 and which <> net.multicast_hops
-    slot.val.numbers[number_index(which)] = value
+    index: usize = number_index(which)
+    if index < 2 then
+        slot.val.buffers[index] = value
+    else
+        slot.val.hops[index - 2] = u8(value)
+    end if
 end network_set_number
 
 network_number: (self: network, socket: io.file, which: net.number_option)
                 -> (value: u32) ! net.unsupported | io.io_failed =
     try counted(self)
     slot: ptr mut network_socket = try optioned(self, socket)
-    value = slot.val.numbers[number_index(which)]
+    index: usize = number_index(which)
+    value = if index < 2 then slot.val.buffers[index]
+            else u32(slot.val.hops[index - 2]) end if
 end network_number
 
 --  A span in whole seconds, a part of one rounded up.
-whole_seconds: (span: time.duration) -> (count: u32) ! io.io_failed =
+--  The fake keeps them in 16 bits, as Windows keeps a linger: a longer
+--  span is `io_failed`.
+whole_seconds: (span: time.duration) -> (count: u16) ! io.io_failed =
     mut whole: u64 = u64(span) / 1000000000
     if u64(span) - whole * 1000000000 > 0 then inc whole end if
-    fail io.io_failed when whole > 4294967295
-    count = u32(whole)
+    fail io.io_failed when whole > 65535
+    count = u16(whole)
 end whole_seconds
 
 network_set_span: (self: network, socket: io.file, which: net.span_option,
@@ -944,14 +950,6 @@ network_linger: (self: network, socket: io.file)
     limit = time.seconds(u64(slot.val.linger_limit))
 end network_linger
 
---  Whether a group's octets are `at`'s.
-same_octets: (group: [16]u8, at: net.address) -> (same: bool) =
-    same = true
-    for index in usize(0)..<16 do
-        if group[index] <> at.octets[index] then same = false end if
-    end for
-end same_octets
-
 --- The longest Unix-domain path a memory network keeps, its last byte
 --- counted: a path of 32 bytes or more is `invalid_address` here, where a
 --- hosted system takes about a hundred.
@@ -983,7 +981,8 @@ network_join_group: (self: network, socket: io.file, group: net.address,
     slot: ptr mut network_socket = try grouped_socket(self, socket, group,
                                                       through)
     fail io.io_failed when slot.val.joined
-    slot.val.group = group.octets
+    --  A datagram socket has no peer, so its group is kept there.
+    slot.val.peer = group
     slot.val.joined = true
 end network_join_group
 
@@ -994,7 +993,7 @@ network_leave_group: (self: network, socket: io.file, group: net.address,
     slot: ptr mut network_socket = try grouped_socket(self, socket, group,
                                                       through)
     fail net.address_unavailable when not slot.val.joined
-      or not same_octets(slot.val.group, group)
+      or not same_host(slot.val.peer, group)
     slot.val.joined = false
 end network_leave_group
 
@@ -1044,16 +1043,28 @@ path_bytes: (path: text.os_string) -> (bytes: []u8 from path)
       or mem.find(bytes, 0) < lenof bytes
 end path_bytes
 
+--  A Unix-domain socket has no internet address, so its path is kept in
+--  its `local` one: the bytes in the sixteen octets and then the sixteen of
+--  the zone, and how many in the port.
+path_length_of: (slot: ptr network_socket) -> (length: usize) =
+    length = usize(slot.val.local.port)
+end path_length_of
+
+path_byte: (slot: ptr network_socket, at: usize) -> (byte: u8) =
+    byte = if at < 16 then slot.val.local.octets[at]
+           else slot.val.local.zone[at - 16] end if
+end path_byte
+
 --  Whether the record at `index` is a Unix-domain socket of `role` bound
 --  to `bytes`.
 named_at: (self: network, index: usize, role: socket_role, bytes: []u8)
           -> (yes: bool) =
     slot: ptr network_socket = addr self.sockets[index]
     yes = slot.val.named and slot.val.role == role and not slot.val.pending
-          and usize(slot.val.path_length) == lenof bytes
+          and path_length_of(slot) == lenof bytes
     return when not yes
     for at in usize(0)..<lenof bytes do
-        if slot.val.path[at] <> bytes[at] then yes = false end if
+        if path_byte(slot, at) <> bytes[at] then yes = false end if
     end for
 end named_at
 
@@ -1061,11 +1072,14 @@ end named_at
 named_as: (self: network, index: usize, bytes: []u8) -> none =
     slot: ptr mut network_socket = addr self.sockets[index]
     slot.val.named = true
-    slot.val.path = zeroed
+    slot.val.local = net.unspecified(net.ipv4, u16(lenof bytes))
     for at in usize(0)..<lenof bytes do
-        slot.val.path[at] = bytes[at]
+        if at < 16 then
+            slot.val.local.octets[at] = bytes[at]
+        else
+            slot.val.local.zone[at - 16] = bytes[at]
+        end if
     end for
-    slot.val.path_length = u8(lenof bytes)
 end named_as
 
 --  Bind a Unix-domain socket of `role` at `path`: a path another such
@@ -1141,7 +1155,7 @@ queued_named: (self: network, receiver: ptr mut network_socket,
               -> none ! io.io_failed =
     state: ptr mut network_space = self.state
     compacted(receiver)
-    named: usize = usize(sender.val.path_length)
+    named: usize = path_length_of(sender)
     needed: usize = datagram_header + named + lenof bytes
     if needed > lenof receiver.val.buffer - receiver.val.filled then
         inc state.val.losses
@@ -1154,7 +1168,7 @@ queued_named: (self: network, receiver: ptr mut network_socket,
     receiver.val.buffer[at + 20] = u8(lenof bytes & 255)
     for index in usize(0)..<named do
         receiver.val.buffer[at + datagram_header + index] =
-            sender.val.path[index]
+            path_byte(sender, index)
     end for
     begins: usize = at + datagram_header + named
     mem.copy(receiver.val.buffer[begins..<at + needed], bytes) else (problem)
