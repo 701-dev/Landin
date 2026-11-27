@@ -1,5 +1,5 @@
 {
- "about": "The gate's lanes, read by scripts/gate_history.py's selection (docs/process.md, \"Failure causes and the selection in shadow\"). Declared by hand: jobs, needs, inputs, emission, evidence, always, physical, note; kept by `gate_history.py table --write`: first_seen, minutes, alone, defect_jobs, outside_jobs, history, shadow.",
+ "about": "The gate's lanes, read by scripts/gate_history.py's selection (docs/process.md, \"Failure causes and the selection in shadow\"). Declared by hand: jobs, needs, inputs, emission, evidence, always, physical, note, local (what stands for the lane on a developer's host, scripts/local_selection.py); kept by `gate_history.py table --write`: first_seen, minutes, alone, defect_jobs, outside_jobs, history, shadow.",
  "rules": {
   "alone_weeks": 8,
   "new_weeks": 4,
@@ -183,6 +183,7 @@
    "scripts/env.sh",
    "scripts/toolchain.sh",
    "scripts/build_lock.py",
+   "scripts/host_slots.py",
    "scripts/build_link.py",
    "scripts/build_identity.py",
    "scripts/build_config.py",
@@ -306,6 +307,19 @@
    ],
    "note": "check.py over every document, grammar table and generated page; full history checkout.",
    "always": true,
+   "local": [
+    {
+     "when": [
+      "**"
+     ],
+     "commands": [
+      [
+       "python3",
+       "check.py"
+      ]
+     ]
+    }
+   ],
    "first_seen": "2026-09-22",
    "minutes": 1.3,
    "alone": "2026-11-25",
@@ -322,6 +336,54 @@
    ],
    "note": "scripts/script_tests.py (every scripts/tests module and check.py's controls), actionlint, determinism/quality/debugging controls.",
    "always": true,
+   "local": [
+    {
+     "when": [
+      "scripts/tests/*.py"
+     ],
+     "script_tests": [
+      "{1}"
+     ]
+    },
+    {
+     "when": [
+      "scripts/*.py"
+     ],
+     "script_tests": [
+      "test_{1}"
+     ]
+    },
+    {
+     "when": [
+      "check.py"
+     ],
+     "script_tests": [
+      "test_check_controls"
+     ]
+    },
+    {
+     "when": [
+      ".github/workflows/**",
+      ".github/actions/**"
+     ],
+     "commands": [
+      [
+       "python3",
+       "scripts/actionlint.py"
+      ]
+     ]
+    },
+    {
+     "when": [
+      "core/**",
+      "hosted/**",
+      "platform/**"
+     ],
+     "script_tests": [
+      "test_library_docs"
+     ]
+    }
+   ],
    "first_seen": "2026-09-26",
    "minutes": 4.3,
    "alone": "2026-11-22",
@@ -340,6 +402,20 @@
     "@workflow"
    ],
    "note": "Debug refine and test program on Linux x86-64, packaged for the debug lanes.",
+   "local": [
+    {
+     "when": [
+      "@build",
+      "@build-scripts",
+      "@toolchain"
+     ],
+     "commands": [
+      [
+       "./scripts/dev-build.sh"
+      ]
+     ]
+    }
+   ],
    "first_seen": "2026-10-16",
    "minutes": 4.0,
    "alone": null,
@@ -362,6 +438,361 @@
     "@workflow"
    ],
    "note": "scripts/test.sh --shard=I/4 with the debug compiler: the whole Ada test program and fixture corpus. Compiles negatives, unit tests and everything else, not only positives.",
+   "local": [
+    {
+     "when": [
+      "compiler/tests/fixtures/positive/*/**"
+     ],
+     "test": [
+      "--fixture=positive/{1}"
+     ]
+    },
+    {
+     "when": [
+      "compiler/tests/fixtures/negative/*/**"
+     ],
+     "test": [
+      "--fixture=negative/{1}"
+     ]
+    },
+    {
+     "when": [
+      "compiler/tests/fixtures/runtime/*/**"
+     ],
+     "test": [
+      "--fixture=runtime/{1}"
+     ]
+    },
+    {
+     "when": [
+      "compiler/tests/fixtures/abi/*/**"
+     ],
+     "test": [
+      "--fixture=abi/{1}"
+     ]
+    },
+    {
+     "when": [
+      "compiler/tests/fixtures/end-to-end/*/**"
+     ],
+     "test": [
+      "--fixture=end-to-end/{1}"
+     ]
+    },
+    {
+     "when": [
+      "compiler/tests/server/**"
+     ],
+     "test": [
+      "--case=server/every session runs as written"
+     ]
+    },
+    {
+     "when": [
+      "compiler/tests/**"
+     ],
+     "test": [
+      "--suite=fixtures"
+     ]
+    },
+    {
+     "when": [
+      "devices/**",
+      "compiler/ada/src/devices/**"
+     ],
+     "test": [
+      "--suite=devices"
+     ]
+    },
+    {
+     "when": [
+      "examples/**"
+     ],
+     "test": [
+      "--case=formatting/core and the examples are formatted"
+     ]
+    },
+    {
+     "when": [
+      "core/**",
+      "hosted/**",
+      "platform/**"
+     ],
+     "test": [
+      "--case=formatting/core and the examples are formatted",
+      "--case=fixture execution/debugger workload inventories are their closures",
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/syntax/**"
+     ],
+     "test": [
+      "--suite=lexer",
+      "--suite=parser",
+      "--suite=formatting",
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/resolution/**",
+      "compiler/ada/src/modules/**"
+     ],
+     "test": [
+      "--suite=resolution",
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/checking/**"
+     ],
+     "test": [
+      "--suite=checking",
+      "--suite=diagnostics",
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/stages/**"
+     ],
+     "test": [
+      "--suite=stages",
+      "--suite=ir",
+      "--suite=ir opt",
+      "--suite=verifier",
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/backend/**"
+     ],
+     "test": [
+      "--suite=backend",
+      "--suite=backend plans",
+      "--suite=x86 opt",
+      "--suite=arm64 selection",
+      "--suite=cortex ABI",
+      "--suite=rv32 firmware",
+      "--suite=xtensa backend",
+      "--suite=debugging",
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/base/**"
+     ],
+     "test": [
+      "--suite=json",
+      "--suite=xml",
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/bindings/**"
+     ],
+     "test": [
+      "--suite=bindings"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/dap/**"
+     ],
+     "test": [
+      "--suite=dap"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/diagnostics/**"
+     ],
+     "test": [
+      "--suite=diagnostics",
+      "--suite=catalogue"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/driver/**",
+      "compiler/ada/src/main/**",
+      "compiler/ada/src/splits/**"
+     ],
+     "test": [
+      "--suite=driver",
+      "--suite=commands"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/formatting/**"
+     ],
+     "test": [
+      "--suite=formatting"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/platform/**"
+     ],
+     "test": [
+      "--suite=platform"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/server/**"
+     ],
+     "test": [
+      "--case=server/every session runs as written"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/src/source/**"
+     ],
+     "test": [
+      "--suite=source"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-cortex_suite.ad?"
+     ],
+     "test": [
+      "--suite=cortex ABI"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-fixture_suite.ad?"
+     ],
+     "test": [
+      "--suite=fixtures"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-ir_inlining_suite.ad?",
+      "compiler/ada/tests/src/landin-tests-ir_optimization_suite.ad?"
+     ],
+     "test": [
+      "--suite=ir opt"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-optimization_driver_suite.ad?"
+     ],
+     "test": [
+      "--suite=opt driver"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-optimization_foundations_suite.ad?"
+     ],
+     "test": [
+      "--suite=opt foundations"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-x86_optimization_suite.ad?"
+     ],
+     "test": [
+      "--suite=x86 opt"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-newcomer_suite.ad?"
+     ],
+     "test": [
+      "--suite=driver"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/tests/src/landin-tests-*_suite.ad?"
+     ],
+     "test": [
+      "--suite={1}"
+     ],
+     "spaces": true
+    },
+    {
+     "when": [
+      "compiler/ada/tests/**"
+     ],
+     "test": [
+      "--suite=harness"
+     ]
+    },
+    {
+     "when": [
+      "compiler/ada/**"
+     ],
+     "test": [
+      "--suite=lowering"
+     ]
+    },
+    {
+     "when": [
+      "spec.md"
+     ],
+     "test": [
+      "--suite=driver",
+      "--suite=targets"
+     ]
+    },
+    {
+     "when": [
+      "tour.md"
+     ],
+     "test": [
+      "--suite=driver",
+      "--suite=formatting"
+     ]
+    },
+    {
+     "when": [
+      "examples.md",
+      "docs/format.md"
+     ],
+     "test": [
+      "--suite=formatting"
+     ]
+    },
+    {
+     "when": [
+      "prototype-*.md",
+      "docs/from-c.md",
+      "docs/commands.md",
+      "docs/library.md"
+     ],
+     "test": [
+      "--suite=fixtures"
+     ]
+    },
+    {
+     "when": [
+      "@build-scripts",
+      "@toolchain"
+     ],
+     "commands": [
+      [
+       "./scripts/dev-build.sh"
+      ]
+     ]
+    }
+   ],
    "first_seen": "2026-09-22",
    "minutes": 29.4,
    "alone": "2026-11-19",
@@ -387,6 +818,56 @@
     "@workflow"
    ],
    "note": "Emacs lsp, determinism closures, native report identity, publication/cancellation, server sessions, the mutation fuzzer and the records of checks too long for a gate (D2874) with the debug compiler.",
+   "local": [
+    {
+     "when": [
+      "highlight/**"
+     ],
+     "commands": [
+      [
+       "./highlight/test.sh",
+       "--integration"
+      ]
+     ]
+    },
+    {
+     "when": [
+      "scripts/tests/test_cli_native.py"
+     ],
+     "script_tests": [
+      "test_cli_native"
+     ]
+    },
+    {
+     "when": [
+      "scripts/tests/test_records_native.py",
+      "scripts/records.py"
+     ],
+     "script_tests": [
+      "test_records_native"
+     ]
+    },
+    {
+     "when": [
+      "compiler/tests/server/**",
+      "compiler/ada/src/server/**"
+     ],
+     "test": [
+      "--case=server/every session runs as written"
+     ]
+    },
+    {
+     "when": [
+      "@build-scripts",
+      "@toolchain"
+     ],
+     "commands": [
+      [
+       "./scripts/dev-build.sh"
+      ]
+     ]
+    }
+   ],
    "first_seen": "2026-10-16",
    "minutes": 7.7,
    "alone": "2026-11-23",
@@ -405,6 +886,9 @@
     "@workflow"
    ],
    "note": "Release refine over the cached object tree; the compiler every later Linux lane takes.",
+   "local": {
+    "none": "the release build; the debug build dev-test.sh makes stands for it locally, and LANDIN_BUILD_MODE=release ./scripts/dev-build.sh builds it when the release mode itself changed"
+   },
    "first_seen": "2026-10-04",
    "minutes": 5.7,
    "alone": "2026-11-16",
@@ -424,6 +908,9 @@
    ],
    "note": "Release refine from clean; consumed only by linux-release-compare.",
    "evidence": true,
+   "local": {
+    "none": "a release build from clean, compared with the cached one; minutes of a whole host for evidence the gate keeps"
+   },
    "first_seen": "2026-11-16",
    "minutes": 9.0,
    "alone": null,
@@ -446,6 +933,9 @@
    ],
    "note": "Cached and clean release builds must be byte-identical (compare_builds.py).",
    "evidence": true,
+   "local": {
+    "none": "compares the gate's two release builds"
+   },
    "first_seen": "2026-11-16",
    "minutes": 0.3,
    "alone": "2026-11-18",
@@ -471,6 +961,9 @@
     "@workflow"
    ],
    "note": "Release compiler: full corpus, verifier resources, closures/server, installed toolchain outside the checkout, install script, static archive on Alpine, object quality, GDB and DAP sessions.",
+   "local": {
+    "none": "the complete corpus with the release compiler and the installed toolchain; the debug run's selectors stand for it"
+   },
    "first_seen": "2026-09-26",
    "minutes": 10.2,
    "alone": "2026-10-16",
@@ -494,6 +987,9 @@
     "@workflow"
    ],
    "note": "Packaged release compiler used from outside the checkout on stock Ubuntu, plus the user container image.",
+   "local": {
+    "none": "a packaged compiler on stock Ubuntu and the user container image"
+   },
    "first_seen": "2026-10-18",
    "minutes": 1.6,
    "alone": null,
@@ -520,6 +1016,9 @@
     "@workflow"
    ],
    "note": "emit_manifest.py modes --shard=I/4: debug and release compilers must emit identical bytes for positive+runtime+Cortex-M corpora at the standard profiles.",
+   "local": {
+    "none": "emit_manifest.py modes over the whole corpus with both compilers; docs/process.md's closing checklist runs it when emission changed"
+   },
    "first_seen": "2026-10-17",
    "minutes": 37.8,
    "alone": null,
@@ -544,6 +1043,29 @@
     "@workflow"
    ],
    "note": "refine bindings against the pinned Clang with the debug compiler; regenerates the committed fixture byte for byte.",
+   "local": [
+    {
+     "when": [
+      "bindings/**",
+      "compiler/tests/fixtures/abi/**",
+      "compiler/ada/src/bindings/**"
+     ],
+     "test": [
+      "--suite=bindings"
+     ]
+    },
+    {
+     "when": [
+      "@build-scripts",
+      "@toolchain"
+     ],
+     "commands": [
+      [
+       "./scripts/dev-build.sh"
+      ]
+     ]
+    }
+   ],
    "first_seen": "2026-09-26",
    "minutes": 1.6,
    "alone": null,
@@ -566,6 +1088,23 @@
     "@workflow"
    ],
    "note": "Tree-sitter grammar parses every positive/runtime/abi fixture and core; committed parser regenerates; Neovim smoke. Uses no compiler.",
+   "local": [
+    {
+     "when": [
+      "highlight/**",
+      "compiler/tests/fixtures/**",
+      "compiler/tests/lexical.tokens",
+      "core/**",
+      "spec.md"
+     ],
+     "commands": [
+      [
+       "./highlight/test.sh",
+       "--integration"
+      ]
+     ]
+    }
+   ],
    "first_seen": "2026-09-26",
    "minutes": 1.2,
    "alone": "2026-10-30",
@@ -592,6 +1131,9 @@
     "@workflow"
    ],
    "note": "nix build .#refine and .#refine-bin, flake check over all systems, dev shell, README nix route. The flake source is the whole tree (version read from README.md); listed paths are what its build and checks read.",
+   "local": {
+    "none": "nix build of the compiler from source; `nix build .#refine` when the flake itself changed"
+   },
    "first_seen": "2026-11-17",
    "minutes": 8.8,
    "alone": null,
@@ -615,6 +1157,9 @@
     "@workflow"
    ],
    "note": "nix build .#refine and .#refine-bin and the dev shell on an arm64 runner, for aarch64-linux (D2976). Listed paths are what its build reads.",
+   "local": {
+    "none": "the flake's build on an arm64 runner"
+   },
    "first_seen": "2026-11-27",
    "minutes": null,
    "alone": null,
@@ -633,6 +1178,9 @@
     "@workflow"
    ],
    "note": "nix build .#board-ram-run (native board RAM helper).",
+   "local": {
+    "none": "nix build of the board RAM helper; `nix build .#board-ram-run` when it changed"
+   },
    "first_seen": "2026-11-17",
    "minutes": 7.2,
    "alone": null,
@@ -651,6 +1199,9 @@
     "@workflow"
    ],
    "note": "nix build .#board-ram-run-rigpi (the rig Pi's helper).",
+   "local": {
+    "none": "the rig Pi's helper, cross-built by nix"
+   },
    "first_seen": "2026-11-17",
    "minutes": 5.2,
    "alone": null,
@@ -676,6 +1227,9 @@
     "@workflow"
    ],
    "note": "Code size of every measured workload at every level/profile for Linux, RV64, Windows and firmware targets, linked by nix-pinned linkers, held to the base commit's baselines; plus RV64 instruction counts.",
+   "local": {
+    "none": "measure.py size over every workload, about seven minutes; docs/measurement.md says when to run it before a push"
+   },
    "first_seen": "2026-11-17",
    "minutes": 4.9,
    "alone": "2026-11-24",
@@ -701,6 +1255,9 @@
     "@workflow"
    ],
    "note": "Cortex-M part 'programs' on locked QEMU/GDB: probe controls, M0 instruction counts vs baselines, devices from SVD, every board port built offline, lanes abi/memory/packed/etc.",
+   "local": {
+    "none": "the firmware lanes under QEMU; docs/process.md's command reference shows a cross lane run from this host"
+   },
    "first_seen": "2026-11-02",
    "minutes": 9.2,
    "alone": "2026-11-21",
@@ -724,6 +1281,9 @@
     "@workflow"
    ],
    "note": "Cortex-M part 'corpus': the freestanding runtime/abi corpus on the Arm lanes under QEMU.",
+   "local": {
+    "none": "the freestanding corpus under QEMU"
+   },
    "first_seen": "2026-11-02",
    "minutes": 11.6,
    "alone": "2026-11-24",
@@ -747,6 +1307,9 @@
     "@workflow"
    ],
    "note": "Cortex-M harness part 'rv32': RV32 controls and corpora on Espressif's QEMU.",
+   "local": {
+    "none": "RV32 under Espressif's QEMU"
+   },
    "first_seen": "2026-11-02",
    "minutes": 7.3,
    "alone": "2026-11-26",
@@ -772,6 +1335,9 @@
     "@workflow"
    ],
    "note": "Xtensa esp32: native controls (shard 1) and one third of the complete freestanding corpus under Espressif's QEMU. Compiles runtime/abi fixtures and hand-written control programs.",
+   "local": {
+    "none": "Xtensa under Espressif's QEMU"
+   },
    "first_seen": "2026-11-04",
    "minutes": 25.0,
    "alone": "2026-11-12",
@@ -797,6 +1363,9 @@
     "@workflow"
    ],
    "note": "Xtensa esp32s3: native controls (shard 1) and one third of the complete freestanding corpus under Espressif's QEMU. Compiles runtime/abi fixtures and hand-written control programs.",
+   "local": {
+    "none": "Xtensa under Espressif's QEMU"
+   },
    "first_seen": "2026-11-04",
    "minutes": 24.8,
    "alone": null,
@@ -824,6 +1393,9 @@
     "@workflow"
    ],
    "note": "Generated 1k-16k declaration programs checked and emitted with the release compiler; doubling time ratio bound.",
+   "local": {
+    "none": "scripts/scaling.sh with the release compiler; the closing checklist runs it when lowering, emission or a backend changed"
+   },
    "first_seen": "2026-09-25",
    "minutes": 3.6,
    "alone": "2026-11-08",
@@ -843,6 +1415,9 @@
     "@workflow"
    ],
    "note": "Release refine on macOS over the cached object tree (ZERO_AR_DATE).",
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-10-04",
    "minutes": 4.5,
    "alone": null,
@@ -863,6 +1438,9 @@
    ],
    "note": "Release refine on macOS from clean; consumed only by darwin-release-compare.",
    "evidence": true,
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-11-17",
    "minutes": 13.1,
    "alone": null,
@@ -885,6 +1463,9 @@
    ],
    "note": "Cached and clean macOS release builds must be byte-identical.",
    "evidence": true,
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-11-17",
    "minutes": 0.2,
    "alone": null,
@@ -904,6 +1485,9 @@
     "@workflow"
    ],
    "note": "Debug refine and test program on macOS.",
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-10-16",
    "minutes": 6.3,
    "alone": null,
@@ -928,6 +1512,9 @@
     "@workflow"
    ],
    "note": "test.sh --host --target=linux-x86-64 --shard=I/4 on a Mac with the debug compiler, plus closures, publication/cancellation and server sessions.",
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-10-04",
    "minutes": 27.5,
    "alone": null,
@@ -953,6 +1540,9 @@
     "@workflow"
    ],
    "note": "Release-compiler host suite on a Mac (2 shards), Darwin sizes vs baselines, installed toolchain, install script, LLDB sessions and DAP over lldb-dap.",
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-10-04",
    "minutes": 13.7,
    "alone": "2026-11-25",
@@ -978,6 +1568,9 @@
     "@workflow"
    ],
    "note": "Native execution of the shared runtime/abi corpus (check.py --parity), source verdicts for positives and negatives (diagnostics.py) and bindings archives. Runs runtime, negative and abi fixtures.",
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-09-26",
    "minutes": 14.3,
    "alone": "2026-10-19",
@@ -996,6 +1589,9 @@
     "@workflow"
    ],
    "note": "Debug refine on Linux arm64.",
+   "local": {
+    "none": "runs on Linux arm64"
+   },
    "first_seen": "2026-10-16",
    "minutes": 3.5,
    "alone": null,
@@ -1017,6 +1613,9 @@
     "@workflow"
    ],
    "note": "scripts/test.sh --shard=I/3 on arm64 with the debug compiler.",
+   "local": {
+    "none": "the test program on Linux arm64; the compiler lane's selectors stand for it here"
+   },
    "first_seen": "2026-10-03",
    "minutes": 30.9,
    "alone": null,
@@ -1036,6 +1635,9 @@
     "@workflow"
    ],
    "note": "arm64 debug compiler: verifier observations, default target, determinism closures, publication/cancellation, server sessions.",
+   "local": {
+    "none": "runs on Linux arm64"
+   },
    "first_seen": "2026-10-16",
    "minutes": 6.5,
    "alone": null,
@@ -1054,6 +1656,9 @@
     "@workflow"
    ],
    "note": "Release refine on Linux arm64.",
+   "local": {
+    "none": "runs on Linux arm64"
+   },
    "first_seen": "2026-11-21",
    "minutes": 8.3,
    "alone": null,
@@ -1073,6 +1678,9 @@
     "@workflow"
    ],
    "note": "Full test.sh corpus on arm64 with the release compiler.",
+   "local": {
+    "none": "runs on Linux arm64"
+   },
    "first_seen": "2026-10-03",
    "minutes": 10.3,
    "alone": "2026-10-30",
@@ -1096,6 +1704,9 @@
     "@workflow"
    ],
    "note": "arm64 release: default target/server, installed toolchain, install script, static archive on Alpine, user image, GDB and DAP sessions, AAPCS64 bindings against pinned Clang.",
+   "local": {
+    "none": "runs on Linux arm64"
+   },
    "first_seen": "2026-11-21",
    "minutes": 4.4,
    "alone": null,
@@ -1119,6 +1730,9 @@
     "@workflow"
    ],
    "note": "Linux-built FreeBSD x86-64 runtime corpus emitted, booted and executed in a QEMU guest.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-10-07",
    "minutes": 6.4,
    "alone": "2026-11-26",
@@ -1143,6 +1757,9 @@
     "@workflow"
    ],
    "note": "FreeBSD x86-64 LLDB debugger sessions in the guest.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-10-07",
    "minutes": 2.8,
    "alone": null,
@@ -1166,6 +1783,9 @@
     "@workflow"
    ],
    "note": "FreeBSD x86-64 ABI fixtures with their C peers in the guest.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-10-07",
    "minutes": 3.3,
    "alone": null,
@@ -1190,6 +1810,9 @@
     "@workflow"
    ],
    "note": "FreeBSD arm64 runtime corpus in two shards (--shard=I/2) in a QEMU guest.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-10-07",
    "minutes": 17.4,
    "alone": null,
@@ -1214,6 +1837,9 @@
     "@workflow"
    ],
    "note": "FreeBSD arm64 LLDB debugger sessions in the guest.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-10-07",
    "minutes": 4.1,
    "alone": "2026-10-28",
@@ -1237,6 +1863,9 @@
     "@workflow"
    ],
    "note": "FreeBSD arm64 ABI fixtures with their C peers in the guest.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-10-07",
    "minutes": 4.7,
    "alone": null,
@@ -1261,6 +1890,9 @@
     "@workflow"
    ],
    "note": "FreeBSD x86-64 section sizes of the measured workloads vs baselines.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-11-17",
    "minutes": 2.0,
    "alone": null,
@@ -1285,6 +1917,9 @@
     "@workflow"
    ],
    "note": "FreeBSD arm64 section sizes of the measured workloads vs baselines.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-11-17",
    "minutes": 1.9,
    "alone": null,
@@ -1305,6 +1940,9 @@
     "@workflow"
    ],
    "note": "Restore or build the pinned GNAT/GPRbuild for FreeBSD x86-64 (cache or a guest build).",
+   "local": {
+    "none": "the FreeBSD toolchain, built in a guest"
+   },
    "first_seen": "2026-11-24",
    "minutes": 0.2,
    "alone": null,
@@ -1327,6 +1965,9 @@
     "@workflow"
    ],
    "note": "refine built in a FreeBSD x86-64 guest and the Ada test program run there in two shards (git bundle of the whole tree).",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-11-24",
    "minutes": 39.3,
    "alone": null,
@@ -1348,6 +1989,9 @@
     "@workflow"
    ],
    "note": "Release build and package archive made and smoke-tested in the FreeBSD guest.",
+   "local": {
+    "none": "a FreeBSD guest"
+   },
    "first_seen": "2026-11-24",
    "minutes": 12.6,
    "alone": null,
@@ -1372,6 +2016,9 @@
     "@workflow"
    ],
    "note": "Linux release compiler emits the Windows x86-64 runtime/abi/Microsoft-link/debugger bundles; NativeWindowsLink unit tests.",
+   "local": {
+    "none": "emits the Windows bundles for the Windows runners"
+   },
    "first_seen": "2026-11-23",
    "minutes": 9.5,
    "alone": null,
@@ -1395,6 +2042,9 @@
     "@workflow"
    ],
    "note": "Windows runner executes the x86-64 corpus bundle and the ABI fixtures with C peers. Verdict is a function of windows-emit's bundle plus the harness, but the bundle comes from runtime/abi fixtures, so compiler inputs are listed.",
+   "local": {
+    "none": "runs on Windows"
+   },
    "first_seen": "2026-11-23",
    "minutes": 1.4,
    "alone": "2026-11-23",
@@ -1418,6 +2068,9 @@
     "@workflow"
    ],
    "note": "Windows runner links the x86-64 bundle with Microsoft's link.exe and executes it.",
+   "local": {
+    "none": "runs on Windows"
+   },
    "first_seen": "2026-11-24",
    "minutes": 3.5,
    "alone": "2026-11-24",
@@ -1443,6 +2096,9 @@
     "@workflow"
    ],
    "note": "Windows LLDB sessions over images and PDBs, and a refine dap session from WSL.",
+   "local": {
+    "none": "runs on Windows"
+   },
    "first_seen": "2026-11-23",
    "minutes": 2.2,
    "alone": "2026-11-24",
@@ -1467,6 +2123,9 @@
     "@workflow"
    ],
    "note": "As windows-emit for windows-arm64 (llvm-mingw arm64 import libraries).",
+   "local": {
+    "none": "emits the Windows arm64 bundles for the Windows runners"
+   },
    "first_seen": "2026-11-24",
    "minutes": 10.4,
    "alone": "2026-11-24",
@@ -1490,6 +2149,9 @@
     "@workflow"
    ],
    "note": "Windows 11 arm64 runner executes the arm64 corpus and ABI fixtures.",
+   "local": {
+    "none": "runs on Windows arm64"
+   },
    "first_seen": "2026-11-24",
    "minutes": 2.3,
    "alone": null,
@@ -1513,6 +2175,9 @@
     "@workflow"
    ],
    "note": "Windows 11 arm64 runner links with Microsoft's arm64 linker and executes.",
+   "local": {
+    "none": "runs on Windows arm64"
+   },
    "first_seen": "2026-11-24",
    "minutes": 6.8,
    "alone": null,
@@ -1538,6 +2203,9 @@
     "@workflow"
    ],
    "note": "Windows arm64 LLDB sessions and a refine dap session from WSL 1 over the arm64 release compiler.",
+   "local": {
+    "none": "runs on Windows arm64"
+   },
    "first_seen": "2026-11-24",
    "minutes": 4.2,
    "alone": null,
@@ -1561,6 +2229,9 @@
     "@workflow"
    ],
    "note": "test.sh --target=linux-rv64 --runner=qemu-riscv64 --shard=I/2 under the pinned QEMU user emulation; shard 1 also RV64 GDB and DAP sessions.",
+   "local": {
+    "none": "a cross lane under QEMU user emulation: ./scripts/dev-test.sh --target=linux-rv64 --runner=qemu-riscv64, a run of its own"
+   },
    "first_seen": "2026-10-18",
    "minutes": 10.8,
    "alone": null,
@@ -1587,6 +2258,9 @@
     "@workflow"
    ],
    "note": "emit_manifest.py emit --shard=I/4: this host's debug compiler emits assembly digests of every positive fixture on all 11 targets, 9 profiles, both modes. Output consumed only by agree. Workflow-level needs name all three debug builds.",
+   "local": {
+    "none": "emit_manifest.py emit over the whole corpus, compared with the other hosts'"
+   },
    "first_seen": "2026-10-04",
    "minutes": 25.4,
    "alone": null,
@@ -1612,6 +2286,9 @@
     "@workflow"
    ],
    "note": "emit_manifest.py emit --shard=I/3: this host's debug compiler emits assembly digests of every positive fixture on all 11 targets, 9 profiles, both modes. Output consumed only by agree. Workflow-level needs name all three debug builds.",
+   "local": {
+    "none": "runs on Linux arm64"
+   },
    "first_seen": "2026-10-04",
    "minutes": 19.6,
    "alone": null,
@@ -1640,6 +2317,9 @@
     "scripts/macos_environment.py"
    ],
    "note": "emit_manifest.py emit --shard=I/4: this host's debug compiler emits assembly digests of every positive fixture on all 11 targets, 9 profiles, both modes. Output consumed only by agree. Workflow-level needs name all three debug builds.",
+   "local": {
+    "none": "runs on a Mac"
+   },
    "first_seen": "2026-10-04",
    "minutes": 30.3,
    "alone": null,
@@ -1661,6 +2341,9 @@
     "@workflow"
    ],
    "note": "Merges each host's shards and requires every host's manifest to agree (emit_manifest.py compare).",
+   "local": {
+    "none": "compares the hosts' manifests"
+   },
    "first_seen": "2026-10-04",
    "minutes": 0.2,
    "alone": null,
@@ -1685,6 +2368,9 @@
    ],
    "note": "Release compiler builds every board's boot and RAM bundles strict against the hardware records (and timing images on a timed event); one artifact with provenance.",
    "physical": true,
+   "local": {
+    "none": "every board's bundles, strict against the hardware records"
+   },
    "first_seen": "2026-11-05",
    "minutes": null,
    "alone": "2026-11-26",
@@ -1716,6 +2402,9 @@
    ],
    "note": "One leg per port on the rig runner: RAM and boot runs on hardware (and timing runs on a timed event). Checkout is sparse to these roots.",
    "physical": true,
+   "local": {
+    "none": "runs on the rig's boards"
+   },
    "first_seen": "2026-11-05",
    "minutes": null,
    "alone": "2026-11-12",
@@ -1740,6 +2429,9 @@
    ],
    "note": "Paired wall-time of candidate vs base compiler's images on each native runner; schedule and dispatch only.",
    "physical": true,
+   "local": {
+    "none": "paired wall time on each native runner"
+   },
    "first_seen": "2026-11-18",
    "minutes": null,
    "alone": "2026-11-23",

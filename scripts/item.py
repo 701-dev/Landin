@@ -695,9 +695,11 @@ def run(arguments):
         raise Refused("%s exists: name the run anew, or `run_logged.py --wait"
                       " %s` for the one it holds" % (directory, directory))
     directory.parent.mkdir(parents=True, exist_ok=True)
+    #  A watch only waits, and takes none of the host's heavy-job slots.
+    light = ["--light"] if getattr(arguments, "light", False) else []
     subprocess.run([sys.executable, str(ROOT / "scripts/run_logged.py"),
                     "--output", str(directory), "--detach", "--limit",
-                    str(arguments.limit), "--", *command],
+                    str(arguments.limit), *light, "--", *command],
                    cwd=where, check=True)
     state["runs"].append({"name": arguments.name, "directory": str(directory),
                           "command": shlex.join(command), "cwd": str(where),
@@ -929,6 +931,7 @@ def watch_gate(arguments, state, commit, shown):
               % directory)
         return 0
     watcher = ["python3", str(ROOT / "scripts/gate_watch.py")]
+    arguments.light = True
     if arguments.main:
         #  The token and the finish wait end at the verdict: the cache
         #  jobs after it are no evidence.
@@ -1044,7 +1047,7 @@ def boards(arguments):
 def watch_boards(arguments, run_number, attempt):
     arguments.name = "boards-%s" % run_number + (
         "-attempt%d" % attempt if attempt > 1 else "")
-    arguments.limit = 7200
+    arguments.limit, arguments.light = 7200, True
     arguments.command = ["python3", str(ROOT / "scripts/gate_watch.py"),
                          "--all", "--run", str(run_number)]
     return run(arguments)
@@ -2877,6 +2880,8 @@ def main(argv=None):
     sub.add_argument("--cwd", metavar="DIR", help="the directory the command"
                      " runs in, such as a stream's worktree (the item's"
                      " worktree)")
+    sub.add_argument("--light", action="store_true", help="take none of the"
+                     " host's heavy-job slots: a command that only waits")
     sub.set_defaults(handler=run)
 
     sub = commands.add_parser("push", help="refuse stale citations, push the"

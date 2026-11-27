@@ -4,6 +4,7 @@
     python3 scripts/run_logged.py --output NEW_DIRECTORY -- COMMAND [ARG ...]
     python3 scripts/run_logged.py --output NEW_DIRECTORY --detach --limit SECONDS -- COMMAND [ARG ...]
     python3 scripts/run_logged.py --output NEW_DIRECTORY [--grace SECONDS] -- COMMAND [ARG ...]
+    python3 scripts/run_logged.py --output NEW_DIRECTORY --light ... -- COMMAND [ARG ...]
     python3 scripts/run_logged.py --wait DIRECTORY [--timeout SECONDS]
     python3 scripts/run_logged.py --stop DIRECTORY
 
@@ -55,13 +56,35 @@ makes `--wait` exit 1 and say which status it stood in for; `result.json`
 keeps the command's own.  The first line `--wait` prints is `state=finished`,
 `state=running` or `state=lost`, for a caller that reads rather than
 branches on the status.
+
+A run is a heavy job: before its command starts it takes one of the
+host's heavy-job slots, which every worktree of the host shares, and
+while every slot is taken its log says which jobs hold them
+(`host_slots.py`).  The command runs in that slot, so the build or suite
+it starts takes none of its own.  `--light` takes none, for a command
+that only waits, such as a gate watch.
+
+Where the user's systemd runs, a detached run starts in a transient scope
+unit of its own, `landin-run-...`, with a memory cap: it then outlives a
+restart of the service whose agent launched it, which ends every process
+of that service's cgroup, and a run that passes its cap has a process of
+its own killed and fails, while the runs beside it go on.  The cap is
+`$LANDIN_RUN_MEMORY_MAX`, else the host's setting, the file
+`run-memory-max` beside the slots (a number of bytes with K, M, G or T),
+else the host's memory divided by one more than its slots, so that
+the agents beside the runs keep a share.  `result.json` names the
+unit, the cap, the memory's peak and the kernel's kills under the cap
+(`oom_kills`).  Without systemd, or with `LANDIN_RUN_SCOPE=no`, a
+detached run starts as before, in a session of its own.
 """
 import argparse
 import datetime
 import json
 import os
 from pathlib import Path
+import re
 import resource
+import shutil
 import signal
 import subprocess
 import sys
@@ -86,6 +109,95 @@ DETACHED = "LANDIN_RUN_LOGGED_DETACHED"
 #  Seconds an ended run's process group has between the signal that ends it
 #  and SIGKILL.
 DEFAULT_GRACE = 10
+#  What the detached wrapper tells its launcher once its run has begun.
+STARTED = "started\n"
+SCOPE = "LANDIN_RUN_SCOPE"
+MEMORY_MAX = "LANDIN_RUN_MEMORY_MAX"
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import host_slots  # noqa: E402
+
+
+def memory_max():
+    """The detached run's memory cap, as systemd takes it."""
+    given = os.environ.get(MEMORY_MAX, "").strip()
+    if not given:
+        try:
+            given = (host_slots.directory() / "run-memory-max").read_text().strip()
+        except OSError:
+            given = ""
+    if given:
+        if not re.fullmatch(r"\d+[KMGT]?", given):
+            raise ValueError("the run memory cap %r is not a number of bytes"
+                             " with K, M, G or T" % given)
+        return given
+    total = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    try:
+        #  With the limit off, as many shares as the default would make.
+        slots = host_slots.count() or host_slots.DEFAULT_SLOTS
+    except ValueError:
+        slots = host_slots.DEFAULT_SLOTS
+    #  One share more than the slots: the agents that started the runs
+    #  need memory of their own.
+    return "%dM" % (total // (slots + 1) // (1024 * 1024))
+
+
+def scope_prefix(output):
+    """The systemd-run command a detached run starts under, or None where
+    the user's systemd cannot start a scope."""
+    if os.environ.get(SCOPE, "").lower() in ("no", "0", "off") \
+            or not sys.platform.startswith("linux"):
+        return None
+    runner = shutil.which("systemd-run")
+    if not runner:
+        return None
+    try:
+        probe = subprocess.run([runner, "--user", "--scope", "--quiet", "--", "true"],
+                               stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if probe.returncode != 0:
+        return None
+    unit = "landin-run-%s-%d" % (re.sub(r"[^A-Za-z0-9_.-]", "_", output.name)[:64],
+                                 os.getpid())
+    return [runner, "--user", "--scope", "--quiet", "--collect",
+            "--unit=" + unit, "--description=run_logged.py %s" % output,
+            "-p", "MemoryMax=" + memory_max(), "-p", "MemorySwapMax=0",
+            "-p", "OOMPolicy=continue", "--"]
+
+
+def own_cgroup():
+    """This process's cgroup v2 directory, or None."""
+    try:
+        with open("/proc/self/cgroup") as stream:
+            for line in stream:
+                if line.startswith("0::"):
+                    return Path("/sys/fs/cgroup") / line[3:].strip().lstrip("/")
+    except OSError:
+        pass
+    return None
+
+
+def scope_figures(cgroup):
+    """The scope's memory cap, peak and kills under the cap."""
+    figures = {}
+    if cgroup is None:
+        return figures
+    for name, key in (("memory.max", "memory_max"), ("memory.peak", "memory_peak_bytes")):
+        try:
+            text = (cgroup / name).read_text().strip()
+        except OSError:
+            continue
+        figures[key] = int(text) if text.isdigit() else text
+    try:
+        for line in (cgroup / "memory.events").read_text().splitlines():
+            name, _, value = line.partition(" ")
+            if name == "oom_kill":
+                figures["oom_kills"] = int(value)
+    except OSError:
+        pass
+    return figures
 
 
 def group_alive(group):
@@ -193,17 +305,24 @@ def wait(output, timeout, parser):
 
 
 def detach(argv, output):
-    """Start this wrapper again in a session of its own and return at once."""
+    """Start this wrapper again in a session of its own, in a scope unit of
+    its own where systemd allows, and return at once."""
+    scope = scope_prefix(output)
     read, write = os.pipe()
     if os.fork():
         os.close(write)
         with os.fdopen(read) as said:
             problem = said.read()
         os.wait()
-        if problem:
-            sys.stderr.write(problem)
+        if problem != STARTED:
+            sys.stderr.write(problem or "run_logged.py: the detached run ended"
+                             " before its command started%s\n"
+                             % (": systemd-run refused its scope" if scope else ""))
             return 2
         print("detached: %s" % output)
+        if scope:
+            print("scope: %s, memory cap %s" % (scope[5][len("--unit="):],
+                                                scope[8][len("MemoryMax="):]))
         print("wait:  python3 scripts/run_logged.py --wait %s" % output)
         print("stop:  python3 scripts/run_logged.py --stop %s" % output)
         return 0
@@ -217,7 +336,10 @@ def detach(argv, output):
         os.dup2(null, descriptor)
     os.environ[DETACHED] = str(write)
     os.set_inheritable(write, True)
-    os.execv(sys.executable, [sys.executable, os.path.abspath(__file__), *argv])
+    wrapper = [sys.executable, os.path.abspath(__file__), *argv]
+    if scope:
+        os.execv(scope[0], scope + wrapper)
+    os.execv(sys.executable, wrapper)
 
 
 def started_detached(problem=""):
@@ -225,7 +347,7 @@ def started_detached(problem=""):
     write = os.environ.pop(DETACHED, None)
     if write is not None:
         with os.fdopen(int(write), "w") as launcher:
-            launcher.write(problem)
+            launcher.write(problem or STARTED)
 
 
 def stop(output, parser):
@@ -264,6 +386,9 @@ def main(argv=None):
                              " the caller, and return at once; needs --limit")
     parser.add_argument("--limit", type=float, metavar="SECONDS",
                         help="end the command after SECONDS; required with --detach")
+    parser.add_argument("--light", action="store_true",
+                        help="with --output: take no heavy-job slot, for a command"
+                             " that only waits, such as a gate watch")
     parser.add_argument("--grace", type=float, default=DEFAULT_GRACE, metavar="SECONDS",
                         help="with --output: seconds the command's process group has to"
                              " exit after the signal that ends the run, before it is"
@@ -274,8 +399,9 @@ def main(argv=None):
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     if (args.wait is not None or args.stop is not None) and (
-            args.command or args.detach or args.limit is not None):
-        parser.error("--wait and --stop take a directory and no command, --detach or --limit")
+            args.command or args.detach or args.limit is not None or args.light):
+        parser.error("--wait and --stop take a directory and no command, --detach,"
+                     " --limit or --light")
     if args.wait is not None:
         return wait(args.wait, args.timeout, parser)
     if args.stop is not None:
@@ -310,6 +436,11 @@ def main(argv=None):
     result_path = output / "result.json"
     result = {"schema": 1, "command": command, "cwd": os.getcwd(),
               "started_at": timestamp(), "log": str(log)}
+    cgroup = own_cgroup() if args.detach else None
+    if cgroup is not None and cgroup.name.startswith("landin-run-"):
+        result["scope"] = cgroup.name
+    else:
+        cgroup = None
     started = time.monotonic()
     before = resource.getrusage(resource.RUSAGE_CHILDREN)
     interrupted = None
@@ -367,7 +498,19 @@ def main(argv=None):
     print("log: %s" % log, flush=True)
     try:
         with log.open("wb") as stream:
+            def say(text):
+                stream.write((text + "\n").encode())
+                stream.flush()
+                if DETACHED not in os.environ and not args.detach:
+                    print(text, file=sys.stderr, flush=True)
             try:
+                if not args.light:
+                    result["heavy_job_slot"] = host_slots.hold(
+                        " ".join(command), say=say,
+                        give_up=lambda: interrupted is not None)
+                    if interrupted is not None:
+                        raise InterruptedError
+
                 child = subprocess.Popen(command, stdout=stream,
                                          stderr=subprocess.STDOUT,
                                          start_new_session=True)
@@ -389,6 +532,8 @@ def main(argv=None):
                         killed_by = time.monotonic() + 5
                         while group_alive(child.pid) and time.monotonic() < killed_by:
                             time.sleep(0.05)
+            except InterruptedError:
+                returncode = -interrupted
             except OSError as error:
                 returncode = 127 if isinstance(error, FileNotFoundError) else 126
                 result["launch_error"] = str(error)
@@ -407,12 +552,18 @@ def main(argv=None):
         interrupted_by=interrupted, limit_reached=limit_reached,
         group_killed=group_killed,
         detached=args.detach,
+        **scope_figures(cgroup),
         user_cpu_seconds=after.ru_utime - before.ru_utime,
         system_cpu_seconds=after.ru_stime - before.ru_stime,
         # Darwin reports bytes; Linux reports KiB. This is a process peak,
         # not the simultaneous memory footprint of the entire process tree.
         peak_child_rss_bytes=after.ru_maxrss * (1 if sys.platform == "darwin"
                                                else 1024))
+    if result.get("oom_kills"):
+        with log.open("ab") as stream:
+            stream.write(("run_logged.py: the kernel killed %d process(es) of"
+                          " this run at its memory cap of %s bytes\n"
+                          % (result["oom_kills"], result.get("memory_max"))).encode())
     temporary = output / "result.json.tmp"
     temporary.write_text(json.dumps(result, indent=2) + "\n")
     temporary.replace(result_path)

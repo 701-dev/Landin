@@ -11125,7 +11125,9 @@ def check_document_anchors(full_run):
 #  the closing checklist, which every item reads, have the least.
 PROCESS_SECTION_BUDGETS = {
     "": 1000,
-    "The loop that runs now": 9200,
+    #  Raised when dev-test.sh learned --base, the gate's selection
+    #  locally.
+    "The loop that runs now": 9400,
     #  Both raised when item.py learned breaking windows, the mirror's
     #  refusal and register_next.py's --delete and --decision, which an
     #  item's agent meets in these steps and nowhere else; and again when
@@ -11139,8 +11141,10 @@ PROCESS_SECTION_BUDGETS = {
     "Running an item": 7400,
     "Closing an item": 6400,
     #  Raised when resume_tests.py continued a cut-off complete run and
-    #  the checks learned to name a shell of another flake.
-    "Local agent feedback": 17400,
+    #  the checks learned to name a shell of another flake; and again when
+    #  the tools took over the host's memory rules: the selection
+    #  by the gate's table, the heavy-job slots and the detached scopes.
+    "Local agent feedback": 20600,
     "Parallel sessions and shared resources": 14600,
     #  Raised when gate_watch.py learned --verdict.
     "Command reference": 8500,
@@ -11218,6 +11222,25 @@ def check_process_budgets(full_run):
                     "check.py budgets a section \"%s\" the file no longer "
                     "has; remove its budget" % title))
     return out
+
+
+def check_local_selectors(full_run):
+    """Every lane of .github/gate-lanes.json names what stands for it on a
+    developer's host, or why nothing does (scripts/local_selection.py), so
+    that `dev-test.sh --base` selects by the gate's own table."""
+    if not full_run:
+        return []
+    table_name = ".github/gate-lanes.json"
+    path = os.path.join(ROOT, "scripts", "local_selection.py")
+    if not os.path.exists(path) or not os.path.exists(os.path.join(ROOT, table_name)):
+        return [(table_name, 1, "this file and scripts/local_selection.py are"
+                 " needed by a check and are not here")]
+    spec = importlib.util.spec_from_file_location("local_selection", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    table = json.loads(read_file(os.path.join(ROOT, table_name), encoding="utf-8"))
+    return [(table_name, 1, problem)
+            for problem in module.check_table(table, module.suites())]
 
 
 AGENT_GUIDANCE_MAX_BYTES = 24 * 1024
@@ -13222,6 +13245,7 @@ def main(argv):
     extra += check_agent_guidance(full_run)
     extra += check_document_anchors(full_run)
     extra += check_process_budgets(full_run)
+    extra += check_local_selectors(full_run)
     extra += check_document_reachability(full_run)
     extra += check_project_status(full_run)
     extra += check_roadmap_citations(full_run)

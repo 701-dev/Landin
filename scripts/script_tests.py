@@ -243,6 +243,15 @@ def main(argv):
             print("== gate environment: PATH holds %d tools, %d variables"
                   " kept; %s" % (len(GATE_TOOLS), len(environment) - 1,
                                  python_note()))
+        #  The modules test the tools that take the host's heavy-job slots
+        #  and start detached runs in scopes of their own; none of their
+        #  runs is a heavy job, and one waiting for the host's real slots
+        #  would stall the module.  A module that tests the slots or the
+        #  scopes sets these itself.
+        environment = {**(os.environ if environment is None else environment),
+                       "LANDIN_HEAVY_JOBS": "0", "LANDIN_RUN_SCOPE": "no",
+                       "LANDIN_HEAVY_JOBS_DIR": stack.enter_context(
+                           tempfile.TemporaryDirectory(prefix="landin-slots-"))}
         status = run_all(work, args.jobs, environment)
     print("== %d processes at --jobs=%d in %.1f s"
           % (len(work), args.jobs, time.monotonic() - started))

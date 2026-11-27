@@ -19,7 +19,7 @@ section that would pass its budget sends its detail to the script's
 | stage | command | what it says |
 |---|---|---|
 | starting a roadmap item | `python3 scripts/item.py start ITEM` from the clone's main checkout | the item's worktree and branch from `origin/main`, its reserved identities, its status made active and the brief; [running an item](#running-an-item) says the rest |
-| edit/test loop | `./scripts/dev-test.sh` with the affected exact `--suite`, `--case` and `--fixture` selectors in one invocation | checksum-safe feedback; the transcript says `FILTERED` |
+| edit/test loop | `./scripts/dev-test.sh` with the affected exact `--suite`, `--case` and `--fixture` selectors in one invocation; `./scripts/dev-test.sh --base=origin/main` prints those the gate's lane table gives for the change, `--run` runs them | checksum-safe feedback; the transcript says `FILTERED` |
 | Mac compiler host | `./scripts/dev-test.sh --host --target=linux-x86-64` | compiler checks only; every selected case passes, and no Linux workload is emitted or run |
 | another Linux architecture from this host | `./scripts/dev-test.sh --target=linux-arm64 --runner=qemu-aarch64` with the affected selectors, inside `nix develop` | a cross lane under QEMU: the emitted code's evidence, not the pinned toolchain's. The development shell has the cross driver under the name `refine` asks for; elsewhere `--toolchain=` names it, as [the lanes](../compiler/tests/README.md#lanes) say |
 | before pushing a candidate | `item.py push` runs the [pre-push checks](#running-an-item) the changed paths select; affected exact developer cases/suites and script controls; `python3 check.py` after documentation changes; `./highlight/test.sh --integration` when the grammar, `highlight/tree-sitter/`, a positive, runtime or ABI fixture or `core/` changed | focused feedback; the complete matrix runs once in CI |
@@ -68,7 +68,8 @@ Choose the smallest test that can expose the changed behavior first, broaden
 only for another affected subsystem, and let the gate validate the final
 candidate once. Run a complete local suite when an investigation needs it,
 never as a mandatory step before pushing, and never as a substitute for the
-multi-host gate. After any documentation change run the full
+multi-host gate: [what the tools select](#what-the-tools-select-and-limit)
+follows the gate's own table. After any documentation change run the full
 `python3 check.py`, then review the prose against what it describes: its
 checks are mechanical and do not establish accuracy. There is no separate
 lint or typecheck step: the pinned build treats every warning as an error
@@ -442,9 +443,9 @@ with nothing in the conversation saying so. Start a run that must outlive
 that with `--detach --limit SECONDS`:
 
 ```sh
-python3 scripts/run_logged.py --output "$feedback_parent/full-suite" \
-  --detach --limit 7200 -- ./scripts/dev-test.sh
-python3 scripts/run_logged.py --wait "$feedback_parent/full-suite"
+python3 scripts/run_logged.py --output "$feedback_parent/parser" \
+  --detach --limit 7200 -- ./scripts/dev-test.sh --suite=parser
+python3 scripts/run_logged.py --wait "$feedback_parent/parser"
 ```
 
 It returns at once and the run goes on in a session of its own, which
@@ -505,6 +506,57 @@ That build says `the checkout changed since the last build, in nothing
 the compiler is built from`, names what moved, and recompiles the
 provenance unit alone; `source content changed` now means a file the
 compiler is built from, and is followed by its name.
+
+### What the tools select and limit
+
+A host shared by many agents ran out of memory when each of them built and
+ran complete suites at once, and the kill took the agents' service with
+every run under it. The tools now hold three rules themselves.
+
+**Selection follows the gate's.** `./scripts/dev-test.sh --base=REV` reads
+the change since the merge base of REV, the working tree's edits and
+untracked files included, finds the lanes of `.github/gate-lanes.json` it
+reaches by the rule the gate's selection uses, and prints the checks each
+lane's `local` entry names for the changed paths: one `dev-test.sh`
+invocation with every `--suite`, `--case` and `--fixture`, one
+`script_tests.py` invocation, and the other commands, such as `check.py`
+or `./highlight/test.sh --integration`. Lanes with no local work, a Mac's,
+Windows', a guest's or the rig's, are listed with the reason, and a change
+that reaches no local selector says so. `--run` runs what it printed, the
+`dev-test.sh` invocation first. A lane's entry is a list of rules, paths
+and what they call for, or `{"none": WHY}`; `check.py` refuses a lane
+without one and a suite the test program lacks
+(`python3 scripts/local_selection.py --help`). The selection is
+development feedback, `FILTERED`; the candidate's gate runs the complete
+suite and the other hosts' lanes, and a complete local suite is no step
+before a push.
+
+**Heavy jobs take a slot.** A build or test run (every script that takes the
+build lock in `mode` scope, the developer wrappers among them), a
+`run_logged.py` run, `emit_manifest.py emit` and `modes`, and `measure.py
+size`, `instructions` and `time` each take one of a small number of slots,
+locks in `~/.local/state/landin/heavy-jobs` that every worktree and clone
+of the host shares. A job that finds them all taken waits, says on standard
+error, or in a logged run's log, which processes hold them, with each one's
+directory and command, and starts when one is freed. A job started inside
+one that holds a slot, the build `dev-test.sh` makes or the suite a logged
+run starts, runs in that slot. The number is the host's setting, two by
+default: `python3 scripts/host_slots.py --set N` writes it, and `python3
+scripts/host_slots.py` lists the holders. `LANDIN_HEAVY_JOBS=0` takes none,
+for a runner or a test that runs one job at a time; `run_logged.py --light`,
+which `item.py`'s gate and boards watches pass, takes none for a command
+that only waits.
+
+**A detached run has a scope of its own.** Where the user's systemd runs,
+`run_logged.py --detach` starts the run in a transient scope unit,
+`landin-run-NAME-PID`, with a memory cap and no swap: it outlives a restart
+of the service that launched its agent, and a run that passes its cap has a
+process of its own killed and fails while the runs beside it go on. The cap
+is `LANDIN_RUN_MEMORY_MAX`, else the file `run-memory-max` beside the slots,
+else the host's memory divided by one more than its slots. `result.json`
+names the scope, the cap, the peak and the kernel's kills under the cap.
+Without systemd, or with `LANDIN_RUN_SCOPE=no`, a detached run starts in a
+session of its own as before.
 
 `scripts/run_logged.py` requires a new output directory and writes complete
 combined stdout/stderr to `command.log`. It prints paths, elapsed time, CPU
