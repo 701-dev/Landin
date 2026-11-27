@@ -486,7 +486,12 @@ class Lane:
         status = int(Path(str(path) + '.status').read_text())
         expected_status = ((132 if self.args.arch == 'amd64' else 133) if meta.traps
                            else meta.status_at(result['level']))
-        require(status == expected_status, f'{label}: guest status {status}, expected {expected_status}')
+        if meta.traps and meta.get('protected') == 'yes':
+            #  D3014: a refused write, FreeBSD's SIGBUS 10 or SIGSEGV 11.
+            require(status in (138, 139),
+                    f'{label}: guest status {status}, expected the refused write\'s 138 or 139')
+        else:
+            require(status == expected_status, f'{label}: guest status {status}, expected {expected_status}')
         stdout = Path(str(path) + '.stdout').read_bytes()
         expected = expected_output(meta, Path(result['base']))
         if expected is not None:

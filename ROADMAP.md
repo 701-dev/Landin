@@ -3962,11 +3962,11 @@ on every backend, `.rodata`, `__TEXT,__const` or `.rdata`, a wholly zero
 one written there and no longer reserved in RAM on RV32 and Xtensa, by one
 predicate the backends and the image measurement share (D3014);
 `runtime/immutable-module-value-write-faults` and its zero counterpart end
-by the fault on every hosted target, the Windows lane taking
-`STATUS_ACCESS_VIOLATION` for `traps: yes` beside the trap's code, and a
-new metadata key, `protected: yes`, tells the firmware corpora that the
-oracle is a refused write, which firmware without memory protection cannot
-give. A relocated immutable value on a hosted target stays writable,
+by the fault on every hosted target, and a new metadata key,
+`protected: yes`, says the oracle is a refused write: the lanes that name
+a trap's signal expect SIGSEGV or SIGBUS for it, Windows
+`STATUS_ACCESS_VIOLATION`, and the firmware corpora read it as an oracle
+firmware without memory protection cannot give. A relocated immutable value on a hosted target stays writable,
 `SR-2147`. The Tree-sitter grammar reads a sum of any length before a
 statement: each operator level's tail is right-recursive at the level's
 own precedence, where `repeat1`'s helper had none, so a `-` that could

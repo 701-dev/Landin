@@ -61,7 +61,11 @@ def as_meta(meta):
 
 def outcome(meta, status, stdout, stderr, expected=None):
     meta = as_meta(meta)
-    if meta.get("traps") == "yes":
+    if meta.get("traps") == "yes" and meta.get("protected") == "yes":
+        #  D3014: ended by the system refusing a write to read-only memory.
+        require(status in (-signal.SIGBUS, -signal.SIGSEGV),
+                f"expected the refused write's SIGBUS or SIGSEGV, got {status}")
+    elif meta.get("traps") == "yes":
         require(status == -signal.SIGTRAP, f"expected synchronous BRK, got {status}")
         if meta.get("trap_report"):
             require(reports_trap(stdout + stderr, meta["trap_report"]),

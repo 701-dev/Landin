@@ -19321,8 +19321,11 @@ allocated section without contents. Both were declined.
 **Pinned by** `runtime/immutable-module-value-write-faults` and
 `runtime/immutable-zero-module-value-write-faults` on every hosted target,
 whose write through a pointer made from the value's address ends the
-program; on Windows with `STATUS_ACCESS_VIOLATION`, which the Windows lane
-now accepts for `traps: yes` beside the trap's own code.
+program by SIGSEGV or SIGBUS, and on Windows by `STATUS_ACCESS_VIOLATION`.
+Their metadata says `protected: yes`, so that the lanes which name a
+trap's signal expect the refused write's instead, and the firmware
+corpora, whose targets have no memory protection to refuse it, read the
+oracle as one firmware cannot give.
 
 
 ## DECISIONS: THE TOOLCHAIN, C AND THE MACHINE

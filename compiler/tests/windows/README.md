@@ -33,11 +33,10 @@ A fixture's `status` is what a POSIX parent reads, the low byte of what
 `main` returned; Windows keeps all 32 bits, so the lane compares the low
 byte. A failed check ends a Windows program with the trap instruction and
 no handler, `ud2` on x86-64 and `brk #1` on arm64, whose exit code is
-`STATUS_ILLEGAL_INSTRUCTION`, 0xC000001D; a write to a read-only section,
-an immutable module value's or a literal's, ends it with
-`STATUS_ACCESS_VIOLATION`, 0xC0000005. A fixture marked `traps: yes` is
-held to ending without returning, which on the POSIX lanes is any signal,
-and the lane requires one of those two codes.
+`STATUS_ILLEGAL_INSTRUCTION`, 0xC000001D, and the lane requires exactly
+that for a fixture marked `traps: yes`; one also marked `protected: yes`
+is ended by a refused write to read-only memory (D3014), and the lane
+requires `STATUS_ACCESS_VIOLATION`, 0xC0000005, instead.
 Before it runs anything the lane sets the error mode its programs inherit
 and joins a job object that ends a process an exception ends without
 asking Windows Error Reporting, which every child joins with it. The error
