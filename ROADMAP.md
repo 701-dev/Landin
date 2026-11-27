@@ -3682,7 +3682,7 @@ in `core/text/shortest.ldn`, and restated; filed: SR-2012, L0102's
 
 ### R22.21 — n-body and spectral-norm ported
 
-Status: active
+Status: complete
 Depends on: R22.10, R22.20
 
 The Benchmarks Game's two numeric programs, ported beside its five
@@ -3693,6 +3693,23 @@ Exit evidence: both as runtime fixtures printing the game's small-input
 output (n-body within its `ndiff -abserr 1e-8`, held byte for byte), the
 digests pinned in `check.py`, both in `examples.md` and in
 `workloads.json`'s hosted set.
+
+Done: `runtime/benchmark-game-n-body` and `runtime/benchmark-game-spectral-norm`
+are the game's single-threaded programs over `math.sqrt` and `{:.9}`,
+n-body's five bodies an array of structs and spectral-norm's vectors
+`core/vec` lists of `f64`. Each prints the game's official file for its
+small input byte for byte, n-body's 1,000 steps with no use of the
+`ndiff` tolerance, and both print the game's figures at the performance
+inputs, 50,000,000 steps and order 5,500; the two digests are pinned in
+`check.py`, both are in `examples.md`, and `workloads.json` times them at
+1,000,000 steps and order 1,000, their size and RV64 instruction
+baselines recorded from the gate's first run. At `speed` on the EPYC host
+n-body 1,000,000 executes 1.53 G instructions and spectral-norm 1,000
+1.44 G, against 0.60 G and 0.56 G for the same algorithms in C at gcc 16.1
+`-O2` without vectorizing. Filed: `SR-2092`, `math.sqrt` a call around
+D2551's assembly block, about 16% of n-body's instructions, the
+measurement D2551 left its builtin open for; and `SR-2093`, x86-64
+storing an `f64` through the frame and a general register, about 8%.
 
 ### R22.22 — k-nucleotide ported
 
