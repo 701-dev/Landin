@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/bits's bit operations at u16 agree with references written bit by bit in the program, over every input, and every first operand against zero, each power of two and the largest value
+summary: core/bits's bit operations at u16 agree with byte tables built bit by bit and with arithmetic in the program, over every input, each with three rotation counts and against eight second operands
 program: main.ldn
 root: ../../../../..
 status: 42

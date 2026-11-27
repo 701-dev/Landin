@@ -9818,6 +9818,30 @@ package body Landin.Stages.Checking is
                      return Ty.Ill_Typed;
                   end;
                end if;
+               --  D3039: a parameter or local spelled as the module type
+               --  it hides, `order: order`, reaches the binding; say that
+               --  rather than that the type is none.
+               if Hidden_By (Means) /= "" then
+                  Bad.Report
+                    (Item    => Bad.Type_Declaration_Form,
+                     Source  => Syn.Source_Of (Of_Tree),
+                     Where   => Syn.Where (Of_Tree, Written),
+                     Message => "`"
+                                & Spelled (Syn.Name (Of_Tree, Written))
+                                & "` here is " & Local_Called (Means)
+                                & ", which hides " & Hidden_By (Means)
+                                & ", and a parameter or local is not a"
+                                & " type",
+                     Note    => "[1450]: a parameter or local may shadow a"
+                                & " module's declaration; rename it to"
+                                & " reach the type",
+                     Related => Syn.Origin
+                       (Tree_For (Res.Source_Of (Meanings.all, Means)).all,
+                        Res.Node_Of (Meanings.all, Means)),
+                     Because => "this hides " & Hidden_By (Means),
+                     Into    => Found);
+                  return Ty.Ill_Typed;
+               end if;
                Bad.Report
                  (Item    => Bad.Type_Declaration_Form,
                   Source  => Syn.Source_Of (Of_Tree),

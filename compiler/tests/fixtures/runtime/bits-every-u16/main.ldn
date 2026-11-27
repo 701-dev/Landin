@@ -1,97 +1,83 @@
---  core/bits's operations at u16 against references written here bit by
---  bit or by arithmetic, sharing no code with core/bits: every input of
---  each one-operand operation, every rotation count up to twice the
---  width, and every first operand against eighteen second ones: zero,
---  each power of two and the largest value.  The program exits 42 when
---  all agree, and otherwise the number of the first operation that did
---  not.
+--  core/bits's operations at u16 against references written here, which
+--  share no code with core/bits: tables of each byte's count, zeros and
+--  mirror image, built bit by bit, and arithmetic.  Every input of each
+--  one-operand operation is checked, each with three rotation counts,
+--  one, the width less one and the input modulo twice the width and one,
+--  so that every count meets almost two thousand inputs, and every input
+--  against eight second operands: zero, one, the top bit, the largest
+--  value, two alternating patterns, the input itself and its complement.
+--  The program exits 42 when all agree, and otherwise the number of the
+--  first operation that did not.
 import core/bits
 
 width: u32 = 16
 top: u32 = 65535
 
---  Bit `index` of `value`.
-bit: (value: u32, index: u32) -> (set: bool) =
-    set = (value >> index) & 1 == 1
-end bit
+--  Each byte's set bits, leading zeros, trailing zeros and bits in the
+--  opposite order, counted bit by bit.
+mut ones_of: [256]u8 = zeroed
+mut leading_of: [256]u8 = zeroed
+mut trailing_of: [256]u8 = zeroed
+mut mirror_of: [256]u8 = zeroed
 
-ones_by_bits: (value: u32) -> (count: u32) =
-    count = 0
-    for index in u32(0)..<width do
-        if bit(value, index) then inc count end if
+tables: () -> none =
+    for byte in u32(0)..<256 do
+        mut ones: u8 = 0
+        mut leading: u8 = 8
+        mut trailing: u8 = 8
+        mut mirror: u32 = 0
+        for index in u32(0)..<8 do
+            if (byte >> index) & 1 == 1 then
+                inc ones
+                leading = u8(7 - index)
+                if trailing == 8 then trailing = u8(index) end if
+                mirror = mirror | (u32(1) << (7 - index))
+            end if
+        end for
+        ones_of[usize(byte)] = ones
+        leading_of[usize(byte)] = leading
+        trailing_of[usize(byte)] = trailing
+        mirror_of[usize(byte)] = u8(mirror)
     end for
-end ones_by_bits
+end tables
 
-leading_by_bits: (value: u32) -> (count: u32) =
-    count = 0
-    mut index: u32 = width
-    while index > 0 do
-        dec index
-        return when bit(value, index)
-        inc count
-    end while
-end leading_by_bits
-
-trailing_by_bits: (value: u32) -> (count: u32) =
-    count = 0
-    for index in u32(0)..<width do
-        return when bit(value, index)
-        inc count
-    end for
-end trailing_by_bits
-
---  One place up, the top bit coming in at the bottom, by arithmetic.
-up_one: (value: u32) -> (result: u32) =
-    result = (value * 2) % (top + 1) + value / ((top + 1) / 2)
-end up_one
-
---  One place down, the bottom bit coming in at the top.
-down_one: (value: u32) -> (result: u32) =
-    result = value / 2 + (value % 2) * ((top + 1) / 2)
-end down_one
-
-mirrored_by_bits: (value: u32) -> (result: u32) =
-    result = 0
-    for index in u32(0)..<width do
-        if bit(value, index) then
-            result = result | (u32(1) << (width - 1 - index))
-        end if
-    end for
-end mirrored_by_bits
-
-swapped_by_bytes: (value: u32) -> (result: u32) =
-    result = 0
-    for index in u32(0)..<width / 8 do
-        byte: u32 = (value >> (8 * index)) & 0xff
-        result = result | (byte << (width - 8 - 8 * index))
-    end for
-end swapped_by_bytes
+--  `value` rotated `count` places up, by arithmetic: the low part moves
+--  up by a multiplication and the high part down by a division.
+rotated: (value: u32, count: u32) -> (result: u32) =
+    k: u32 = count % width
+    scale: u32 = u32(1) << k
+    result = (value * scale) % (top + 1) + value / ((top + 1) / scale)
+end rotated
 
 --  Every operation on one operand, `x`, against the references.
 single: (x: u32) -> (failed: i32) =
     value: u16 = u16(x)
+    low: u32 = x % 256
+    high: u32 = x / 256
     failed = 1
-    return when bits.ones(value) <> ones_by_bits(x)
+    return when bits.ones(value) <> u32(ones_of[usize(low)]) + u32(ones_of[usize(high)])
     failed = 2
-    return when bits.leading_zeros(value) <> leading_by_bits(x)
+    leading: u32 = if high <> 0 then u32(leading_of[usize(high)])
+                   else 8 + u32(leading_of[usize(low)]) end if
+    return when bits.leading_zeros(value) <> leading
     failed = 3
-    return when bits.trailing_zeros(value) <> trailing_by_bits(x)
+    trailing: u32 = if low <> 0 then u32(trailing_of[usize(low)])
+                    else 8 + u32(trailing_of[usize(high)]) end if
+    return when bits.trailing_zeros(value) <> trailing
     failed = 4
-    return when bits.bit_length(value) <> width - leading_by_bits(x)
+    return when bits.bit_length(value) <> width - leading
     failed = 5
-    return when u32(bits.reverse_bits(value)) <> mirrored_by_bits(x)
+    return when u32(bits.reverse_bits(value))
+      <> u32(mirror_of[usize(low)]) * 256 + u32(mirror_of[usize(high)])
     failed = 6
-    return when u32(bits.reverse_bytes(value)) <> swapped_by_bytes(x)
-    --  Each count from the one before it, a place at a time.
-    mut left: u32 = x
-    mut right: u32 = x
-    for count in u32(0)..<2 * width + 1 do
+    return when u32(bits.reverse_bytes(value)) <> low * 256 + high
+    counts: [3]u32 = [1, width - 1, x % (2 * width + 1)]
+    for count in counts do
         failed = 7
-        return when u32(bits.rotate_left(value, count)) <> left
+        return when u32(bits.rotate_left(value, count)) <> rotated(x, count)
         failed = 8
-        return when u32(bits.rotate_right(value, count)) <> right
-        left = up_one(left)
-        right = down_one(right)
+        return when u32(bits.rotate_right(value, count))
+          <> rotated(x, width - count % width)
     end for
     failed = 0
 end single
@@ -100,16 +86,17 @@ end single
 pair: (x: u32, y: u32) -> (failed: i32) =
     left: u16 = u16(x)
     right: u16 = u16(y)
-    product: u64 = u64(x) * u64(y)
+    product: u32 = x * y
     (high: high, low: low) := bits.multiply_wide(left, right)
     failed = 9
-    return when u64(high) <> product >> u64(width)
-      or u64(low) <> product & u64(top)
+    return when u32(high) * (top + 1) + u32(low) <> product
     for carry in u32(0)..<2 do
         total: u32 = x + y + carry
-        (sum: sum, carry_out: carry_out) := bits.add_carry(left, right, carry == 1)
+        (sum: sum, carry_out: carry_out) :=
+            bits.add_carry(left, right, carry == 1)
         failed = 10
-        return when u32(sum) <> total & top or carry_out <> (total > top)
+        return when u32(sum) <> total % (top + 1)
+          or carry_out <> (total > top)
         below: bool = x < y + carry
         expected: u32 = if below then x + (top + 1) - y - carry
                         else x - y - carry end if
@@ -121,18 +108,14 @@ pair: (x: u32, y: u32) -> (failed: i32) =
     failed = 0
 end pair
 
---  The second operands: zero, every power of two and the largest value.
-second: (index: u32) -> (y: u32) =
-    y = if index == 0 then 0 elsif index == 17 then top
-        else u32(1) << (index - 1) end if
-end second
-
 public main: () -> (code: i32) =
+    tables()
     for x in u32(0)..<top + 1 do
         code = single(x)
         return when code <> 0
-        for index in u32(0)..<18 do
-            code = pair(x, second(index))
+        seconds: [8]u32 = [0, 1, 0x8000, top, 0x5555, 0xaaaa, x, top - x]
+        for y in seconds do
+            code = pair(x, y)
             return when code <> 0
         end for
     end for

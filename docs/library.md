@@ -238,6 +238,8 @@ The library covers:
   the environment;
 - running programs, clocks, sleeping, the system's entropy and a
   deterministic generator;
+- bit operations, integers in a stated byte order and LEB128 over the
+  caller's bytes, and sets of flags, `core/bits`;
 - the elementary mathematical functions of `f32` and `f64`, `core/math`;
 - Unicode's properties, case mapping, normalization and the boundaries
   of characters, words and sentences, `core/unicode`;
@@ -2346,6 +2348,49 @@ a password comes from `io.fill_random` directly.
 
 [Executable example](../compiler/tests/fixtures/runtime/random-sequence/main.ldn)
 
+## core/bits
+
+The bit operations of the unsigned integers, integers read from and
+written to the caller's bytes in a stated byte order, and the operations
+of a set of flags. Nothing allocates.
+
+| Call | What it does |
+|---|---|
+| `bits.ones`, `bits.leading_zeros`, `bits.trailing_zeros`, `bits.bit_length` | How many bits are set, how many zero bits stand above the highest set bit or below the lowest, and how many bits the value needs. The zero counts are the width for zero, and `bit_length` is 0. |
+| `bits.rotate_left`, `bits.rotate_right` | The value rotated by a count of bits, which is taken modulo the width. |
+| `bits.reverse_bytes`, `bits.reverse_bits` | The bytes or the bits in the opposite order. |
+| `bits.multiply_wide` | The full product of two values as its `high` and `low` halves. |
+| `bits.add_carry`, `bits.subtract_borrow` | A sum with a carry in and out, and a difference with a borrow in and out, each a `bool`. |
+| `bits.read_u8`, `bits.read_i8` | The next byte, as it is or as two's complement. |
+| `bits.read_u16`, `bits.read_i16`, `bits.read_u32`, `bits.read_i32`, `bits.read_u64`, `bits.read_i64` | The next two, four or eight bytes as an integer in a `bits.byte_order`, which is `bits.little` or `bits.big`. |
+| `bits.write_u8`, `bits.write_i8`, `bits.write_u16`, `bits.write_i16`, `bits.write_u32`, `bits.write_i32`, `bits.write_u64`, `bits.write_i64` | The same integers written into a `[]mut u8`. |
+| `bits.skip`, `bits.take` | Pass over a count of bytes, or take them as a view of the bytes. |
+| `bits.read_uleb128`, `bits.read_sleb128`, `bits.write_uleb128`, `bits.write_sleb128` | An unsigned or signed LEB128 integer of up to 64 bits, as DWARF, WebAssembly and protocol buffers write them. A write uses the fewest bytes, from one to ten. |
+| `bits.union`, `bits.intersection`, `bits.difference`, `bits.is_empty` | Two whole sets combined, and whether a set has no member. |
+
+The bit operations are generic over the concept `bits.unsigned`, which
+`u8`, `u16`, `u32` and `u64` meet. A count is a `u32`. Each operation is
+written from shifts and masks, so it gives the same answer on every
+target, Cortex-M0 included.
+
+A read or a write takes the caller's bytes and `at`, the offset of the
+next byte, and moves `at` past what it read or wrote. Only `at` is passed
+`inout`, so a view from `bits.take` is of the bytes themselves and lasts
+while reading goes on.
+
+A read with too few bytes left fails `mem.out_of_bounds`, and a write
+with too little room left fails `mem.out_of_memory`. A LEB128 integer
+with an eleventh byte, or with bits past the 64th, fails
+`bits.invalid_varint`; padding up to ten bytes is accepted. A call that
+fails moves nothing, so a program may try another reading of the same
+bytes.
+
+A set is a packed struct of `bool` [0730], and its type says so with
+`is bits.flags ()`. `bits.is_empty` counts the bits no field claims too,
+so an image read from a device with a reserved bit set is not empty.
+
+[Executable example](../compiler/tests/fixtures/runtime/bits-byte-order/main.ldn)
+
 ## core/math
 
 The functions of C's `<math.h>` that most programs use, over `f32` and
@@ -2555,7 +2600,6 @@ bits on every target, so a result is the same limbs everywhere.
 | `limbs.add`, `limbs.add_limb`, `limbs.subtract`, `limbs.subtract_limb` | The sum or difference with a number or one limb, returning the carry or the borrow; the left operand is at least as long as the right. |
 | `limbs.multiply_limb`, `limbs.add_multiply_limb`, `limbs.subtract_multiply_limb` | A number times one limb, written, added to or subtracted from the destination, returning the high limb; the last two are GMP's `addmul_1` and `submul_1`. |
 | `limbs.shift_left`, `limbs.shift_right` | A shift by a count below 32, returning the bits shifted out. |
-| `limbs.leading_zeros`, `limbs.trailing_zeros` | The zero bits above or below a limb's set ones. |
 | `limbs.divide_limb`, `limbs.remainder_limb` | Division by one limb, returning the remainder, with or without the quotient. |
 | `limbs.multiply`, `limbs.multiply_scratch` | The product, of `lenof left + lenof right` limbs: schoolbook below 48 limbs, Karatsuba below 150 and Toom-3 above. `multiply_scratch` is the scratch length it needs. |
 | `limbs.divide`, `limbs.divide_scratch` | The quotient and remainder by Knuth's Algorithm D, for a divisor whose top limb is not zero and which is no longer than the numerator. `divide_scratch` is the scratch length it needs. |

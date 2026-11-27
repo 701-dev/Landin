@@ -1,0 +1,20 @@
+error[L0338]: `order` here is the parameter `order`, which hides the type `order`, and a parameter or local is not a type
+  --> ../tests/fixtures/negative/a-parameter-hides-the-type-it-names/program.ldn:8:16
+  |
+8 | first: (order: order, bytes: []u8) -> (value: u8) =
+  |                ^^^^^
+  --> ../tests/fixtures/negative/a-parameter-hides-the-type-it-names/program.ldn:8:9
+  |
+8 | first: (order: order, bytes: []u8) -> (value: u8) =
+  |         ^^^^^^^^^^^^ this hides the type `order`
+  = note: [1450]: a parameter or local may shadow a module's declaration; rename it to reach the type
+error[L0338]: `order` here is the local `order`, which hides the type `order`, and a parameter or local is not a type
+  --> ../tests/fixtures/negative/a-parameter-hides-the-type-it-names/program.ldn:15:12
+   |
+15 |     taken: order = little
+   |            ^^^^^
+  --> ../tests/fixtures/negative/a-parameter-hides-the-type-it-names/program.ldn:14:5
+   |
+14 |     order: usize = 1
+   |     ^^^^^^^^^^^^^^^^ this hides the type `order`
+  = note: [1450]: a parameter or local may shadow a module's declaration; rename it to reach the type

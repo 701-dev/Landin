@@ -1080,6 +1080,209 @@ input:   AAAABBBCCDAA
 encoded: 4A3B2C1D2A
 ```
 
+## Sections of a WebAssembly module
+
+The program reads the WebAssembly module its first argument names and
+prints its version and a line for each section, as `wasm-objdump -h` does.
+It adds a custom section's name and the exports of the export section. A
+module is a magic number, a version and a run of sections, each an
+identifier byte and a length before its contents. When something fails,
+the program says what in words on standard error and returns 1.
+
+- Every `core/bits` read takes the bytes and `at`, the offset of the next
+  byte, and moves `at` past what it read. Only `at` is `inout` [0900], so
+  the bytes stay readable while earlier views of them are in use.
+- `bits.take(bytes, at, 4)` lends the next four bytes as a view of
+  `bytes`, here the magic number, and copies nothing. A file shorter than
+  that fails, and the `else` block turns the failure into the program's
+  own `not_a_module` [1030].
+- `bits.read_u32(bytes, at, bits.little)` reads the version, four bytes
+  with the least significant first. The byte order is an argument of
+  every read wider than a byte.
+- `bits.read_uleb128` reads a length, a count or an index in LEB128, the
+  variable-length form WebAssembly writes them in. It fails
+  `bits.invalid_varint` for one longer than 64 bits allow.
+- A read with too few bytes left fails `mem.out_of_bounds` and does not
+  trap, and `try` passes the failure on [0960]. A truncated or corrupt
+  file therefore ends in a message.
+- `read_name` returns a view declared `from bytes`, so the name it lends
+  is known to come from the module's bytes [0790]. The program checks a
+  length against the bytes left before narrowing it to `usize`.
+- `list_exports` reads a section's contents with an offset of its own,
+  starting at 0, since `contents` is a slice like any other.
+- The file is read into a module-level buffer of 65536 bytes, and a
+  `defer` closes it on every way out of `read_file` [1100]. A larger file
+  is the failure `mem.out_of_memory`.
+- `complain` takes the library's failures and `not_a_module` in one
+  parameter, and `failure.words` gives the words for the library's.
+
+Fixture source: `compiler/tests/fixtures/runtime/example-wasm-sections/main.ldn`.
+
+```landin
+--  List the sections of the WebAssembly module the first argument names,
+--  and the names its export section gives, as `wasm-objdump -h` and `-x`
+--  do.  A module is a magic number, a version and a run of sections, each
+--  an identifier byte and a length in LEB128 before its contents.  A
+--  failure is said in words on standard error, and the program then
+--  returns 1.
+import core/bits
+import core/failure
+import core/io
+import core/mem
+import core/text
+import hosted/blocking
+
+--- The most of a module the program reads.
+capacity: usize = 65536
+
+--- A file that does not begin as a WebAssembly module does.
+not_a_module: atom
+
+--- The name the specification gives section `id`.
+section_name: (id: u8) -> (name: []u8) =
+    name = if id == 0 then "custom" elsif id == 1 then "type"
+           elsif id == 2 then "import" elsif id == 3 then "function"
+           elsif id == 4 then "table" elsif id == 5 then "memory"
+           elsif id == 6 then "global" elsif id == 7 then "export"
+           elsif id == 8 then "start" elsif id == 9 then "element"
+           elsif id == 10 then "code" elsif id == 11 then "data"
+           elsif id == 12 then "data count" else "unknown" end if
+end section_name
+
+--- What an export's kind byte says it is.
+kind_name: (kind: u8) -> (name: []u8) =
+    name = if kind == 0 then "function" elsif kind == 1 then "table"
+           elsif kind == 2 then "memory" elsif kind == 3 then "global"
+           else "unknown" end if
+end kind_name
+
+--- A name at `at`: its length in LEB128, then its bytes, lent from
+--- `bytes`.
+read_name: (bytes: []u8, inout at: usize) -> (name: []u8 from bytes) ! ... =
+    length: u64 = try bits.read_uleb128(bytes, at)
+    fail mem.out_of_bounds when length > u64(lenof bytes - at)
+    name = try bits.take(bytes, at, usize(length))
+end read_name
+
+--- Print each export of an export section's `contents`: its kind, its
+--- index and its name.
+list_exports: (host: blocking.host, contents: []u8) -> none ! ... =
+    mut at: usize = 0
+    count: u64 = try bits.read_uleb128(contents, at)
+    for each in u64(0)..<count do
+        _ = each
+        name: []u8 = try read_name(contents, at)
+        kind: []u8 = kind_name(try bits.read_u8(contents, at))
+        index: u64 = try bits.read_uleb128(contents, at)
+        try io.write_format(host, io.out(host), "  export {} {} {}\n",
+                            [any(addr kind), any(addr index), any(addr name)])
+    end for
+end list_exports
+
+--- Print the version of the module in `bytes` and a line for each of its
+--- sections, with a custom section's name and an export section's
+--- exports.
+list_sections: (host: blocking.host, bytes: []u8) -> none ! ... =
+    mut at: usize = 0
+    magic: []u8 = bits.take(bytes, at, 4) else begin
+        fail not_a_module
+    end
+    fail not_a_module when magic[0] <> 0 or magic[1] <> 0x61
+      or magic[2] <> 0x73 or magic[3] <> 0x6d
+    version: u32 = try bits.read_u32(bytes, at, bits.little)
+    try io.write_format(host, io.out(host), "version {}\n",
+                        [any(addr version)])
+    while at < lenof bytes do
+        id: u8 = try bits.read_u8(bytes, at)
+        size: u64 = try bits.read_uleb128(bytes, at)
+        fail mem.out_of_bounds when size > u64(lenof bytes - at)
+        contents: []u8 = try bits.take(bytes, at, usize(size))
+        name: []u8 = section_name(id)
+        try io.write_format(host, io.out(host), "{} section, {} bytes",
+                            [any(addr name), any(addr size)])
+        if id == 0 then
+            mut inside: usize = 0
+            label: []u8 = try read_name(contents, inside)
+            try io.write_format(host, io.out(host), ": {}",
+                                [any(addr label)])
+        end if
+        try io.write(host, io.out(host), "\n")
+        if id == 7 then try list_exports(host, contents) end if
+    end while
+end list_sections
+
+--- Read up to `capacity` bytes of the file at `path` into `storage`, and
+--- say how many it held.
+read_file: (host: blocking.host, path: text.os_string, storage: []mut u8)
+           -> (count: usize) ! ... =
+    count = 0
+    file := try io.open_read(host, path)
+    defer io.close(host, file) else none
+    loop do
+        got: usize = try io.read(host, file, storage[count..<lenof storage])
+        break when got == 0
+        count = count + got
+        fail mem.out_of_memory when count == lenof storage
+    end loop
+end read_file
+
+--- Say on standard error what failed and why.
+complain: (host: blocking.host, subject: []u8,
+           problem: failure.reason | not_a_module) -> none =
+    words: []u8 = match problem
+        not_a_module: "not a WebAssembly module"
+        _ (library): failure.words(library)
+    end match
+    io.write_format(host, io.err(host), "sections: {}: {}\n",
+                    [any(addr subject), any(addr words)]) else none
+end complain
+
+mut storage: [capacity]u8 = zeroed
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    path := io.argument(host, 0) else begin
+        io.write(host, io.err(host), "usage: sections FILE\n") else none
+        return
+    end
+    subject: []u8 = text.os_string_bytes(path)
+    count := read_file(host, path, storage) else (problem)
+        complain(host, subject, problem)
+        return
+    end
+    list_sections(host, storage[0..<count]) else (problem)
+        complain(host, subject, problem)
+        return
+    end
+    code = 0
+end main
+```
+
+Named a module that exports two functions and its memory:
+
+```sh
+refine compile main.ldn -o sections
+./sections module.wasm
+```
+
+it prints the text below. Named a file that is not a module, it prints
+`sections: notes.log: not a WebAssembly module` on standard error and
+returns 1.
+
+```text
+version 1
+type section, 7 bytes
+function section, 3 bytes
+memory section, 3 bytes
+export section, 24 bytes
+  export function 0 add
+  export function 1 twice
+  export memory 0 memory
+code section, 17 bytes
+custom section, 29 bytes: producers
+```
+
 ## Merge sort
 
 Merge sort halves the range, sorts each half by calling itself, and merges

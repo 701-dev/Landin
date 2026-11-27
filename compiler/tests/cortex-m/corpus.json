@@ -3117,6 +3117,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/example-wasm-sections": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/failure-words": {
       "mode": "execute"
     },

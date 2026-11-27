@@ -4235,6 +4235,30 @@ varints refused; `core/big` and `core/random` on the library's operations
 with their fixtures unchanged; an example program in `examples.md` that
 reads a binary format; image size on Cortex-M0 measured.
 
+Done: `core/bits` counts and moves bits generically over `bits.unsigned`,
+`u8` to `u64`, written once from shifts with `u64` on two halves (D3034);
+reads and writes every width in either order and LEB128 over the caller's
+bytes and an offset passed `inout`, so a taken view outlives later reads,
+failing `mem.out_of_bounds` and `mem.out_of_memory` without moving
+(D3035), padding accepted to ten bytes and anything longer
+`bits.invalid_varint` (D3036); and combines sets as library routines over
+the entry-less concept `bits.flags`, the item's first question answered
+without a language rule (D3037). `core/big`, `core/text` and
+`core/random` use it, `limbs.leading_zeros` and `limbs.trailing_zeros`
+leaving the unreleased limb layer, their fixtures' results unchanged
+(D3038). `runtime/bits-every-u8` checks every input and pair,
+`runtime/bits-every-u16` every input against byte tables, three rotation
+counts and eight second operands each, which fits Cortex-M0's twenty
+seconds where every count and pair did not, and `runtime/bits-oracle`
+2048 drawn cases a width at `u32` and `u64` against Python
+(`scripts/bits_oracle.py`). On Cortex-M0 at `size/auto` the probe is
+7,700 bytes of flash, the oracle 9,160 and the byte-order fixture 17,408;
+every fixture fits each profile. `examples.md` lists a WebAssembly
+module's sections. Found and fixed: a reader holding its slice locked
+itself for as long as a view `take` lent was used (L0315), which shaped
+D3035; and a parameter spelled as the module type it hides, `order:
+order`, was refused as naming no type, now as hiding it (D3039).
+
 ### R22.42 — Random draws programs use
 
 Status: planned

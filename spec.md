@@ -46812,3 +46812,63 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** a second entry taking the spec, which every existing conformance would have to add; a concept of its own for values that read a spec, which an `any formattable` cannot be asked for; and refusing a part a value does not read, which needs the value's type when the template is checked, before any value is looked at.
 
 **Pinned by** `runtime/core-text-format-spec`'s program types, one reading `x` through `text.placeholder` and one formatting a pair inside its own conformance, padded by the outer placeholder.
+
+### D3034 — `core/bits` counts and moves bits at each unsigned width, written once from shifts
+
+**The tour said** nothing about counting or moving bits, and `core/big` and `core/random` each kept a private copy of what they needed: a limb's leading and trailing zeros, a rotation and a little-endian read. The roadmap asks for Go's `math/bits` and Rust's integer methods at each unsigned width.
+
+**Chosen:** `core/bits` declares the concept `bits.unsigned`, which `u8`, `u16`, `u32` and `u64` meet, and the routines over it, as `core/math` does over `math.floating`: `ones`, `leading_zeros`, `trailing_zeros`, `bit_length`, `rotate_left`, `rotate_right`, `reverse_bytes`, `reverse_bits`, `multiply_wide`, `add_carry` and `subtract_borrow`. A count is a `u32`, as Rust's are; a rotation takes any count, modulo the width; a carry or a borrow is a `bool` in and out. Each is written in Landin from shifts, masks and additions: the narrow widths widen to the `u32` routine and a `u64` works on its two halves, so a 32-bit target does it in its own registers and every target gives the same answer. Selecting `popcnt`, `lzcnt` or `rbit` for them stays the optimization lane's. `bit_length`, not Go's `Len`, because `length` is how many items a value holds (D2031).
+
+**The alternatives:** one routine per width, `ones_u32` and the like, which is four names for each idea (D1953); and the instructions in assembly per target, which Cortex-M0 and RV32 lack and which is R16's to choose.
+
+**Pinned by** `runtime/bits-every-u8`, which checks every input of each one-operand routine at every rotation count to twice the width, and every pair of operands, against references written bit by bit in the program; `runtime/bits-every-u16`, which checks every input against byte tables the program builds bit by bit and against arithmetic, each input with three rotation counts so that every count meets almost two thousand inputs, and against eight second operands, which is what a Cortex-M0 emulator runs in its twenty seconds; `runtime/bits-oracle`, whose digests of 2048 drawn cases a width at `u32` and `u64` `scripts/bits_oracle.py` computes with Python's integers; each runs on every target, the firmware lanes included; and `runtime/library-shared-bits`.
+
+### D3035 — Bytes are read and written at an offset the caller passes `inout`, and a failed call moves nothing
+
+**The tour said** nothing; the roadmap asks for a reader and a writer over a caller's byte slice, in little or big order, failing rather than trapping on a short read, as Go's `encoding/binary` and Rust's `byteorder` do.
+
+**Chosen:** each routine takes the bytes and `at`, the offset of the next byte, and moves `at` past what it read or wrote: `bits.read_u8` to `bits.read_i64`, their `write_*` counterparts into a `[]mut u8`, `bits.skip` and `bits.take`, with the order an atom, `bits.little` or `bits.big`. Only `at` is passed `inout`, so a view `take` lends is `from` the bytes, not from a reader, and lives while reading goes on; a reader holding the slice was tried, and `take` from it locked the reader for as long as a name it lent was used, which L0315 refused in the first parser written over it. A short read fails `mem.out_of_bounds`, the atom for a read past a source (D2028), and a write with too little room `mem.out_of_memory` (D2029). A failed call leaves `at` where it was, so a program may try another reading of the same bytes.
+
+**The alternatives:** a reader and a writer type holding the slice, declined for the lock above; one routine generic over the eight widths, which needs a concept over the signed widths and a type argument at every call; and a trap on a short read, which the roadmap rules out.
+
+**Pinned by** `runtime/bits-byte-order`, which round-trips every width in both orders, checks the bytes each order lays down, uses a taken view after later reads, and refuses every short read and a full buffer at each length without moving `at`, and the published example `runtime/example-wasm-sections`.
+
+### D3036 — A LEB128 integer takes at most the ten bytes 64 bits need, padding included
+
+**The tour said** nothing. DWARF, WebAssembly and protocol buffers write LEB128, and linkers pad an encoding with bytes of zero bits so a relocation can rewrite it in place.
+
+**Chosen:** `bits.read_uleb128` and `bits.read_sleb128` read a `u64` and an `i64`. An encoding longer than its value needs is accepted up to ten bytes, as WebAssembly's limit of the width's bytes accepts it; an eleventh byte, or a tenth byte with bits past the 64th, other than a signed encoding's repeated sign, fails the new atom `bits.invalid_varint`, which `failure.reason` and `failure.words` carry. Input that ends inside an encoding fails `mem.out_of_bounds`. `bits.write_uleb128` and `bits.write_sleb128` write the fewest bytes.
+
+**The alternatives:** refusing a non-minimal encoding, which would refuse what linkers write; and Go's `Uvarint`, which reports an overflow as a negative count rather than a failure.
+
+**Pinned by** `runtime/bits-byte-order`'s varints: known encodings at both signs and both ends of the range, every length from one byte to ten in both encodings, padding accepted, and truncated, eleven-byte and overflowing ones refused with their atoms.
+
+### D3037 — A set's union, intersection, difference and emptiness are library routines, not a language rule
+
+**The tour said** at [0730] that a set is a packed struct of `bool` and has no set operator, because a struct needs none. The roadmap asks whether combining two sets needs a language rule or library functions, so that flags outside a register need no masks.
+
+**Chosen:** library routines. `bits.union`, `bits.intersection`, `bits.difference` and `bits.is_empty` are generic over a type that meets `bits.flags`, a concept with no entries, which a set's type states with `is bits.flags ()`; they combine the images' bytes, which D228 makes the whole of a packed image. The conformance is the program's statement that every field is a `bool` or an array of them: a packed struct with a number or a selection in it is not a set, and nothing checks that, as nothing checks a conformance's meaning elsewhere. `is_empty` counts a bit no field claims, so an image read from a device with a reserved bit set is not empty. [0730] keeps its sentence, and gains one pointing here.
+
+**The alternatives:** `|`, `&` and a complement on packed structs of `bool`, a language rule [0730] declined and which a library routine gives without; a compiler-owned concept met by exactly those structs, a second beside `zeroable` (D1958) for four routines; and routines with no bound at all, which would combine any struct's bytes without the program saying it meant a set.
+
+**Pinned by** `runtime/bits-sets`, over a named set with a gap in a `u32` carrier, an eight-bit set over every pair of its values and sixteen pins as an array field, with a reserved bit making an image nonempty.
+
+### D3038 — `core/big` and `core/random` use `core/bits`, and `core/big/limbs` gives up its zero counts
+
+**The tour said** nothing. The roadmap asks that the library's private copies give way to the new operations, with the fixtures of the modules that held them unchanged.
+
+**Chosen:** `limbs.leading_zeros` and `limbs.trailing_zeros` leave `core/big/limbs`, whose callers in `core/big` and `core/text` call `bits.leading_zeros`; `core/big` came after the last release, so no removed-name entry is owed. `core/random` rotates with `bits.rotate_left` and reads its entropy's words with `bits.read_u64`. Three routines in `core/text` and `core/big` whose result was named `bits` hid the import, which L0301 said in those words, and their result is now `pattern`. `core/cmp`'s SipHash keeps its own rotations, since `core/cmp` imports nothing.
+
+**The alternatives:** keeping the limb layer's names as forwards to `core/bits`, two names for one idea (D1953).
+
+**Pinned by** `runtime/big-limbs`, whose table and results are unchanged and which now calls `bits.leading_zeros` and `bits.trailing_zeros`, the other `big-*` fixtures and `runtime/library-shared-random`, each unchanged.
+
+### D3039 — A binding spelled as the module type it hides is named as that in the refusal
+
+**The tour said** at [1450] that a parameter or a local may shadow a module's declaration. A parameter written `order: order`, beside a module type `order`, reaches itself in its own signature, and the type position was refused with L0338's "`order` names something that is not a type", which reads as though the type were missing; `core/bits`'s first signatures met it.
+
+**Chosen:** where the binding a type position reaches hides a module declaration, L0338 says so: "`order` here is the parameter `order`, which hides the type `order`, and a parameter or local is not a type", with the binding as the related place and [1450]'s note to rename it. The code and the rule are unchanged; D1260's case, a binding spelled as a predeclared scalar, keeps its own note.
+
+**The alternatives:** letting a type position look past a binding to the type it hides, which would make one spelling mean two things in one signature.
+
+**Pinned by** `negative/a-parameter-hides-the-type-it-names`, a parameter and a local each spelled as the module type they hide.
