@@ -3872,7 +3872,7 @@ the gate's Windows lanes.
 
 ### R22.29 — Release archives that say where they run
 
-Status: planned
+Status: active
 Depends on: none
 
 What a user installing a release meets, scheduled by the register sweep
