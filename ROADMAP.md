@@ -4237,7 +4237,7 @@ reads a binary format; image size on Cortex-M0 measured.
 
 ### R22.42 — Random draws programs use
 
-Status: planned
+Status: active
 Depends on: R20
 
 What `core/random`'s generator lacks, set against Rust's `rand` and Go's
