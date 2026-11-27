@@ -293,12 +293,15 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   `lib/landin`, each attested by the release workflow; from the release
   after 0.2.11 also one for FreeBSD x86-64,
   `landin-VERSION-x86_64-freebsd.tar.gz`, built in a FreeBSD guest, whose
-  `refine` needs only the base system to start and which is unpacked by
-  hand, since `install.sh` does not serve FreeBSD yet. The host lane makes
+  `refine` needs only the base system to start. The macOS archive's
+  `refine` needs macOS 26 or later, the `minos` the runner's SDK gives it,
+  which the release workflow holds every executable in the archive to and
+  `install.sh` checks before it downloads (D2974). The host lane makes
   the FreeBSD arm64 one, `landin-VERSION-aarch64-freebsd.tar.gz`, in an
   arm64 guest, but no release publishes it yet. Homebrew's
-  `701-dev/tap/landin`, the flake's default package and the one-line
-  `install.sh` the site serves install a Linux or macOS one, the flake's
+  `701-dev/tap/landin` and the flake's default package install a Linux or
+  macOS one, the one-line `install.sh` the site serves also the FreeBSD
+  one (D2975), the flake's
   `nix run` runs it,
   and its `refine` package builds from source. From the release after
   0.2.11, a release publishes two archives for each Linux architecture
@@ -315,8 +318,9 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   `--variant dynamic` asks for the other, refuses one whose `.sha256`
   differs, a host no archive serves and, rather than refusing hosts by
   their loader, an archive whose `refine` does not start on the host
-  (D1789). The gate runs it on all three hosts against its own packaged
-  compiler served as a release would be, and runs the packaged static
+  (D1789). The gate runs it on all three hosts and in the FreeBSD guest
+  against its own packaged compiler served as a release would be, and
+  runs the packaged static
   compiler in an empty root and on Alpine (D1790). The
   [README's installing section](../README.md#installing) gives each route.
 - From the release after 0.2.11, a release also publishes two container

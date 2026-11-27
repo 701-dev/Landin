@@ -26,7 +26,9 @@
 #                       DIR holding an earlier install is replaced; any
 #                       other DIR that is not empty is refused.
 #    --platform NAME    install the archive for NAME rather than for this
-#                       host: x86_64-linux, aarch64-linux or aarch64-darwin
+#                       host: x86_64-linux, aarch64-linux, aarch64-darwin
+#                       or x86_64-freebsd.  The FreeBSD archive is
+#                       published from the release after 0.2.11.
 #    --variant NAME     on Linux, static or dynamic; static when not given.
 #                       The static archive's refine has glibc linked into
 #                       it and runs on any Linux.  The dynamic one uses the
@@ -37,6 +39,9 @@
 #                       publishes for every platform, and install nothing
 #    --help             print this text
 #
+#  The macOS archive needs macOS 26 or later, and on an earlier macOS the
+#  script refuses before downloading anything.
+#
 #  LANDIN_RELEASES names where releases are read from, by default
 #  https://github.com/701-dev/Landin/releases: VERSION's archive is
 #  $LANDIN_RELEASES/download/vVERSION/landin-VERSION-PLATFORM.tar.gz, and
@@ -46,7 +51,10 @@ set -eu
 
 releases=${LANDIN_RELEASES:-https://github.com/701-dev/Landin/releases}
 repository=701-dev/Landin
-platforms="x86_64-linux aarch64-linux aarch64-darwin"
+platforms="x86_64-linux aarch64-linux aarch64-darwin x86_64-freebsd"
+#  The oldest macOS the macOS archive runs on, the major version of its
+#  refine's `minos`, which the release workflow checks against this line.
+macos_minimum=26
 
 say() { printf 'install.sh: %s\n' "$*"; }
 refuse() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
@@ -57,8 +65,9 @@ usage() {
 
 other_routes() {
     cat >&2 <<EOF
-install.sh: the release archives serve Linux on x86-64 and arm64, and
-install.sh: macOS on Apple Silicon.  Elsewhere, install Landin
+install.sh: the release archives serve Linux on x86-64 and arm64, macOS
+install.sh: $macos_minimum or later on Apple Silicon, and FreeBSD on x86-64.
+install.sh: Elsewhere, install Landin
 install.sh: with nix:     nix profile install github:$repository
 install.sh: or build it from source, as the README's "From source" says:
 install.sh:   https://github.com/$repository#from-source
@@ -112,7 +121,17 @@ host_platform() {
     esac
     case "$system/$machine" in
         Linux/x86_64|Linux/aarch64) echo "$machine-linux" ;;
-        Darwin/aarch64) echo aarch64-darwin ;;
+        FreeBSD/x86_64) echo x86_64-freebsd ;;
+        Darwin/aarch64)
+            running=$(sw_vers -productVersion 2>/dev/null || echo unknown)
+            case ${running%%.*} in
+                ''|*[!0-9]*) ;;
+                *) if [ "${running%%.*}" -lt "$macos_minimum" ]; then
+                       say "the macOS archive needs macOS $macos_minimum or later; this Mac runs macOS $running" >&2
+                       other_routes; exit 1
+                   fi ;;
+            esac
+            echo aarch64-darwin ;;
         Darwin/x86_64)
             say "no release archive serves macOS on an Intel processor" >&2
             other_routes; exit 1 ;;
@@ -152,6 +171,7 @@ case $variant in
 esac
 case "$platform/$variant" in
     *-darwin/?*) refuse "--variant chooses between the Linux archives; macOS has one" ;;
+    *-freebsd/?*) refuse "--variant chooses between the Linux archives; FreeBSD has one" ;;
 esac
 
 #  The names the release workflow publishes: on Linux the static archive
@@ -159,7 +179,7 @@ esac
 if [ "$list" = yes ]; then
     for one in $platforms; do
         for suffix in '' -dynamic; do
-            case "$one/$suffix" in *-darwin/-dynamic) continue ;; esac
+            case "$one/$suffix" in *-linux/*|*/) ;; *) continue ;; esac
             echo "landin-$version-$one$suffix.tar.gz"
             echo "landin-$version-$one$suffix.tar.gz.sha256"
         done
@@ -198,8 +218,10 @@ if command -v sha256sum > /dev/null 2>&1; then
     digest() { sha256sum "$1" | cut -d' ' -f1; }
 elif command -v shasum > /dev/null 2>&1; then
     digest() { shasum -a 256 "$1" | cut -d' ' -f1; }
+elif command -v sha256 > /dev/null 2>&1; then
+    digest() { sha256 -q "$1"; }
 else
-    refuse "sha256sum or shasum is needed to check the archive; install one and run this again"
+    refuse "sha256sum, shasum or sha256 is needed to check the archive; install one and run this again"
 fi
 
 parent=$(dirname "$dir")
@@ -208,10 +230,14 @@ work=$(mktemp -d "$parent/.landin-install.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 trap 'exit 1' HUP INT TERM
 
+asked="a release${suffix:+ with a dynamic archive}"
+case $platform in
+    *-freebsd) asked="a release with a FreeBSD archive, one after 0.2.11" ;;
+esac
 say "downloading Landin $version for $platform"
 say "  $url"
 curl -fSL --progress-bar -o "$work/$archive" "$url" \
-    || refuse "could not download $url; is $version a release${suffix:+ with a dynamic archive}? $releases lists them"
+    || refuse "could not download $url; is $version $asked? $releases lists them"
 curl -fsSL -o "$work/$archive.sha256" "$url.sha256" \
     || refuse "could not download $url.sha256"
 
@@ -294,4 +320,5 @@ esac
 case $platform in
     *-linux) say "refine run links with the system's GCC driver, gcc; install it if you have none." ;;
     *-darwin) say "refine run links with Xcode's command-line tools: xcode-select --install" ;;
+    *-freebsd) say "refine run links with the base system's cc and binutils' as: pkg install binutils" ;;
 esac

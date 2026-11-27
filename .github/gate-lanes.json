@@ -595,6 +595,29 @@
    "defect_jobs": 0,
    "outside_jobs": 0
   },
+  "flake-compiler-arm64": {
+   "jobs": [
+    "flake-compiler-arm64"
+   ],
+   "needs": [],
+   "inputs": [
+    "@nix",
+    "@build",
+    "@build-scripts",
+    "@library",
+    "README.md",
+    "environments/pins.sh",
+    "environments/boards/ram-run/**",
+    "environments/cortex-m/tools.lock.json",
+    "@workflow"
+   ],
+   "note": "nix build .#refine and .#refine-bin and the dev shell on an arm64 runner, for aarch64-linux (D2976). Listed paths are what its build reads.",
+   "first_seen": "2026-11-27",
+   "minutes": null,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
   "flake-ram-run": {
    "jobs": [
     "flake-ram-run"

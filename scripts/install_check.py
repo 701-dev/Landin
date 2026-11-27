@@ -85,8 +85,10 @@ def unstartable_archive():
 def host_platform():
     machine = {"x86_64": "x86_64", "amd64": "x86_64", "aarch64": "aarch64",
                "arm64": "aarch64"}.get(host.machine().lower())
-    system = {"Linux": "linux", "Darwin": "darwin"}.get(host.system())
-    if machine is None or system is None:
+    system = {"Linux": "linux", "Darwin": "darwin",
+              "FreeBSD": "freebsd"}.get(host.system())
+    if (machine is None or system is None
+            or (system, machine) == ("freebsd", "aarch64")):
         raise SystemExit("install check: no release archive serves %s on %s"
                          % (host.system(), host.machine()))
     return "%s-%s" % (machine, system)
@@ -137,13 +139,25 @@ def serve(root, newest):
     return server
 
 
-def fake_uname(bin_dir, system, machine):
+def fake_uname(bin_dir, system, machine, macos=None):
+    """A uname naming SYSTEM on MACHINE in BIN_DIR, and for MACOS a
+    sw_vers naming that macOS version."""
     bin_dir.mkdir(parents=True, exist_ok=True)
-    path = bin_dir / "uname"
-    path.write_text("#!/bin/sh\ncase $1 in -s) echo %s ;; -m) echo %s ;; "
-                    "*) echo %s ;; esac\n" % (system, machine, system))
-    path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP
-               | stat.S_IXOTH)
+    tools = {"uname": "case $1 in -s) echo %s ;; -m) echo %s ;; "
+                      "*) echo %s ;; esac" % (system, machine, system)}
+    if macos:
+        tools["sw_vers"] = "echo %s" % macos
+    for name, body in tools.items():
+        path = bin_dir / name
+        path.write_text("#!/bin/sh\n%s\n" % body)
+        path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP
+                   | stat.S_IXOTH)
+
+
+def macos_minimum():
+    """The oldest macOS install.sh installs the macOS archive on."""
+    found = re.search(r"^macos_minimum=([0-9]+)$", SCRIPT.read_text(), re.M)
+    return int(found.group(1))
 
 
 class Checks:
@@ -308,7 +322,7 @@ def run_checks(archive, work, version, platform=None, path=None):
                 and not (work / "missing").exists()):
             checks.ok(what)
 
-        for system, machine in (("FreeBSD", "amd64"), ("Linux", "riscv64")):
+        for system, machine in (("FreeBSD", "arm64"), ("Linux", "riscv64")):
             fake = work / ("uname-%s-%s" % (system, machine))
             fake_uname(fake, system, machine)
             what = "an unserved host, %s on %s" % (system, machine)
@@ -319,6 +333,23 @@ def run_checks(archive, work, version, platform=None, path=None):
                               "nix profile install", "from-source")
                     and not (work / "unserved").exists()):
                 checks.ok(what)
+
+        #  Refused before anything is downloaded: the release named is
+        #  one the served releases do not have.
+        #  macOS 15 came before 26: Apple numbered by year from there.
+        earlier = "15.7"
+        assert int(earlier.split(".")[0]) < macos_minimum()
+        fake = work / "uname-macos-earlier"
+        fake_uname(fake, "Darwin", "arm64", macos=earlier)
+        what = "a Mac older than the macOS archive needs, macOS %s" % earlier
+        ran = checks.install("--version", MISSING, "--dir",
+                             str(work / "earlier"), path="%s:%s" % (fake, path))
+        if (checks.expect(what, ran, 1, "needs macOS %d or later; this Mac"
+                          " runs macOS %s" % (macos_minimum(), earlier),
+                          "nix profile install")
+                and "downloading" not in ran.stdout
+                and not (work / "earlier").exists()):
+            checks.ok(what)
     finally:
         server.shutdown()
         server.server_close()

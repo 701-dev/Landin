@@ -117,7 +117,8 @@ jobs:
           python3 scripts/gate_inputs.py reuse gate.yml \
             documents scripts linux-debug-build compiler-1 compiler-2 compiler-3 compiler-4 \
             compiler-checks linux-release-build \
-            release bindings editor-grammar flake-compiler flake-ram-run flake-ram-run-rigpi \
+            release bindings editor-grammar flake-compiler flake-compiler-arm64 \
+            flake-ram-run flake-ram-run-rigpi \
             cortex-m-programs cortex-m-corpus \
             cortex-m-rv32 xtensa-esp32-1 xtensa-esp32-2 xtensa-esp32-3 \
             xtensa-esp32s3-1 xtensa-esp32s3-2 xtensa-esp32s3-3 \
@@ -910,24 +911,29 @@ jobs:
 
   #  The flake (D585): `nix build .#refine` and `.#refine-bin`, every
   #  output of every system evaluated, the development shell entered, the
-  #  README's `nix profile install` and `nix run` checked (D1707),
+  #  README's `nix profile install` and `nix run` checked (D1707), the
+  #  same build and shell on an arm64 runner for aarch64-linux (D2976),
   #  on every run that does not reuse a pass, so a change anywhere in the
   #  source that breaks `nix build .#refine` fails the commit that makes it,
   #  and the board RAM helpers built, the native one with its tests.
-  #  Skipped under a reused pass like every lane.  The three parts run on
-  #  three runners: in one job the two helpers' Rust builds shared its
+  #  Skipped under a reused pass like every lane.  The parts run on
+  #  runners of their own: in one job the two helpers' Rust builds shared its
   #  four cores for twelve minutes after the compiler's six, and the job,
   #  20 to 28 minutes, was among the gate's last.
   flake:
     name: flake-${{ matrix.part }}
     needs: inputs
     if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        part: [compiler, ram-run, ram-run-rigpi]
+        include:
+          - {part: compiler, runner: ubuntu-24.04}
+          - {part: compiler-arm64, runner: ubuntu-24.04-arm}
+          - {part: ram-run, runner: ubuntu-24.04}
+          - {part: ram-run-rigpi, runner: ubuntu-24.04}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -940,6 +946,18 @@ jobs:
           set -eu
           nix build -L --no-link .#refine .#refine-bin
           nix flake check --no-build --all-systems
+          nix develop --command ./scripts/toolchain.sh
+
+      #  D2976: a dependency only one architecture's prebuilt toolchain
+      #  archive adds, as GPRbuild's arm64 one wanting libgmp did, shows
+      #  only where that system builds; `flake check --no-build` above
+      #  evaluates aarch64-linux without building it.
+      - name: Build the compiler and enter the shell on aarch64-linux
+        if: matrix.part == 'compiler-arm64'
+        run: |
+          set -eu
+          test "$(nix eval --impure --raw --expr builtins.currentSystem)" = aarch64-linux
+          nix build -L --no-link .#refine .#refine-bin
           nix develop --command ./scripts/toolchain.sh
 
       #  D1707: the README's nix commands fetch the release archive rather

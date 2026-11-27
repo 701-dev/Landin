@@ -11046,8 +11046,9 @@ PROCESS_SECTION_BUDGETS = {
     #  schedule did.
     "The mechanical gate": 58000,
     #  Raised when the install script's check joined the recipe's step 6,
-    #  and again when the static Linux archive's check did.
-    "Releasing a version": 13000,
+    #  again when the static Linux archive's check did, and again when
+    #  the formula came to depend on the macOS archive's stated minimum.
+    "Releasing a version": 13200,
 }
 
 
