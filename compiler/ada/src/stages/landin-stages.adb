@@ -44,6 +44,22 @@ package body Landin.Stages is
    function Firmware_Entry (Context : Compilation) return String
      is (Ada.Strings.Unbounded.To_String (Context.Image_Entry));
 
+   procedure Add_Library_Module
+     (Context : in out Compilation; Logical : String)
+   is
+   begin
+      if not Context.Library_Modules.Contains (Logical) then
+         Context.Library_Modules.Append (Logical);
+      end if;
+   end Add_Library_Module;
+
+   function Library_Module_Count (Context : Compilation) return Natural
+     is (Natural (Context.Library_Modules.Length));
+
+   function Nth_Library_Module
+     (Context : Compilation; Index : Positive) return String
+     is (Context.Library_Modules.Element (Index));
+
    function Add_Source
      (Context : in out Compilation; Name : String; Text : String)
      return Landin.Source.Source_Id

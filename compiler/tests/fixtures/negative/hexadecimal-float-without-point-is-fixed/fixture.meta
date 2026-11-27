@@ -1,0 +1,11 @@
+class: negative
+summary: SR-1896 a float that lacks only its point, C's hexadecimal `0x1p-20` or `1e10`, is L0321 saying the point belongs before the exponent, with `.0` there as an exact fix
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0321, L0321
+fixed: main.fixed
+constructs: 0210, 0220
+targets: linux-x86-64
+expect: expected.txt
+status: 1

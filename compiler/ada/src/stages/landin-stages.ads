@@ -47,6 +47,7 @@
 --  identity is an integer, not an address, and it means something only
 --  through an accessor on a live compilation.
 
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
@@ -96,6 +97,21 @@ package Landin.Stages is
    procedure Set_Firmware_Entry (Context : in out Compilation; Name : String);
 
    function Firmware_Entry (Context : Compilation) return String;
+
+   --  The library's modules this target admits, by logical path, whether
+   --  or not the program reaches them.  The driver lists the library's
+   --  directories and hands their names here, since a stage asks the host
+   --  nothing, so that a qualified name whose prefix is a library module
+   --  no import reaches is told the import (D2174, SR-1693).  Empty when
+   --  the request names no library.
+   procedure Add_Library_Module
+     (Context : in out Compilation; Logical : String);
+
+   function Library_Module_Count (Context : Compilation) return Natural;
+
+   function Nth_Library_Module
+     (Context : Compilation; Index : Positive) return String
+     with Pre => Index <= Library_Module_Count (Context);
 
    function Add_Source
      (Context : in out Compilation; Name : String; Text : String)
@@ -291,6 +307,9 @@ private
    package Held_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Held_Refusal);
 
+   package Logical_Vectors is new Ada.Containers.Indefinite_Vectors
+     (Index_Type => Positive, Element_Type => String);
+
    type Pipeline is limited record
       Items : Stage_Vectors.Vector;
    end record;
@@ -314,6 +333,7 @@ private
       Typed   : aliased Landin.Checking.Table;
       Lowered : aliased Landin.IR.Unit;
       Image_Entry : Ada.Strings.Unbounded.Unbounded_String;
+      Library_Modules : Logical_Vectors.Vector;
    end record;
 
 end Landin.Stages;

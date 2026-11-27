@@ -3466,6 +3466,56 @@ package body Landin.Tests.Driver_Suite is
       end;
    end A_Static_Link_Starts_At_Platform_Linux;
 
+   --  SR-1881: platform/linux's wrappers take their call numbers from
+   --  `wrapped.ldn`, which a generator writes; a wrapper whose number it
+   --  has not written yet is told to run it, not to check its spelling.
+   procedure An_Unwritten_Call_Number_Names_Its_Generator
+     (Item : in out Landin.Testing.Context);
+
+   procedure An_Unwritten_Call_Number_Names_Its_Generator
+     (Item : in out Landin.Testing.Context)
+   is
+      Host  : Landin.Testing.Fakes.Fake_Filesystem;
+      Tools : Landin.Testing.Fakes.Fake_Tool_Runner;
+      Args  : Landin.Platform.Path_List;
+   begin
+      Host.Add_File ("main.ldn", Entry_Program);
+      Host.Add_Directory ("lib");
+      Host.Add_Directory ("lib/platform");
+      Host.Add_Directory ("lib/platform/linux");
+      Host.Add_File
+        ("lib/platform/linux/linux.ldn",
+         "fixed if compiler.os == linux then" & LF
+         & "    public extern(naked) _landin_start: () -> none =" & LF
+         & "        assembler.block(""ud2"")" & LF
+         & "    end _landin_start" & LF
+         & "    public flock: () -> (result: i64) =" & LF
+         & "        result = flock_number" & LF
+         & "    end flock" & LF
+         & "end if" & LF);
+      Args.Append ("--target=linux-x86-64");
+      Args.Append ("--library=lib");
+      Args.Append ("main.ldn");
+      Args.Append ("--emit=exe");
+      Args.Append ("-o");
+      Args.Append ("main");
+      declare
+         Result : constant Landin.Driver.Outcome :=
+           Landin.Driver.Execute (Args, Host, Tools);
+         Said : constant String := Unbounded.To_String (Result.Report);
+      begin
+         Landin.Testing.Check_Equal
+           (Item, Result.Status, 1, "the undeclared number is refused");
+         Landin.Testing.Check
+           (Item, Contains (Said, "error[L0201]: `flock_number`")
+              and then Contains (Said, "scripts/linux_syscalls.py")
+              and then not Contains (Said, "check its spelling"),
+            "the refusal names the generator: " & Said);
+         Landin.Testing.Check_Equal
+           (Item, Tools.Run_Count, 0, "no tool runs");
+      end;
+   end An_Unwritten_Call_Number_Names_Its_Generator;
+
    procedure Implicit_Startup_Graph_Is_Checked
      (Item : in out Landin.Testing.Context);
 
@@ -10509,6 +10559,9 @@ package body Landin.Tests.Driver_Suite is
       Landin.Testing.Register
         (Into, "driver", "a static link starts at platform/linux",
          A_Static_Link_Starts_At_Platform_Linux'Access);
+      Landin.Testing.Register
+        (Into, "driver", "an unwritten call number names its generator",
+         An_Unwritten_Call_Number_Names_Its_Generator'Access);
       Landin.Testing.Register
         (Into, "driver", "a hosted program needs its entry",
          A_Hosted_Program_Needs_Its_Entry'Access);

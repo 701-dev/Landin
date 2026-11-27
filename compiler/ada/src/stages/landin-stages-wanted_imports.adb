@@ -141,15 +141,40 @@ package body Landin.Stages.Wanted_Imports is
                end if;
             end;
          end loop;
-         if Count /= 1 then
+         if Count = 1 then
+            Res.Each_Imported_Module
+              (Meanings.all, Res.File_Scope_Of (Meanings.all, Here),
+               Visit'Access);
+            if not Imported_Already then
+               Result.Import := Unbounded.To_Unbounded_String
+                 (Landin.Modules.Logical_Path (Graph.all, Chosen));
+            end if;
+            return Result;
+         elsif Count > 1 then
             return Result;
          end if;
-         Res.Each_Imported_Module
-           (Meanings.all, Res.File_Scope_Of (Meanings.all, Here),
-            Visit'Access);
-         if not Imported_Already then
-            Result.Import := Unbounded.To_Unbounded_String
-              (Landin.Modules.Logical_Path (Graph.all, Chosen));
+      end;
+
+      --  SR-1693: no module the program reaches has the name, and exactly
+      --  one module of the library the driver listed has it; nothing
+      --  imports that one, since the program would reach it otherwise.
+      declare
+         Chosen : Unbounded.Unbounded_String;
+         Count  : Natural := 0;
+      begin
+         for Index in 1 .. Landin.Stages.Library_Module_Count (Context) loop
+            declare
+               Path : constant String :=
+                 Landin.Stages.Nth_Library_Module (Context, Index);
+            begin
+               if Last_Segment (Path) = Spelling then
+                  Chosen := Unbounded.To_Unbounded_String (Path);
+                  Count := Count + 1;
+               end if;
+            end;
+         end loop;
+         if Count = 1 then
+            Result.Import := Chosen;
          end if;
       end;
       return Result;

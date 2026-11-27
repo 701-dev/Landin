@@ -4011,10 +4011,11 @@ package body Landin.Stages.Checking.Flow is
                      Message => "this arm produces no value, because the"
                                 & " `else` after its call divides the `if`"
                                 & " rather than recovering the call",
-                     Note    => "[1820]: in an `if` arm, recover a call with"
-                                & " parentheses, `(call(...) else value)`,"
-                                & " or bind the error, `else (problem) ..."
-                                & " end`",
+                     Note    => "[1820]: in an `if` arm, put the call and"
+                                & " its recovery in parentheses,"
+                                & " `(call(...) else value)` or"
+                                & " `(call(...) else begin return end)`, or"
+                                & " bind the error, `else (problem) ... end`",
                      Related => (Source => Syn.Source_Of (Of_Tree),
                                  Where  => Syn.Else_Left_Within
                                    (Of_Tree, Block)),

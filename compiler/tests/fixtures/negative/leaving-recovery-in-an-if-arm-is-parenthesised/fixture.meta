@@ -1,0 +1,10 @@
+class: negative
+summary: SR-2012 a call recovered with L0102's `else begin return end` as an `if` arm's statement is L0329, whose note writes that recovery in parentheses, the form that holds in an `if` arm
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0329
+constructs: 1030, 1820
+targets: linux-x86-64
+expect: expected.txt
+status: 1

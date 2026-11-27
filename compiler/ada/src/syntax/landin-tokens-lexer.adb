@@ -144,7 +144,8 @@ package body Landin.Tokens.Lexer is
          Opened : Landin.Source.Span := Landin.Source.Empty_Span;
          Refused : Token_Kind := Bang;
          Word   : Landin.Source.Names.Name_Id :=
-           Landin.Source.Names.No_Name);
+           Landin.Source.Names.No_Name;
+         Point  : Natural := 0);
 
       procedure Complain
         (Kind   : Fault_Kind;
@@ -153,7 +154,8 @@ package body Landin.Tokens.Lexer is
          Opened : Landin.Source.Span := Landin.Source.Empty_Span;
          Refused : Token_Kind := Bang;
          Word   : Landin.Source.Names.Name_Id :=
-           Landin.Source.Names.No_Name)
+           Landin.Source.Names.No_Name;
+         Point  : Natural := 0)
       is
       begin
          Into.Faults.Append
@@ -163,7 +165,12 @@ package body Landin.Tokens.Lexer is
                    Where   => Span (First, Stop),
                    Opened  => Opened,
                    Refused => Refused,
-                   Word    => Word));
+                   Word    => Word,
+                   Point   =>
+                     (if Point = 0 then Landin.Source.Empty_Span
+                      else (First => Offset (Point - Text'First),
+                            Last  => Offset (Point - Text'First))),
+                   Pointless => Point /= 0));
       end Complain;
 
       --  A sign, longest first, so `<=` is never `<` and `=`.  The table is
@@ -354,6 +361,8 @@ package body Landin.Tokens.Lexer is
          Digits_From : Natural := Position;
          Prefixed    : Boolean := False;
          Import_Segment : constant Boolean := In_Import_Path;
+         --  Where a float that lacks only its point would have it.
+         Point_Before : Natural := 0;
 
          function Good_Run
            (From, Through : Natural; Radix : Integer_Base) return Boolean;
@@ -506,14 +515,20 @@ package body Landin.Tokens.Lexer is
 
          --  `1e10` is a float that forgot its fraction, not an integer in
          --  the wrong base: read the exponent run and say so.
-         if not Prefixed
+         --  SR-1896: so is `0x1p-20`, C's hexadecimal float, which has
+         --  no point [0220].  Each is told where the point goes.
+         if (not Prefixed or else Base = Hexadecimal)
+           and then Position > Digits_From
            and then Position + 1 <= Last
-           and then Text (Position) in 'e' | 'E'
+           and then
+             (if Prefixed then Text (Position) in 'p' | 'P'
+              else Text (Position) in 'e' | 'E')
            and then (Is_Digit (Text (Position + 1))
                      or else (Text (Position + 1) in '+' | '-'
                               and then Position + 2 <= Last
                               and then Is_Digit (Text (Position + 2))))
          then
+            Point_Before := Position;
             Position := Position + 1;
             if Text (Position) in '+' | '-' then
                Position := Position + 1;
@@ -526,7 +541,11 @@ package body Landin.Tokens.Lexer is
                Position := Position + 1;
             end loop;
             Emit (Malformed_Float, First, Position - 1);
-            Complain (Malformed_Float_Literal_Run, First, Position - 1);
+            Complain
+              (Malformed_Float_Literal_Run, First, Position - 1,
+               Point =>
+                 (if Good_Run (Digits_From, Point_Before - 1, Base)
+                  then Point_Before else 0));
             return;
          end if;
 

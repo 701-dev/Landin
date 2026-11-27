@@ -1,0 +1,14 @@
+error[L0321]: this is not a well-formed floating-point literal
+  --> ../tests/fixtures/negative/hexadecimal-float-without-point-is-fixed/main.ldn:1:14
+  |
+1 | scale: f64 = 0x1p-20
+  |              ^^^^^^^
+  = note: [0210] [0220]: a float with an exponent still has a point with digits on both sides, as in `1.0e10` and `0x1.0p-20`
+  = help: write `.0` here
+error[L0321]: this is not a well-formed floating-point literal
+  --> ../tests/fixtures/negative/hexadecimal-float-without-point-is-fixed/main.ldn:2:14
+  |
+2 | large: f64 = 1e10
+  |              ^^^^
+  = note: [0210] [0220]: a float with an exponent still has a point with digits on both sides, as in `1.0e10` and `0x1.0p-20`
+  = help: write `.0` here

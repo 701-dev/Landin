@@ -253,6 +253,16 @@ package Landin.Tokens is
    function Word (Item : Fault) return Landin.Source.Names.Name_Id
      with Pre => Kind (Item) = Capitalised_Identifier;
 
+   --  SR-1896: a float literal that lacks only its point, `1e10` or
+   --  `0x1p-20`, says so, and where the point and a zero fraction go:
+   --  before the exponent, at an empty span.
+   function Lacks_Point (Item : Fault) return Boolean
+     with Pre => Kind (Item) = Malformed_Float_Literal_Run;
+
+   function Point_At (Item : Fault) return Landin.Source.Span
+     with Pre => Kind (Item) = Malformed_Float_Literal_Run
+                 and then Lacks_Point (Item);
+
    ------------------------------------------------------------------
    --  Streams
    ------------------------------------------------------------------
@@ -377,6 +387,8 @@ private
       Opened  : Landin.Source.Span := Landin.Source.Empty_Span;
       Refused : Token_Kind := Bang;
       Word    : Landin.Source.Names.Name_Id := Landin.Source.Names.No_Name;
+      Point   : Landin.Source.Span := Landin.Source.Empty_Span;
+      Pointless : Boolean := False;
    end record;
 
    package Token_Vectors is new Ada.Containers.Vectors

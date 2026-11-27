@@ -324,6 +324,30 @@ package body Landin.Stages.Resolution is
          end;
       end Named_Call_Form;
 
+      --  SR-1881: whether Named, unresolved in Of_Tree, is a system-call
+      --  number a wrapper of `platform/linux` uses: a name ending in
+      --  `_number` in a file of that module.
+      function Is_Wrapped_Number
+        (Of_Tree : Syn.Tree;
+         Named   : Landin.Source.Names.Name_Id) return Boolean;
+
+      function Is_Wrapped_Number
+        (Of_Tree : Syn.Tree;
+         Named   : Landin.Source.Names.Name_Id) return Boolean
+      is
+         Suffix : constant String := "_number";
+         Text : constant String := Spelled (Named);
+         Module : constant Landin.Modules.Module_Id :=
+           Landin.Modules.Module_Of (Graph.all, Syn.Source_Of (Of_Tree));
+      begin
+         return Module /= Landin.Modules.No_Module
+           and then Landin.Modules.Logical_Path (Graph.all, Module)
+             = "platform/linux"
+           and then Text'Length > Suffix'Length
+           and then Text (Text'Last - Suffix'Length + 1 .. Text'Last)
+             = Suffix;
+      end Is_Wrapped_Number;
+
       --  `module.case` when a module this scope imports whole declares a
       --  public variant case called Named, or "" when none does.
       function Imported_Case
@@ -2276,6 +2300,26 @@ package body Landin.Stages.Resolution is
                               Missing),
                            Into    => Found);
                      end;
+                  elsif Named /= Landin.Source.Names.No_Name
+                    and then Is_Wrapped_Number (Of_Tree, Named)
+                  then
+                     --  SR-1881: a wrapper's call number is one the
+                     --  generator writes into `wrapped.ldn` from the names
+                     --  the module uses, and nothing else declares it.
+                     Names.Report
+                       (Item    => Names.Unresolved_Name,
+                        Source  => Syn.Source_Of (Of_Tree),
+                        Where   => Syn.Anchor (Of_Tree, Node),
+                        Message => "`" & Spelled (Named)
+                                   & "` is not declared in any scope this"
+                                   & " reaches",
+                        Note    => "[1860]: platform/linux's call numbers"
+                                   & " are declared in `wrapped.ldn`, which"
+                                   & " `python3 scripts/linux_syscalls.py`"
+                                   & " writes from the names the module's"
+                                   & " other files use; run it after adding"
+                                   & " a wrapper",
+                        Into    => Found);
                   elsif Named /= Landin.Source.Names.No_Name then
                      Names.Report
                        (Item    => Names.Unresolved_Name,

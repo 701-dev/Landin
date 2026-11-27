@@ -5938,6 +5938,15 @@ package body Landin.Driver is
             elsif not Assembly_Operand then
                return "an assembly operand is linked alone, without --root"
                  & " or another operand";
+            elsif Landin.Targets.Is_Firmware (Facts) then
+               --  SR-1714: a firmware image's layout is its description's,
+               --  which assembly does not carry, so only its source links.
+               return "an assembly operand is linked only for a hosted"
+                 & " target: a firmware image is laid out by its"
+                 & " description, so compile its source with --root and"
+                 & " --firmware-entry, or assemble the --keep-asm output"
+                 & " and link it with the toolchain and the IMAGE.ld kept"
+                 & " beside it";
             end if;
             declare
                Described : constant String :=

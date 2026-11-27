@@ -380,6 +380,12 @@ package body Landin.Tests.Newcomer_Suite is
          Asm : constant Landin.Driver.Outcome := Run
            (["--target=linux-x86-64", "hand.s", "--emit=asm", "-o",
              "other.s"], Host, Tools);
+         --  SR-1714: a firmware image is laid out by its description,
+         --  which an assembly operand does not carry.
+         Firmware : constant Landin.Driver.Outcome := Run
+           (["--target=cortex-m0", "--level=armv7e-m",
+             "--firmware-layout=ram", "hand.s", "--emit=exe", "-o",
+             "hand.elf"], Host, Tools);
       begin
          Landin.Testing.Check_Equal
            (Item, Result.Status, Landin.Driver.Status_Success,
@@ -413,6 +419,13 @@ package body Landin.Tests.Newcomer_Suite is
            (Item, Asm.Status = Landin.Driver.Status_Misuse,
             "--emit=asm of an assembly operand is a misuse: "
             & Report (Asm));
+         Landin.Testing.Check
+           (Item, Firmware.Status = Landin.Driver.Status_Misuse
+              and then Contains (Report (Firmware), "error[L0002]")
+              and then Contains (Report (Firmware), "--firmware-entry")
+              and then Contains (Report (Firmware), "IMAGE.ld"),
+            "a firmware assembly operand is refused saying how it links: "
+            & Report (Firmware));
       end;
    end An_Assembly_Operand_Links;
 
