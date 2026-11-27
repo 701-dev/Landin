@@ -35258,6 +35258,35 @@ cases `test_two_builds_are_the_same_bytes` and
 `test_two_debug_builds_are_the_same_bytes`, which link twice more than a
 second apart without `SOURCE_DATE_EPOCH`.
 
+### D2954 — A COFF object names a `.L` link name through a substitute
+
+**The tour said** nothing; [1610]'s `link(symbol: text)` takes any
+spelling, and D417 keeps a foreign name from capturing a native one.
+
+**Chosen:** on Windows an import or export whose link name begins with
+`.L` is spelled in the assembly as `__landin_dot` followed by the name,
+and the object's `.drectve` section binds the two with
+`/alternatename`: an import's substitute, which the object leaves
+undefined, resolves to the name, and an export's name, wherever another
+object leaves it undefined, resolves to the substitute the object
+defines. LLVM's COFF assembler takes every `.L` name as its own label,
+so it refuses one undefined ("can not be undefined") and leaves one
+defined out of the symbol table; `/alternatename` is read by LLD and by
+Microsoft's linker alike. Every other name, and every native local
+label, is spelled as before. A C object holds such a name only where its
+assembler was told to keep its labels, Clang's `-Wa,-L`, since Clang's
+own C code generation meets the same assembler.
+
+**The alternatives:** assembling refine's objects with `-Wa,-L`, which
+puts every one of its own `.L` labels in the symbol table, where a
+debugger then names code by label; renaming the symbol after assembly,
+a step of its own in every link; and leaving such names to ELF and
+Mach-O, which is what the targets did before.
+
+**Pinned by** `abi/r440-native-link-namespace`, which binds `.L1_1` and
+`.L_1_1` to C functions of a companion compiled with `-Wa,-L`, on both
+Windows targets in the gate's ABI lanes.
+
 ### D2290 — CodeView describes no inlined copy yet
 
 **The tour said** nothing; D339 describes each inlined copy to DWARF.

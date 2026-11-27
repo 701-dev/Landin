@@ -13,6 +13,7 @@ with Landin.IR.Shape_Measurement;
 with Landin.Packed;
 with Landin.Memory;
 with Landin.Targets.Packed;
+with Landin.Backend.COFF;
 with Landin.Backend.Codeview;
 with Landin.Backend.Debug_Locations;
 with Landin.Backend.Dwarf;
@@ -2170,8 +2171,6 @@ package body Landin.Backend.Arm64 is
       --  source names: an explicit C name can hold a qualified spelling too.
       function Symbol (Item : Landin.IR.Item_Id) return String;
       function Evidence_Symbol (Id : Landin.IR.Evidence_Id) return String;
-      function Is_Exported_Item (Item : Landin.IR.Item_Id) return Boolean;
-
       --  The library's argument initializer the hosted entry calls with
       --  C's argc, argv and envp, when the program defines one.
       Initializer : constant Landin.IR.Item_Id :=
@@ -2789,13 +2788,24 @@ package body Landin.Backend.Arm64 is
          end loop;
       end Allocate_Symbols;
 
+      function Is_Exported_Item (Item : Landin.IR.Item_Id) return Boolean;
+
       --  Apply Darwin's external-symbol prefix only at the rendering seam.
       --  Namespace comparisons retain the source identity.
       function Symbol (Item : Landin.IR.Item_Id) return String is
-         Spelling : constant String :=
+         Linked : constant String :=
            Landin.Targets.Capabilities.Link_Symbol
              (Facts, Unbounded.To_String
                 (Allocated_Symbols (Positive (Item))));
+         --  D2954: an import or export the COFF assembler would take as
+         --  its own label is spelled by its substitute.
+         Spelling : constant String :=
+           (if COFF
+              and then Landin.Targets.Capabilities.Is_COFF_Private (Linked)
+              and then (Landin.IR.Is_External (Of_Unit, Item)
+                        or else Is_Exported_Item (Item))
+            then Landin.Targets.Capabilities.COFF_Substitute_Prefix & Linked
+            else Linked);
       begin
          if Spelling'Length = 0 then
             raise Landin.Compiler_Defect with
@@ -9367,6 +9377,37 @@ package body Landin.Backend.Arm64 is
                        (if Stack_Used then Stack_Switcher else ""),
                      Stack_Start =>
                        (if Stack_Used then Stack_Start else ""))));
+      end if;
+      --  D2954: every import or export whose link name the assembler would
+      --  take as its own label is spelled by its substitute, and the
+      --  object's directives bind each substitute to its name.
+      if COFF then
+         declare
+            Opened : Boolean := False;
+         begin
+            for Index in 1 .. Landin.IR.Item_Count (Of_Unit) loop
+               declare
+                  Item : constant Landin.IR.Item_Id :=
+                    Landin.IR.Item_Id (Index);
+                  Name : constant String :=
+                    Unbounded.To_String (Allocated_Symbols (Index));
+               begin
+                  if Landin.Targets.Capabilities.Is_COFF_Private (Name)
+                    and then (Landin.IR.Is_External (Of_Unit, Item)
+                              or else Is_Exported_Item (Item))
+                  then
+                     if not Opened then
+                        Emit (Landin.Backend.COFF.Directives_Section);
+                        Opened := True;
+                     end if;
+                     Emit (Landin.Backend.COFF.Alternate_Name
+                             (Name,
+                              Defined => not Landin.IR.Is_External
+                                (Of_Unit, Item)));
+                  end if;
+               end;
+            end loop;
+         end;
       end if;
       --  Windows' TLS directory, which no C runtime brings (D2188), as
       --  x86-64's: the template's bounds, the `.tls` section's first byte

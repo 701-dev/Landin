@@ -66,4 +66,14 @@ package body Landin.Backend.COFF is
       end;
    end Directive;
 
+   function Alternate_Name (Name : String; Defined : Boolean) return String
+   is
+      Substitute : constant String :=
+        Landin.Targets.Capabilities.COFF_Substitute_Prefix & Name;
+   begin
+      return ".ascii "" /alternatename:"
+        & (if Defined then Name & "=" & Substitute
+           else Substitute & "=" & Name) & """";
+   end Alternate_Name;
+
 end Landin.Backend.COFF;
