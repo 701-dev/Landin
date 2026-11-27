@@ -26,7 +26,8 @@ class BuildLocks(unittest.TestCase):
         self.root = Path(self.temporary.name)
         scripts = self.root / "scripts"
         scripts.mkdir()
-        for name in ("env.sh", "build_lock.py", "test.sh", "clean.sh"):
+        for name in ("env.sh", "build_lock.py", "host_slots.py", "test.sh",
+                     "clean.sh"):
             shutil.copy2(ROOT / "scripts" / name, scripts / name)
         self.script("worker.sh", '''#!/bin/sh
 . "$(dirname -- "$0")/env.sh"
@@ -55,7 +56,8 @@ echo "$LANDIN_BUILD_MODE"
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, text=True,
             env={**os.environ, "LANDIN_BUILD_TAG": "test",
-                 "LANDIN_BUILD_MODE": "debug", **environment})
+                 "LANDIN_BUILD_MODE": "debug", "LANDIN_HEAVY_JOBS": "0",
+                 **environment})
 
         def finish():
             if process.poll() is None:
@@ -305,7 +307,8 @@ echo "stray $!"
              str(build), "refine"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             env={**os.environ, "LANDIN_BUILD_TAG": "test",
-                 "LANDIN_BUILD_MODE": "debug", **environment})
+                 "LANDIN_BUILD_MODE": "debug", "LANDIN_HEAVY_JOBS": "0",
+                 **environment})
 
     def test_a_rebuild_never_replaces_refine_under_its_reader(self):
         build = self.build_tree()

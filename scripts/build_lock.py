@@ -12,7 +12,8 @@ the determinism manifests -- holds it shared through reading(), and a build
 publishes its new executables into bin/ only while it holds it exclusively.
 A rebuild therefore waits for the run that is using `refine` and never
 replaces the executable under it, and a reader waits for a publish to finish.
-Lock order is all, then mode, then readers, so none of this can deadlock.
+Lock order is a heavy-job slot (host_slots.py, taken in `mode` scope),
+then all, then mode, then readers, so none of this can deadlock.
 
 Whoever waits says what it is waiting for and which processes hold it: every
 holder writes its pid and command under `<lock>.holders/`, and a waiter
@@ -354,6 +355,13 @@ def main(arguments):
         return 0 if inherited(plan) else 1
     context = []
     command = " ".join(arguments[1:])
+    #  A build or a test run is a heavy job: it takes one of the host's
+    #  slots before any build lock, so a job holding a lock never waits for
+    #  a slot (host_slots.py).
+    if arguments[0] == "mode":
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import host_slots
+        host_slots.hold(command)
     for path, kind in plan:
         fd = acquire(path, kind, command)
         os.set_inheritable(fd, True)
@@ -365,6 +373,6 @@ def main(arguments):
 if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
-    except (OSError, ValueError, KeyError) as error:
+    except (OSError, ValueError, KeyError, ImportError) as error:
         print(f"landin: build lock: {error}", file=sys.stderr)
         sys.exit(2)

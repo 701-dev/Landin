@@ -867,6 +867,13 @@ def shard_of(text):
     return int(match.group(1)), int(match.group(2))
 
 
+def heavy_job():
+    """Take one of the host's heavy-job slots for this run (host_slots.py)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import host_slots
+    host_slots.hold()
+
+
 def main(argv):
     if len(argv) >= 2 and argv[1] == "emit":
         parser = argparse.ArgumentParser(
@@ -903,6 +910,7 @@ def main(argv):
                   " compiler/tests/cortex-m/cases for KIND cortex-m"
                   % ", ".join(unknown), file=sys.stderr)
             return 2
+        heavy_job()
         #  A named fixture brings its corpus; without names, positive alone.
         corpora = tuple(given.corpus or ()) + tuple(
             name.split("/")[0] for name in given.fixture)
@@ -926,6 +934,7 @@ def main(argv):
         targets = target_list(given.targets, "modes")
         if targets is None:
             return 2
+        heavy_job()
         return modes(given.debug, given.release, given.root, workers=given.jobs,
                      targets=targets, shard=given.shard)
     if len(argv) >= 4 and argv[1] == "merge":

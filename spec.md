@@ -27521,6 +27521,98 @@ until it is fixed.
 **Pinned by** `scripts/tests/test_gate_history.py`'s
 `Shadow.test_a_defect_only_skipped_lanes_showed_is_a_miss`.
 
+### D3135 — Local selection reads the gate's lane table, each lane naming what stands for it
+
+**The discrepancy:** the gate selects lanes by `.github/gate-lanes.json`
+(D2795), while an agent chose its local checks by reading the change, and
+many chose the complete suite before a push; on 2026-11-27 twenty of them
+at once took a shared host out of memory.
+
+**Chosen:** each lane of the table carries `local`: a list of rules, each
+paths with what a matching path calls for, `dev-test.sh` selectors,
+`script_tests.py` modules or other commands, or `{"none": WHY}` for a
+lane no developer's host runs. `./scripts/dev-test.sh --base=REV` reads
+the change since REV's merge base, working tree and untracked files
+included, finds the lanes it reaches by the gate's own rule, takes each
+lane's first rule that names each path, and prints one `dev-test.sh`
+invocation, one `script_tests.py` invocation and the other commands,
+lanes with no local work with their reasons, and that a change reaches
+no local selector when it does; `--run` runs them. `check.py` refuses a
+lane without an entry, a rule without a selector, a suite the test
+program lacks and a path outside the lane's inputs. The complete local
+suite is no step before a push.
+
+**The alternatives:** a separate path table for local checks, which
+drifts from the gate's; deriving suites from the compiler's sources, which
+no file states; and keeping `item.py push`'s pre-push checks as the only
+rule, which names three selectors for any change.
+
+**Pinned by** `scripts/tests/test_local_selection.py`: a diff of one path
+for each kind of lane prints the table's selectors, the lanes named are
+those the gate's rule reaches, a change reaching no local selector says
+so, `--run` runs what it printed, and the control's refusals.
+
+### D3136 — Heavy jobs share a few slots of the host, outside every worktree
+
+**The discrepancy:** the build locks are per checkout and per build tag,
+so twenty worktrees built and tested at once; agents were asked to read
+`free` first, and did not have to.
+
+**Chosen:** a build or test run (the build lock's `mode` scope, so every
+script that takes it), a `run_logged.py` run, `emit_manifest.py emit`
+and `modes`, and `measure.py size`, `instructions` and `time` take one of
+the host's slots first, a `flock` on `slot-N` in
+`$XDG_STATE_HOME/landin/heavy-jobs`, before any build lock. A job that
+finds every slot taken waits, names each holder's pid, directory and
+command when it starts waiting and when the holders change, and starts
+when one is freed. A job started by a holder runs in its slot: the
+holder's pid is in `LANDIN_HEAVY_SLOT`. The number is the file `slots`
+there, written by `host_slots.py --set`, two without it;
+`LANDIN_HEAVY_JOBS` overrides it for a command, and 0 takes none.
+`run_logged.py --light` takes none for a command that only waits, which
+`item.py`'s gate and boards watches pass. `script_tests.py` gives its
+modules a slot directory of their own with the limit off.
+
+**The alternatives:** a limit by available memory, which a burst of
+builds starting together reads as free; a lock per worktree, which is
+what failed; and a system-wide directory, which needs a shared group on
+every host for agents that all run as one user.
+
+**Pinned by** `scripts/tests/test_host_slots.py`'s `Slots` cases: a
+second job in another worktree waits, names the holder and starts when
+it is freed; a job inside a logged run takes no second slot; a light run
+and a limit of zero take none; the host's number is the file's.
+
+### D3137 — A detached run starts in a systemd scope of its own with a memory cap
+
+**The discrepancy:** a detached run left the harness's session but stayed
+in the cgroup of the service that ran the agents, so when that service
+was killed for memory every run under it died with no result.
+
+**Chosen:** where `systemd-run --user --scope` works, `run_logged.py
+--detach` starts its wrapper in a transient scope `landin-run-NAME-PID`
+with `MemoryMax` set, `MemorySwapMax=0` and `OOMPolicy=continue`: a
+restart of the launching service does not reach it, and a run past its
+cap has its largest process killed, fails and writes its result, while
+the runs beside it go on. The cap is `LANDIN_RUN_MEMORY_MAX`, else the
+file `run-memory-max` beside the slots, else the host's memory divided by
+one more than its slots, leaving a share for the agents. `result.json`
+names the scope and records the cap, the peak and `oom_kills`, and the
+log says when the kernel killed at the cap. Elsewhere, or with
+`LANDIN_RUN_SCOPE=no`, a run detaches as before.
+
+**The alternatives:** a transient service, which systemd starts with its
+own environment and not the caller's shell; `OOMPolicy=stop`, which kills
+the wrapper with the run and leaves no result; and a cap on every run,
+detached or not, which the item did not ask for and which an attached
+run's harness already bounds.
+
+**Pinned by** `scripts/tests/test_host_slots.py`'s `Scopes` cases, on a
+host with user systemd: a run over a 160 MiB cap is killed with
+`oom_kills` recorded while a run beside it passes, and a scoped run
+outlives the stop of the transient service that launched it while an
+unscoped one dies with it.
+
 ### D1379 — The instruction counter declares the plugin calls it makes
 
 **The tour said** nothing.

@@ -1059,6 +1059,11 @@ def main(argv=None) -> int:
     wall.set_defaults(run=measure_time)
     import measure_count
     args = measure_count.parse(parser, argv)
+    if args.command in ("size", "instructions", "time"):
+        #  A measurement builds and runs every workload: one of the host's
+        #  heavy-job slots (host_slots.py).
+        import host_slots
+        host_slots.hold()
     try:
         return args.run(args)
     except Failure as error:

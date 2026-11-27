@@ -58,12 +58,14 @@ python3 check.py
 ./scripts/dev-build.sh
 ./scripts/dev-test.sh --help
 ./scripts/dev-test.sh --case='harness/filters select exact cases'
+./scripts/dev-test.sh --base=origin/main
 python3 scripts/gate_watch.py --all
 python3 scripts/item.py resume ITEM
 ```
 
 Choose the exact suites, cases and fixtures for the change, combining the
-selectors in one invocation. A filtered run is visibly `FILTERED` and is
+selectors in one invocation; `--base=REV` prints those the gate's lane
+table gives for the change since REV, and `--run` runs them. A filtered run is visibly `FILTERED` and is
 not complete-suite evidence. The [command reference](docs/process.md#command-reference)
 holds clean builds, generation, release/scaling, cross-target and Mac
 examples, site rendering and flake builds. Toolchain pins and the warning
@@ -76,8 +78,13 @@ result, then choose the next step. Keep edits, dependent operations and checks
 over shared mutable build outputs ordered. A shell command that gathers several
 independent facts avoids a model round trip per fact.
 
-Use one `dev-test.sh` invocation with all affected exact `--suite`, `--case`
-and `--fixture` selectors, and one with every `--record=` a change needs,
+The tools hold the host's memory rules
+([what they select and limit](docs/process.md#what-the-tools-select-and-limit)):
+a build, a test run, a logged run, a manifest or a measurement waits for
+one of the host's few heavy-job slots and names their holders, and a
+detached run gets a systemd scope with a memory cap of its own. No complete
+local suite precedes a push. Use one `dev-test.sh` invocation with all
+affected exact `--suite`, `--case` and `--fixture` selectors, and one with every `--record=` a change needs,
 rather than a shell loop invoking it once per selector. It already
 checks the build; run `dev-build.sh` separately when compilation feedback is
 needed. Enter `nix develop` once around related commands, or source the file

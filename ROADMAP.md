@@ -4455,7 +4455,7 @@ workflow on such a tree; process.md's recipe saying the steps.
 
 ### R22.39 — Tools that share a host's memory
 
-Status: planned
+Status: complete
 Depends on: none
 
 A host shared by many agents ran out of memory when each of them built
@@ -4489,6 +4489,25 @@ detached on a host with user systemd that outlives a restart of its
 launching service, and one over its cap killed while a run beside it
 continues, named runs; `docs/process.md`'s local feedback recipe and
 AGENTS.md saying what the tools do.
+
+Done: `./scripts/dev-test.sh --base=REV` prints, and with `--run` runs,
+the checks each lane of `.github/gate-lanes.json` the change reaches
+names in its new `local` entry, one `dev-test.sh` and one
+`script_tests.py` invocation and the other commands, lanes with no local
+work with their reasons, and that a change reaches no local selector
+when it does; `check.py` holds every lane to an entry (D3135). Builds
+and test runs, `run_logged.py` runs, the manifests and the measurements
+take one of the host's heavy-job slots, `~/.local/state/landin/heavy-jobs`,
+two unless `host_slots.py --set` says otherwise, and a waiting job names
+each holder's pid, worktree and command; watches pass `--light` (D3136).
+A detached run starts in a systemd user scope with a memory cap, here
+21 GiB (D3137). Evidence: `scripts/tests/test_host_slots.py` and
+`test_local_selection.py`; and the item's named runs on the shared
+host, `evidence-survivor`, a detached run that outlived the stop of its
+launching user service, while `evidence-unscoped` beside it died with
+it, and `evidence-hog`, killed past a 200 MiB cap (`oom_kills` 1) while
+`evidence-beside` passed. Found and fixed: `SR-2072`,
+a detached run ended with the agents' service.
 
 ### R22.40 — Character encodings
 
