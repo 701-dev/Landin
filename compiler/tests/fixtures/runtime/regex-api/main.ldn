@@ -1,0 +1,127 @@
+--  core/regex's interface over a hosted heap: what each failure of
+--  `compile` means, the replacement template's forms, a walk's empty
+--  matches, a search from a position, anchored searches, Unicode classes
+--  and case, and a compiled pattern that is released.
+
+import core/mem
+import core/regex
+import core/text
+import hosted/heap
+
+--  Whether `pattern` fails to compile with `problem` under `settings`.
+refused: (pattern: utf8, settings: regex.options,
+          expected: regex.compile_failure) -> (yes: bool) =
+    yes = false
+    memory := heap.new()
+    mut compiled := regex.compile_with(memory, pattern, settings)
+        else (problem)
+        yes = problem == expected
+        return
+    end
+    regex.release(compiled, memory)
+end refused
+
+failures_hold: () -> (yes: bool) =
+    yes = false
+    full: regex.options = regex.defaults()
+    lean: regex.options = regex.lean()
+    return when not refused("(ab", full, regex.invalid_pattern)
+    return when not refused("a**{", full, regex.invalid_pattern)
+    return when not refused("[z-a]", full, regex.invalid_pattern)
+    return when not refused("(?-u:\\W)", full, regex.invalid_pattern)
+    return when not refused("(a)\\1", full, regex.unsupported_pattern)
+    return when not refused("a(?=b)", full, regex.unsupported_pattern)
+    return when not refused("\\p{Greek}", full, regex.unsupported_pattern)
+    return when not refused("\\w", lean, regex.unicode_unavailable)
+    return when not refused("(?i)k", lean, regex.unicode_unavailable)
+    return when not refused("a{100001}", full, regex.pattern_too_large)
+    small: regex.options = regex.with_size_limit(full, 50)
+    return when not refused("\\w{3}", small, regex.pattern_too_large)
+    return when not text.equal(utf8(regex.words(regex.invalid_pattern)),
+                               "invalid regular expression")
+    --  `(?-u)` gives the ASCII classes without the tables.
+    return when refused("(?-u)\\w\\d\\s\\b(?i)k", lean,
+                        regex.unicode_unavailable)
+    yes = true
+end failures_hold
+
+--  `pattern` over `haystack`, every match replaced by `template`, is
+--  `expected`, after `count` replacements.
+replaces: (pattern: utf8, haystack: utf8, template: utf8, expected: utf8,
+           count: usize) -> (yes: bool) =
+    yes = false
+    memory := heap.new()
+    mut compiled := regex.compile(memory, pattern) else begin
+        return
+    end
+    defer regex.release(compiled, memory)
+    mut out := text.growing(any(addr memory))
+    defer text.release(out)
+    replaced: usize = regex.replace_all(compiled, haystack, template, out)
+        else 0
+    yes = replaced == count and text.equal(utf8(text.used(out)), expected)
+end replaces
+
+replacements_hold: () -> (yes: bool) =
+    yes = false
+    return when not replaces("(\\w+)@(?P<host>\\w+)", "me@here, you@there",
+                             "${host}:$1", "here:me, there:you", 2)
+    return when not replaces("a", "banana", "$$", "b$n$n$", 3)
+    return when not replaces("(a)|(b)", "abc", "[$2]", "[][b]c", 2)
+    return when not replaces("x", "x", "$9 $nope $", "  $", 1)
+    return when not replaces("a*", "baaac", "-", "-b-c-", 3)
+    return when not replaces("", "é", "|", "|é|", 2)
+    return when not replaces("(?i)straße", "STRASSE Straße", "S",
+                             "STRASSE S", 1)
+    return when not replaces("\\p{Lu}\\p{Ll}+", "Ελλάδα and Ωμέγα",
+                             "X", "X and X", 2)
+    yes = true
+end replacements_hold
+
+searches_hold: () -> (yes: bool) =
+    yes = false
+    memory := heap.new()
+    mut words := regex.compile(memory, "\\b\\w+\\b") else begin
+        return
+    end
+    defer regex.release(words, memory)
+    haystack: utf8 = "naïve café"
+    return when not regex.is_match(words, haystack)
+    second := regex.find_at(words, haystack,
+                            text.from_offset(text.bytes(haystack), 7))
+        else begin
+            return
+        end
+    return when text.offset(second.begins) <> 7
+      or text.offset(second.ends) <> 12
+    mut count: usize = 0
+    for found in regex.matches(addr words, haystack) do
+        _ = found
+        inc count
+    end for
+    return when count <> 2
+    mut anchored := regex.compile_with(memory, "[a-z]",
+                                       regex.with_anchored(regex.defaults()))
+        else begin
+            return
+        end
+    defer regex.release(anchored, memory)
+    mut runs: usize = 0
+    for found in regex.matches(addr anchored, "abc1d") do
+        _ = found
+        inc runs
+    end for
+    return when runs <> 3
+    return when regex.group_count(words) <> 1
+    _ = regex.group_named(words, "none") else (problem)
+        yes = problem == mem.not_found
+        return
+    end
+end searches_hold
+
+public main: () -> (code: i32) =
+    code = 1
+    if failures_hold() and replacements_hold() and searches_hold() then
+        code = 42
+    end if
+end main

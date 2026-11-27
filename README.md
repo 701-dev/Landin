@@ -561,9 +561,10 @@ run records and what the gate checks for each target.
 - **The library:** `core` modules of allocators, containers, text, I/O,
   time, networking, random numbers, atomic cells, the elementary
   mathematical functions, complex numbers, dense linear algebra's vectors
-  and matrices, Unicode text, integers and rationals of any size, and
-  floats written and read as text, with a template's placeholders taking
-  Rust's format specification, each provider with a fake for testing, and
+  and matrices, Unicode text, integers and rationals of any size, regular
+  expressions, and floats written and read as text, with a template's
+  placeholders taking Rust's format specification, each provider with a
+  fake for testing, and
   `hosted` providers over POSIX, among them threads started as a group a
   function joins. A Linux executable links no C library unless
   `--link=libc` asks for one.

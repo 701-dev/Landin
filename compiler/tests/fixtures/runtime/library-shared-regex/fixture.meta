@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: Small shared core/regex consumer compiles a pattern with lean options into an arena, reads a match and its numbered and named groups, walks the matches with for and replaces them from a template
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
+constructs: 0600, 1150

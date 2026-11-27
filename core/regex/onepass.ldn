@@ -1,0 +1,284 @@
+--  The one-pass DFA: for a pattern in which, at every point of an
+--  anchored match, the next byte decides the one thread that can go on,
+--  as `a(b|c)d` but not `(a|ab)c`, a table from each state and byte class
+--  to the next state, with the slots to record and the looks to check on
+--  the way.  It finds a match's groups in one pass with one set of slots,
+--  where the Pike VM keeps a set per thread.  It is built when the
+--  pattern is compiled if the pattern is one-pass and the table fits, and
+--  answers anchored searches only: the groups of a match whose bounds the
+--  lazy DFA has found, or any search of an anchored pattern.
+
+import core/mem
+import core/vec
+
+--  The most slots a one-pass table records, one bit each.
+one_pass_slots: usize = 32
+
+--  The most states a one-pass table holds.
+one_pass_state_limit: usize = 4096
+
+--  One transition: the state it goes to, `nothing` for none, and the
+--  slots it records and the looks it needs at the position before the
+--  byte.
+pass_step: type = struct
+    next: u32
+    slots: u32
+    looks: u32
+end pass_step
+
+one_pass: type = struct
+    usable: bool
+    stride: usize
+    classes: vec.list(u8)
+    table: vec.list(pass_step)
+    --  Each state's match: whether it has one, and that path's slots and
+    --  looks.
+    accepting: vec.list(pass_step)
+    --  The state each instruction seeds, or `nothing`, and the
+    --  instruction each state was seeded by.
+    state_of: vec.list(u32)
+    seeds: vec.list(u32)
+    stack: vec.list(pass_step)
+    visited: vec.list(u32)
+    slots: vec.list(usize)
+end one_pass
+
+new_one_pass: () -> (result: one_pass) =
+    result = (usable: false, stride: 0, classes: vec.new(item: u8),
+              table: vec.new(item: pass_step),
+              accepting: vec.new(item: pass_step),
+              state_of: vec.new(item: u32), seeds: vec.new(item: u32),
+              stack: vec.new(item: pass_step), visited: vec.new(item: u32),
+              slots: vec.new(item: usize))
+end new_one_pass
+
+release_one_pass: (provider: type is mem.allocator, inout table: one_pass,
+                   memory: provider) -> none =
+    vec.release(table.classes, memory)
+    vec.release(table.table, memory)
+    vec.release(table.accepting, memory)
+    vec.release(table.state_of, memory)
+    vec.release(table.seeds, memory)
+    vec.release(table.stack, memory)
+    vec.release(table.visited, memory)
+    vec.release(table.slots, memory)
+    table.usable = false
+end release_one_pass
+
+--  Build the table for `code`, whose byte classes `classes` gives, if the
+--  pattern is one-pass, keeps at most 32 slots and the table fits
+--  `budget` bytes; otherwise leave it unusable.
+build_one_pass: (provider: type is mem.allocator, inout table: one_pass,
+                 memory: provider, code: program, classes: []u8,
+                 stride: usize, slot_count: usize, budget: usize)
+                -> none ! mem.out_of_memory =
+    return when slot_count > one_pass_slots or stride == 0
+    count: usize = vec.length(code.insts)
+    table.stride = stride
+    for class in classes do try vec.push(table.classes, memory, class) end for
+    try fill(table.state_of, memory, count, nothing)
+    try fill(table.visited, memory, count, nothing)
+    blank: pass_step = (next: nothing, slots: 0, looks: 0)
+    try fill(table.stack, memory, 2 * count + 2, blank)
+    try fill(table.slots, memory, slot_count, unset)
+    _ = try add_pass_state(table, memory, code.start)
+    insts: []inst = vec.used(code.insts)
+    edges: []edge = vec.used(code.edges)
+    mut state: usize = 0
+    while state < vec.length(table.seeds) do
+        return when vec.length(table.seeds) > one_pass_state_limit
+          or vec.length(table.table) * 12 > budget
+        seed_id: u32 = vec.get(table.seeds, state) else nothing
+        held: bool = try fill_pass_state(table, memory, insts, edges, state,
+                                         seed_id)
+        return when not held
+        inc state
+    end while
+    table.usable = true
+end build_one_pass
+
+--  The state instruction `id` seeds, made when it has none.
+add_pass_state: (provider: type is mem.allocator, inout table: one_pass,
+                 memory: provider, id: u32)
+                -> (state: u32) ! mem.out_of_memory =
+    state = vec.get(table.state_of, usize(id)) else nothing
+    return when state <> nothing
+    state = u32(vec.length(table.seeds))
+    try vec.push(table.seeds, memory, id)
+    blank: pass_step = (next: nothing, slots: 0, looks: 0)
+    try fill(table.table, memory, table.stride, blank)
+    try vec.push(table.accepting, memory, blank)
+    slot := vec.at(table.state_of, usize(id)) else (problem)
+        _ = problem
+        return
+    end
+    slot.val = state
+end add_pass_state
+
+--  Fill state `state`'s row by walking the closure of its seed in
+--  priority order: false when two paths reach one instruction, or two
+--  transitions claim one byte class, or two paths reach the match, which
+--  makes the pattern not one-pass.  A transition after a match on the
+--  walk is one leftmost-first never takes, and is left out, unless the
+--  match needs a look, which makes the pattern not one-pass either.
+fill_pass_state: (provider: type is mem.allocator, inout table: one_pass,
+                  memory: provider, insts: []inst, edges: []edge,
+                  state: usize, start: u32)
+                 -> (held: bool) ! mem.out_of_memory =
+    held = false
+    mut matched: bool = false
+    --  Whether the match needs a look, which may not hold where the
+    --  search is: then a transition after it is not out of reach.
+    mut guarded: bool = false
+    mut top: usize = 1
+    begin
+        stack: []mut pass_step = vec.used(table.stack)
+        stack[0] = (next: start, slots: 0, looks: 0)
+    end
+    while top > 0 do
+        dec top
+        here: pass_step = vec.get(table.stack, top) else (problem)
+            _ = problem
+            return
+        end
+        id: u32 = here.next
+        seen: u32 = vec.get(table.visited, usize(id)) else nothing
+        return when seen == u32(state)
+        visit := vec.at(table.visited, usize(id)) else (problem)
+            _ = problem
+            return
+        end
+        visit.val = u32(state)
+        item: inst = insts[usize(id)]
+        if item.kind == inst_split then
+            return when top + 2 > vec.length(table.stack)
+            stack: []mut pass_step = vec.used(table.stack)
+            stack[top] = (next: item.arg, slots: here.slots,
+                          looks: here.looks)
+            stack[top + 1] = (next: item.next, slots: here.slots,
+                              looks: here.looks)
+            top += 2
+        elsif item.kind == inst_save or item.kind == inst_look
+          or item.kind == inst_goto then
+            mut slots: u32 = here.slots
+            mut looks: u32 = here.looks
+            if item.kind == inst_save and usize(item.arg) < one_pass_slots then
+                slots = slots | u32(1) << item.arg
+            elsif item.kind == inst_look then
+                looks = looks | u32(1) << item.arg
+            end if
+            stack: []mut pass_step = vec.used(table.stack)
+            stack[top] = (next: item.next, slots: slots, looks: looks)
+            inc top
+        elsif item.kind == inst_match then
+            return when matched
+            matched = true
+            guarded = here.looks <> 0
+            entry := vec.at(table.accepting, state) else (problem)
+                _ = problem
+                return
+            end
+            entry.val = (next: 0, slots: here.slots, looks: here.looks)
+        elsif matched and (item.kind == inst_range
+                           or item.kind == inst_sparse) then
+            return when guarded
+        elsif item.kind == inst_range then
+            target: u32 = try add_pass_state(table, memory, item.next)
+            claimed: bool = claim(table, state, item.low, item.high,
+                                  target, here)
+            return when not claimed
+        elsif item.kind == inst_sparse then
+            for at in usize(item.next)..<usize(item.next + item.arg) do
+                step_edge: edge = edges[at]
+                target: u32 = try add_pass_state(table, memory, step_edge.next)
+                claimed: bool = claim(table, state, step_edge.low,
+                                      step_edge.high, target, here)
+                return when not claimed
+            end for
+        end if
+    end while
+    held = true
+end fill_pass_state
+
+--  Point the classes of bytes `low` to `high` of state `state` at
+--  `target` with the path's slots and looks: false when one is taken.
+claim: (inout table: one_pass, state: usize, low: u8, high: u8,
+        target: u32, path: pass_step) -> (held: bool) =
+    held = false
+    classes: []u8 = vec.used(table.classes)
+    row: []mut pass_step = vec.used(table.table)
+    base: usize = state * table.stride
+    mut byte: usize = usize(low)
+    while byte <= usize(high) do
+        class: usize = usize(classes[byte])
+        slot: pass_step = row[base + class]
+        if slot.next == nothing then
+            row[base + class] = (next: target, slots: path.slots,
+                                 looks: path.looks)
+        elsif slot.next <> target or slot.slots <> path.slots
+          or slot.looks <> path.looks then
+            return
+        end if
+        inc byte
+    end while
+    held = true
+end claim
+
+--  Whether every look `looks` has a bit for holds at `at`.
+pass_looks_hold: (looks: u32, source: unicode_source, bytes: []u8,
+                  at: usize) -> (yes: bool) =
+    yes = true
+    return when looks == 0
+    yes = false
+    for kind in u8(1)..<u8(19) do
+        if looks & u32(1) << u32(kind) <> 0 then
+            return when not look_holds(kind, source, bytes, at)
+        end if
+    end for
+    yes = true
+end pass_looks_hold
+
+--  Record position `at` in each slot `mask` has a bit for.
+record_slots: (slots: []mut usize, mask: u32, at: usize) -> none =
+    return when mask == 0
+    for slot, index in slots do
+        if index < one_pass_slots and mask & u32(1) << u32(index) <> 0 then
+            slot = at
+        end if
+    end for
+end record_slots
+
+--  The anchored leftmost-first match from `origin`, reading no byte at or
+--  past `stop`, its first `width` slots written to `found`.
+one_pass_search: (table: one_pass, source: unicode_source,
+                  bytes: []u8, origin: usize, stop: usize,
+                  found: []mut usize, width: usize) -> (matched: bool) =
+    matched = false
+    classes: []u8 = vec.used(table.classes)
+    row: []pass_step = vec.used(table.table)
+    accepting: []pass_step = vec.used(table.accepting)
+    slots: []mut usize = vec.used(table.slots)
+    for slot in slots do slot = unset end for
+    mut state: usize = 0
+    mut at: usize = origin
+    loop do
+        done: pass_step = accepting[state]
+        if done.next <> nothing
+          and pass_looks_hold(done.looks, source, bytes, at) then
+            for slot, index in found[0..<width] do
+                slot = if index < lenof slots then slots[index] else unset
+                       end if
+            end for
+            record_slots(found[0..<width], done.slots, at)
+            matched = true
+        end if
+        break when at >= stop
+        step: pass_step = row[state * table.stride + usize(classes[usize(bytes[
+            at])])]
+        break when step.next == nothing
+        break when not pass_looks_hold(step.looks, source, bytes, at)
+        record_slots(slots, step.slots, at)
+        state = usize(step.next)
+        inc at
+    end loop
+end one_pass_search

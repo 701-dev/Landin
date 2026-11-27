@@ -1,0 +1,410 @@
+--  Sets of scalars, as sorted lists of disjoint ranges: the classes a
+--  pattern writes, and the operations its brackets and flags apply to
+--  them.
+
+import core/mem
+import core/sort
+import core/vec
+
+--  The largest scalar.
+scalar_limit: u32 = 0x10ffff
+
+--  The general categories' bits of a category mask, in core/unicode's
+--  order of them, and the masks of the groups \p names.
+category_bit: (index: u8) -> (bit: u32) =
+    bit = u32(1) << u32(index)
+end category_bit
+
+letters_mask: u32 = 0x1f
+cased_letters_mask: u32 = 0x07
+marks_mask: u32 = 0xe0
+numbers_mask: u32 = 0x700
+punctuation_mask: u32 = 0x3f800
+symbols_mask: u32 = 0x3c0000
+separators_mask: u32 = 0x1c00000
+others_mask: u32 = 0x3e000000
+
+--  The binary properties' bits of a flag mask.
+alphabetic_flag: u8 = 1
+white_space_flag: u8 = 2
+uppercase_flag: u8 = 4
+lowercase_flag: u8 = 8
+cased_flag: u8 = 16
+case_ignorable_flag: u8 = 32
+
+--  Where the Unicode data a pattern may read comes from: core/unicode's
+--  tables, or nothing, so that a program that never compiles a pattern
+--  needing them links none of them (D2617).  `present` says which.
+unicode_source: type = struct
+    present: bool
+    category_of: (scalar: u32) -> (index: u8)
+    flags_of: (scalar: u32) -> (bits: u8)
+    fold: (scalar: u32) -> (result: u32)
+    upper: (scalar: u32) -> (result: u32)
+    lower: (scalar: u32) -> (result: u32)
+    title: (scalar: u32) -> (result: u32)
+    category_run: (scalar: u32) -> (last: u32)
+    property_run: (scalar: u32) -> (last: u32)
+end unicode_source
+
+--  Whether `scalar` is a word scalar by Unicode's \w: Alphabetic, a mark,
+--  a decimal digit, a connector or a joiner.
+unicode_word: (source: unicode_source, scalar: u32) -> (yes: bool) =
+    yes = true
+    return when scalar < 128 and ascii_word(scalar)
+    return when scalar == 0x200c or scalar == 0x200d
+    yes = false
+    return when scalar < 128
+    yes = true
+    return when source.flags_of(scalar) & alphabetic_flag <> 0
+    mask: u32 = category_bit(source.category_of(scalar))
+    yes = mask & (marks_mask | category_bit(8) | category_bit(11)) <> 0
+end unicode_word
+
+--  Whether `scalar` is [0-9A-Za-z_].
+ascii_word: (scalar: u32) -> (yes: bool) =
+    yes = scalar >= u32('0') and scalar <= u32('9')
+          or scalar >= u32('A') and scalar <= u32('Z')
+          or scalar >= u32('a') and scalar <= u32('z')
+          or scalar == u32('_')
+end ascii_word
+
+range_less: (by: u8, left: scalar_range, right: scalar_range)
+            -> (yes: bool) =
+    _ = by
+    yes = left.low < right.low
+end range_less
+
+--  Append a range.
+add_range: (provider: type is mem.allocator, inout set: vec.list(scalar_range),
+            memory: provider, low: u32, high: u32)
+           -> none ! mem.out_of_memory =
+    added: scalar_range = (low: low, high: high)
+    try vec.push(set, memory, added)
+end add_range
+
+--  Keep only the first `count` ranges.
+shorten: (inout set: vec.list(scalar_range), count: usize) -> none =
+    while vec.length(set) > count do
+        _ = vec.pop(set) else (problem)
+            _ = problem
+            return
+        end
+    end while
+end shorten
+
+--  Sort the ranges and merge those that overlap or touch.
+canonical: (inout set: vec.list(scalar_range)) -> none =
+    view: []mut scalar_range = vec.used(set)
+    return when lenof view == 0
+    sort.sort_by(view, u8(0), range_less)
+    mut kept: usize = 0
+    for index in usize(1)..<lenof view do
+        next: scalar_range = view[index]
+        if next.low <= view[kept].high or next.low == view[kept].high + 1 then
+            if next.high > view[kept].high then
+                view[kept].high = next.high
+            end if
+        else
+            inc kept
+            view[kept] = next
+        end if
+    end for
+    shorten(set, kept + 1)
+end canonical
+
+--  Replace a canonical set by its complement among the scalars, which
+--  leaves the surrogates out.
+negate: (provider: type is mem.allocator, inout set: vec.list(scalar_range),
+         memory: provider) -> none ! mem.out_of_memory =
+    count: usize = vec.length(set)
+    mut next: u32 = 0
+    for index in usize(0)..<count do
+        piece: scalar_range = vec.get(set, index) else (problem)
+            _ = problem
+            return
+        end
+        if piece.low > next then
+            try add_range(set, memory, next, piece.low - 1)
+        end if
+        next = piece.high + 1
+    end for
+    if next <= scalar_limit then
+        try add_range(set, memory, next, scalar_limit)
+    end if
+    --  Move the complement to the front.
+    view: []mut scalar_range = vec.used(set)
+    total: usize = lenof view
+    for index in count..<total do
+        view[index - count] = view[index]
+    end for
+    shorten(set, total - count)
+    try remove_surrogates(set, memory)
+end negate
+
+--  Take the surrogates out of a canonical set.
+remove_surrogates: (provider: type is mem.allocator,
+                    inout set: vec.list(scalar_range), memory: provider)
+                   -> none ! mem.out_of_memory =
+    mut scratch: vec.list(scalar_range) = vec.new(item: scalar_range)
+    defer vec.release(scratch, memory)
+    try add_range(scratch, memory, 0xd800, 0xdfff)
+    try difference(set, memory, scratch)
+end remove_surrogates
+
+--  Replace `set` by the scalars both it and `other` hold.  Both are
+--  canonical, and so is the result.
+intersect: (provider: type is mem.allocator, inout set: vec.list(scalar_range),
+            memory: provider, other: vec.list(scalar_range))
+           -> none ! mem.out_of_memory =
+    left: usize = vec.length(set)
+    right: []scalar_range = vec.used(other)
+    mut a: usize = 0
+    mut b: usize = 0
+    while a < left and b < lenof right do
+        piece: scalar_range = vec.get(set, a) else (problem)
+            _ = problem
+            return
+        end
+        low: u32 = if piece.low > right[b].low then piece.low
+                   else right[b].low end if
+        high: u32 = if piece.high < right[b].high then piece.high
+                    else right[b].high end if
+        if low <= high then
+            try add_range(set, memory, low, high)
+        end if
+        if piece.high < right[b].high then inc a else inc b end if
+    end while
+    view: []mut scalar_range = vec.used(set)
+    total: usize = lenof view
+    for index in left..<total do
+        view[index - left] = view[index]
+    end for
+    shorten(set, total - left)
+end intersect
+
+--  Replace `set` by the scalars it holds and `other` does not.
+difference: (provider: type is mem.allocator, inout set: vec.list(scalar_range),
+             memory: provider, other: vec.list(scalar_range))
+            -> none ! mem.out_of_memory =
+    left: usize = vec.length(set)
+    right: []scalar_range = vec.used(other)
+    mut b: usize = 0
+    for a in usize(0)..<left do
+        piece: scalar_range = vec.get(set, a) else (problem)
+            _ = problem
+            return
+        end
+        mut low: u32 = piece.low
+        mut open: bool = true
+        while b < lenof right and right[b].high < low do
+            inc b
+        end while
+        mut c: usize = b
+        while open and c < lenof right and right[c].low <= piece.high do
+            if right[c].low > low then
+                try add_range(set, memory, low, right[c].low - 1)
+            end if
+            if right[c].high >= piece.high then
+                open = false
+            else
+                low = right[c].high + 1
+            end if
+            inc c
+        end while
+        if open then
+            try add_range(set, memory, low, piece.high)
+        end if
+    end for
+    view: []mut scalar_range = vec.used(set)
+    total: usize = lenof view
+    for index in left..<total do
+        view[index - left] = view[index]
+    end for
+    shorten(set, total - left)
+end difference
+
+--  Add every range of `other` to `set`, and make it canonical.
+union_with: (provider: type is mem.allocator,
+             inout set: vec.list(scalar_range), memory: provider,
+             other: vec.list(scalar_range)) -> none ! mem.out_of_memory =
+    for piece in vec.used(other) do
+        try add_range(set, memory, piece.low, piece.high)
+    end for
+    canonical(set)
+end union_with
+
+--  Replace `set` by the scalars exactly one of it and `other` holds.
+symmetric_difference: (provider: type is mem.allocator,
+                       inout set: vec.list(scalar_range), memory: provider,
+                       other: vec.list(scalar_range))
+                      -> none ! mem.out_of_memory =
+    mut both: vec.list(scalar_range) = vec.new(item: scalar_range)
+    defer vec.release(both, memory)
+    for piece in vec.used(set) do
+        try add_range(both, memory, piece.low, piece.high)
+    end for
+    try intersect(both, memory, other)
+    try union_with(set, memory, other)
+    try difference(set, memory, both)
+end symmetric_difference
+
+--  The scalars at or above this have no case: Adlam's last cased letter
+--  is U+1E943.
+cased_limit: u32 = 0x1e944
+
+--  Add to a canonical set every scalar whose simple case folding is that
+--  of a scalar it holds, Unicode's simple case-insensitive match, and make
+--  it canonical again.
+fold_unicode: (provider: type is mem.allocator,
+               inout set: vec.list(scalar_range), memory: provider,
+               source: unicode_source) -> none ! mem.out_of_memory =
+    count: usize = vec.length(set)
+    for index in usize(0)..<count do
+        piece: scalar_range = vec.get(set, index) else (problem)
+            _ = problem
+            return
+        end
+        top: u32 = if piece.high < cased_limit then piece.high
+                   else cased_limit - 1 end if
+        mut scalar: u32 = piece.low
+        while scalar <= top do
+            --  Every scalar whose orbit holds another is Cased, so a run
+            --  of uncased scalars is passed over whole.
+            if source.flags_of(scalar) & cased_flag == 0 then
+                last: u32 = source.property_run(scalar)
+                scalar = (if last < top then last else top end if) + 1
+                continue
+            end if
+            try add_orbit(set, memory, source, scalar, piece)
+            inc scalar
+        end while
+    end for
+    canonical(set)
+end fold_unicode
+
+--  Add the scalars of `scalar`'s case orbit that `inside` does not hold.
+add_orbit: (provider: type is mem.allocator,
+            inout set: vec.list(scalar_range), memory: provider,
+            source: unicode_source, scalar: u32, inside: scalar_range)
+           -> none ! mem.out_of_memory =
+    folded: u32 = source.fold(scalar)
+    mut found: [8]u32 = zeroed
+    mut count: usize = 0
+    candidates: [6]u32 = [folded, source.upper(scalar), source.lower(scalar),
+                          source.title(scalar), source.upper(folded),
+                          source.title(folded)]
+    for candidate in candidates do
+        if candidate <> scalar and source.fold(candidate) == folded then
+            count = with_scalar(found, count, candidate)
+        end if
+    end for
+    --  The scalars no simple mapping of another reaches, such as the
+    --  Kelvin sign, whose folding is k's (folds.ldn).
+    for extra in fold_extras do
+        if extra <> scalar and source.fold(extra) == folded then
+            count = with_scalar(found, count, extra)
+        end if
+    end for
+    for member in found[0..<count] do
+        if member < inside.low or member > inside.high then
+            try add_range(set, memory, member, member)
+        end if
+    end for
+end add_orbit
+
+--  Add `scalar` to the first `count` of `found` unless it is there, and
+--  give the new count.
+with_scalar: (found: []mut u32, count: usize, scalar: u32)
+             -> (result: usize) =
+    result = count
+    for held in found[0..<count] do
+        return when held == scalar
+    end for
+    return when count == lenof found
+    found[count] = scalar
+    result = count + 1
+end with_scalar
+
+--  Add to a canonical set the other case of each ASCII letter it holds,
+--  `(?-u)`'s case-insensitive match.
+fold_ascii: (provider: type is mem.allocator,
+             inout set: vec.list(scalar_range), memory: provider)
+            -> none ! mem.out_of_memory =
+    count: usize = vec.length(set)
+    for index in usize(0)..<count do
+        piece: scalar_range = vec.get(set, index) else (problem)
+            _ = problem
+            return
+        end
+        try fold_ascii_part(set, memory, piece, u32('a'), u32('z'), u32('A'))
+        try fold_ascii_part(set, memory, piece, u32('A'), u32('Z'), u32('a'))
+    end for
+    canonical(set)
+end fold_ascii
+
+fold_ascii_part: (provider: type is mem.allocator,
+                  inout set: vec.list(scalar_range), memory: provider,
+                  piece: scalar_range, first: u32, last: u32, other: u32)
+                 -> none ! mem.out_of_memory =
+    low: u32 = if piece.low > first then piece.low else first end if
+    high: u32 = if piece.high < last then piece.high else last end if
+    return when low > high
+    try add_range(set, memory, low - first + other, high - first + other)
+end fold_ascii_part
+
+--  Add the scalars whose general category is one of `categories`' bits,
+--  or which have one of the binary properties `flags`' bits name, a run
+--  of scalars that share their category and properties at a time.
+add_property: (provider: type is mem.allocator,
+               inout set: vec.list(scalar_range), memory: provider,
+               source: unicode_source, categories: u32, flags: u8)
+              -> none ! mem.out_of_memory =
+    mut scalar: u32 = 0
+    while scalar <= scalar_limit do
+        if scalar == 0xd800 then scalar = 0xe000 end if
+        mut last: u32 = scalar_limit
+        if categories <> 0 then last = source.category_run(scalar) end if
+        if flags <> 0 then
+            property_last: u32 = source.property_run(scalar)
+            if property_last < last then last = property_last end if
+        end if
+        if scalar < 0xd800 and last >= 0xd800 then last = 0xd7ff end if
+        held: bool = categories & category_bit(source.category_of(scalar)) <> 0
+                     or flags <> 0 and source.flags_of(scalar) & flags <> 0
+        if held then try add_range(set, memory, scalar, last) end if
+        scalar = last + 1
+    end while
+    canonical(set)
+end add_property
+
+--  Add Unicode's \w.
+add_unicode_word: (provider: type is mem.allocator,
+                   inout set: vec.list(scalar_range), memory: provider,
+                   source: unicode_source) -> none ! mem.out_of_memory =
+    try add_property(set, memory, source,
+                     marks_mask | category_bit(8) | category_bit(11),
+                     alphabetic_flag)
+    try add_range(set, memory, 0x200c, 0x200d)
+    try add_ascii_word(set, memory)
+end add_unicode_word
+
+--  Add [0-9A-Za-z_].
+add_ascii_word: (provider: type is mem.allocator,
+                 inout set: vec.list(scalar_range), memory: provider)
+                -> none ! mem.out_of_memory =
+    try add_range(set, memory, u32('0'), u32('9'))
+    try add_range(set, memory, u32('A'), u32('Z'))
+    try add_range(set, memory, u32('_'), u32('_'))
+    try add_range(set, memory, u32('a'), u32('z'))
+    canonical(set)
+end add_ascii_word
+
+--  Add [\t\n\v\f\r ].
+add_ascii_space: (provider: type is mem.allocator,
+                  inout set: vec.list(scalar_range), memory: provider)
+                 -> none ! mem.out_of_memory =
+    try add_range(set, memory, 9, 13)
+    try add_range(set, memory, 32, 32)
+    canonical(set)
+end add_ascii_space

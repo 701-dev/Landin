@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/regex searches ten patterns that are exponential for a backtracking engine or a DFA over a text and one twice as long, and the work grows linearly, within the text's length times the program; Cortex-M0 searches shorter texts within its RAM
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 0520, 1150

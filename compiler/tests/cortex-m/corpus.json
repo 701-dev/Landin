@@ -3804,6 +3804,11 @@
     "runtime/library-shared-random": {
       "mode": "execute"
     },
+    "runtime/library-shared-regex": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "A program that compiles one pattern with regex.lean() links core/regex's parser, compiler and four engines: 153,196 bytes of flash at size/auto, overflowing the 32 KiB profile by 120,428, and an arena of 16 KiB beside them (D2680). Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
     "runtime/library-shared-region": {
       "mode": "execute"
     },
@@ -5572,6 +5577,35 @@
     "runtime/reference-place-updates": {
       "mode": "execute"
     },
+    "runtime/regex-api": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-engines-agree": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-linear-time": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "Each search compiles its pattern with regex.lean(), linking core/regex's parser, compiler and four engines: 149,532 bytes of flash at size/auto, overflowing the 32 KiB profile by 116,764, beside a 64 KiB arena and a 4 KiB text (D2680). Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/regex-redux-patterns": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-rust-suite": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/region-beside-parent": {
       "mode": "execute"
     },
@@ -6160,6 +6194,9 @@
     "runtime/unicode-category": {
       "mode": "execute"
     },
+    "runtime/unicode-category-runs": {
+      "mode": "execute"
+    },
     "runtime/unicode-graphemes": {
       "mode": "execute"
     },
@@ -6179,6 +6216,9 @@
       "reason": "It holds the source column of 3,017 lines of NormalizationTest.txt and reads all four forms' tables: the image is 91,200 bytes at size/auto, over Cortex-M0's 32 KiB of flash by 58,432, so no profile executes it there; this image limit is not runtime evidence."
     },
     "runtime/unicode-properties": {
+      "mode": "execute"
+    },
+    "runtime/unicode-property-runs": {
       "mode": "execute"
     },
     "runtime/unicode-sentences": {

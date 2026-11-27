@@ -144,6 +144,26 @@ public is_case_ignorable: (scalar: u32) -> (yes: bool) =
     yes = case_context_code(scalar) & case_ignorable_bit <> 0
 end is_case_ignorable
 
+--- The last scalar of the run that begins at `scalar` of scalars that
+--- share its general category: every scalar from `scalar` to `last` has
+--- `category(scalar)`, and the one after `last` has another, or `last` is
+--- U+10FFFF.  Stepping from run to run visits the code space in a few
+--- thousand steps where a scalar at a time takes over a million, which is
+--- how core/regex builds `\p{L}`.
+public category_run_end: (scalar: u32) -> (last: u32) =
+    last = category_code_run(scalar)
+end category_run_end
+
+--- The last scalar of the run that begins at `scalar` of scalars that
+--- have the same six binary properties `is_alphabetic` to
+--- `is_case_ignorable` answer, as `category_run_end` is for the
+--- category.
+public property_run_end: (scalar: u32) -> (last: u32) =
+    flags: u32 = flag_code_run(scalar)
+    context: u32 = case_context_code_run(scalar)
+    last = if flags < context then flags else context end if
+end property_run_end
+
 --  Decode the scalar of `bytes` that begins at `at`, which is well-formed
 --  UTF-8 there, and the offset after it.
 decoded: (bytes: []u8, at: usize) -> (scalar: u32, after: usize) =

@@ -241,6 +241,8 @@ The library covers:
 - the elementary mathematical functions of `f32` and `f64`, `core/math`;
 - Unicode's properties, case mapping, normalization and the boundaries
   of characters, words and sentences, `core/unicode`;
+- regular expressions over `utf8`, matched in linear time,
+  `core/regex`;
 - complex numbers over `f32` and `f64`, `core/complex`;
 - blocking TCP and UDP sockets over IPv4 and IPv6;
 - threads started as a group the function joins, `hosted/thread`;
@@ -964,6 +966,7 @@ Database.
 | `is_white_space(scalar)` | Whether it is White_Space: a space, a tab, or a line or paragraph end. |
 | `is_uppercase(scalar)`, `is_lowercase(scalar)` | Whether it is Uppercase, or Lowercase. |
 | `is_cased(scalar)` | Whether it is Cased: upper, lower or title case. |
+| `category_run_end(scalar)`, `property_run_end(scalar)` | The last scalar of the run beginning at `scalar` whose scalars all share its general category, or all answer the six `is_` properties as it does. Stepping from run to run covers every scalar in a few thousand steps, which is how `core/regex` builds its classes. |
 | `is_case_ignorable(scalar)` | Whether it is Case_Ignorable, which case mapping passes over when it looks for the letters around a sigma or for a word's first letter. |
 
 Compare a category with `==`, as in
@@ -1075,7 +1078,8 @@ end counts
 - Case mapping tailored to a locale.
 - Encodings other than UTF-8.
 
-Later items add encodings, locale formatting and regular expressions.
+Later items add encodings and locale formatting. Regular expressions
+are `core/regex`, the next section.
 
 ### Conformance and size
 
@@ -1110,6 +1114,270 @@ of the others does.
 The program is [Text as a reader sees it](../examples.md#text-as-a-reader-sees-it):
 it counts the characters of a name and of two flags, lists the words of a
 sentence, changes case, and compares two texts ignoring case.
+
+## core/regex
+
+Regular expressions over `utf8`: a pattern is compiled when the program
+runs, with the caller's allocator, and then searched for in texts. Use it
+where the thing to find is a shape and not a fixed text; for a fixed
+text, `core/text`'s searches are smaller and need no allocator.
+
+The syntax and the meaning of a pattern are those of Rust's `regex`
+crate, without backreferences and look-around. Every search takes time
+linear in the text, whatever the pattern, which is why those two are
+left out.
+
+| Call | What it does |
+|---|---|
+| `regex.compile`, `regex.compile_with` | Compile a pattern, with the default options or with given ones. |
+| `regex.release` | Give a compiled pattern's storage back. |
+| `regex.defaults`, `regex.lean`, `regex.with_size_limit`, `regex.with_cache_size`, `regex.with_anchored`, `regex.with_engine` | Make and change options. |
+| `regex.is_match`, `regex.find`, `regex.find_at` | Whether a text has a match, and where the first one is. |
+| `regex.captures`, `regex.captures_at`, `regex.group`, `regex.group_count`, `regex.group_named` | Find a match with what each group matched. |
+| `regex.walk_start`, `regex.next_match`, `regex.matches` | Walk every match of a text. |
+| `regex.replace_all` | Append a text with every match replaced from a template. |
+| `regex.words` | A short phrase for a failure of `compile`. |
+| `regex.work`, `regex.fallbacks`, `regex.prepared`, `regex.program_size` | Measure a compiled pattern and its searches. |
+
+A match is a `regex.span` holding two `text.position`s, `begins` and
+`ends`, into the text searched. It holds positions and not the text, so
+slice the text to read it:
+`source[text.offset(found.begins)..<text.offset(found.ends)]`.
+
+Nothing is allocated after the pattern is compiled. The compiled pattern
+holds the storage its searches use, so every search takes it `inout`,
+and one compiled pattern serves one search at a time.
+
+### Compiling
+
+| Call | What it does |
+|---|---|
+| `compile(memory, pattern)` | Compile `pattern` with the options `defaults()` gives. |
+| `compile_with(memory, pattern, settings)` | Compile `pattern` with `settings`. |
+| `release(expression, memory)` | Give the storage back to `memory`, the allocator the pattern was compiled with. The pattern is empty afterwards and matches nothing. |
+
+`memory` is any `mem.allocator`: a heap on a hosted target, an arena
+over a static buffer in firmware. Both calls give a `regex.regex`, which
+the program holds in a `mut` binding, and fail with a
+`regex.compile_failure`:
+
+| Failure | When |
+|---|---|
+| `regex.invalid_pattern` | The pattern is not one the syntax reads: an unclosed group or bracket, a repetition of nothing, a range out of order such as `[z-a]`, an unknown escape or flag, or a class that could match bytes that are not UTF-8, such as `(?-u:\W)`. |
+| `regex.unsupported_pattern` | The pattern writes a backreference such as `(a)\1` or a look-around such as `a(?=b)`, or names a Unicode property that `core/unicode` holds no table for, such as the script in `\p{Greek}`. |
+| `regex.pattern_too_large` | The pattern compiles to more than the options' size limit, or nests groups or brackets more than 64 deep, or counts a repetition past 100,000, as `a{100001}` does. |
+| `regex.unicode_unavailable` | The pattern needs Unicode's tables and was compiled with `lean` options. |
+| `mem.out_of_memory` | The allocator could not give the storage. |
+
+### Options
+
+A `regex.options` value says how a pattern is compiled. Start from one
+of two, and change it with the `with_` calls, each of which returns the
+changed options:
+
+| Call | What it does |
+|---|---|
+| `defaults()` | The usual options. They use `core/unicode`'s tables for `\w`, `\d`, `\s`, `\b`, `\p` and `(?i)`. |
+| `lean()` | The same without Unicode's tables, so a program that compiles only with these links none of them. A pattern that needs them fails with `unicode_unavailable`. |
+| `with_size_limit(settings, limit)` | Set the size limit, counted in the instructions and edges of the compiled program. It bounds a compiled pattern's storage, and so the time a search takes for each byte of text. The limit is 250,000 unless set. |
+| `with_cache_size(settings, bytes)` | Set the bound on the lazy DFA's caches, in bytes, which `compile_with` allocates. It is 512 KiB unless set. Below a few kilobytes the DFA is not used at all. |
+| `with_anchored(settings)` | Anchor every search: a match must begin where the search does, at the text's start or at `find_at`'s position, and in a walk each match must begin where the one before it ended. |
+| `with_engine(settings, which)` | Ask for one engine, for tests and measurement. See [Engines and linear time](#engines-and-linear-time). |
+
+Under `lean()` a pattern can still use the classes by asking for their
+ASCII meanings with the flag `(?-u)`: `(?-u)\w\d\s\b(?i)k` compiles with
+no tables. Firmware usually wants `lean()` and a small cache, as the
+first example below has them.
+
+### The syntax
+
+A pattern means what it means to Rust's `regex` crate:
+
+- A match is leftmost-first: of the matches that begin earliest, the one
+  the pattern prefers, an alternation's earlier branch before a later
+  one.
+- Patterns are in Unicode mode unless they say otherwise: `.` and a
+  class match whole scalars, and `\w`, `\d`, `\s`, `\b` and `(?i)` have
+  their Unicode meanings.
+- The flags are `i`, `m`, `s`, `U`, `u`, `x` and `R`, written `(?i)` or
+  around a group as `(?i:...)`, and turned off after a `-`.
+- A group is named as `(?P<name>...)` or as `(?<name>...)`.
+- A bracketed class takes the set operations `&&`, `--` and `~~`, and
+  the POSIX classes such as `[[:alpha:]]`.
+- `\p{...}` names a general category or a group of them, by short or
+  long name, or one of the binary properties `core/unicode` has:
+  Alphabetic, White_Space, Uppercase, Lowercase, Cased and
+  Case_Ignorable. Case, spaces, underscores and hyphens in the name are
+  ignored, so `\p{L}`, `\p{Letter}` and `\p{letter}` are one.
+- The word looks are `\b`, `\B`, `\b{start}` or `\<`, `\b{end}` or
+  `\>`, `\b{start-half}` and `\b{end-half}`.
+
+A failure has its words from `regex.words(problem)`, a short phrase as
+`failure.words` gives for the rest of the library, whose `failure.reason`
+does not hold these atoms.
+
+### Searching and groups
+
+| Call | What it does |
+|---|---|
+| `is_match(expression, haystack)` | Whether the pattern matches anywhere in `haystack`. |
+| `find(expression, haystack)` | The leftmost-first match, or `mem.not_found`. |
+| `find_at(expression, haystack, start_at)` | The leftmost-first match that begins at or after `start_at`, a scalar's start in `haystack`, or `mem.not_found`. The text before `start_at` still counts for the looks: `\b` and `^` see it. |
+| `captures(expression, haystack)` | As `find`, keeping what each group matched for `group`. |
+| `captures_at(expression, haystack, start_at)` | As `find_at`, keeping the groups. |
+| `group(expression, index)` | What group `index` matched in the last search that kept groups, as a `span`. Group 0 is the whole match. It fails with `mem.not_found` when the group took no part in the match, when there was no match, and when the pattern has no such group. |
+| `group_count(expression)` | How many groups the pattern has, counting group 0: one more than its capturing groups. |
+| `group_named(expression, name)` | The number of the group that `name` names, or `mem.not_found`. |
+
+The groups `group` gives are those of the last search, so read them
+before searching with the same pattern again. `find` and `find_at` keep
+none.
+
+### Walking every match
+
+| Call | What it does |
+|---|---|
+| `walk_start()` | A `regex.cursor` before a text's first match. |
+| `next_match(expression, haystack, at, groups)` | The match after the cursor `at`, moving `at` past it, or `mem.not_found` when there are no more. With `groups` true the match's groups are kept for `group`. |
+| `matches(addr expression, haystack)` | Every match in order, as `next_match` finds them, for a `for` loop. |
+
+Matches do not overlap. An empty match right where the previous match
+ended is passed over, so `a*` over "aab" gives "aa" and then the empty
+match at the end, and nothing between them.
+
+The `for` form is the short one:
+`for found in regex.matches(addr pattern, haystack) do`, where each
+`found` is a `span`. The walk searches through the pointer as it goes,
+so do not use the pattern for anything else inside the loop. It keeps no
+groups; a loop that wants them calls `next_match` with `groups` true.
+
+### Replacing
+
+`replace_all(expression, haystack, template, into)` appends `haystack`
+to the `text.builder` `into` with every match replaced by `template`,
+and returns how many matches there were. The matches are those a walk
+finds. It appends the whole result or nothing: on `mem.out_of_memory`,
+its only failure, `into` holds what it held before.
+
+In the template:
+
+| Written | Stands for |
+|---|---|
+| `$1`, `${1}` | What group 1 matched, and so for each number. `$0` is the whole match. |
+| `$name`, `${name}` | What the group of that name matched. |
+| `$$` | A `$`. |
+
+Without braces the name is the longest run of letters, digits and `_`
+after the `$`, so `$1a` names a group called `1a`, where `${1}a` is
+group 1 and then an `a`. A group that took no part in the match, or that
+the pattern does not have, is empty. A `$` before anything else stands
+for itself.
+
+### What it leaves out
+
+- Backreferences and look-around, which no engine matches in linear
+  time. They fail with `unsupported_pattern`.
+- Scripts, such as `\p{Greek}`, and every other property `core/unicode`
+  holds no table for: the Emoji properties, Math, and the grapheme, word
+  and sentence break properties as classes. They fail with
+  `unsupported_pattern` too.
+- Texts that are not UTF-8, and classes that could match part of a
+  scalar.
+- Several patterns searched as one set, match kinds other than
+  leftmost-first, a search that stops before the text's end, and a line
+  terminator other than `\n`, or `\r\n` under the flag `R`.
+- Patterns compiled when the program is built. Landin runs nothing at
+  compile time, so a pattern is compiled each time the program runs.
+
+### Engines and linear time
+
+A compiled pattern is a program over the text's bytes, and several
+engines can run it. `compile` prepares those that suit the pattern, and
+each search uses the cheapest that can answer it, as RE2 and Rust's
+`regex` do:
+
+| Engine | `regex.engine` | What it does |
+|---|---|---|
+| Pike VM | `pike_vm` | Runs every thread of the program in step over the text. It answers every search and finds the groups, and is the slowest. |
+| Lazy DFA | `lazy_dfa` | Finds where a match ends, and run backward over the reversed pattern, where it begins. It builds its states as a search needs them, in a cache of bounded size. |
+| One-pass DFA | `one_pass_dfa` | Finds the groups of a match in one pass, for a pattern in which the next byte always decides the one way on, as in `a[bc]d`, and not where one branch's text begins another's, as `a` begins `ab`. |
+| Literal prefilter | `literal_prefilter` | Skips to where a match can begin, for a pattern whose every match begins with one of a few fixed texts, as `(?i)hello` does. |
+
+The lazy DFA clears its cache when it fills. It gives a search up to the
+Pike VM when that happens too often, and when a Unicode word boundary
+meets a byte past ASCII. The answer is the same either way; only the
+time differs.
+
+The options' engine is `regex.automatic` unless `with_engine` sets one
+of the four above. An engine that was asked for and cannot answer a
+search leaves it to the Pike VM.
+
+A search takes time linear in the text: at most the text's length times
+the compiled program's size, which the size limit bounds. That holds for
+patterns such as `(a*)*b` that take a backtracking engine exponential
+time.
+
+The bound is for one search. Walking every match of a text, with
+`next_match`, `matches` or `replace_all`, can take time quadratic in the
+text for some patterns, as it can in RE2 and in Rust's `regex`. With
+`a+b|a` over a long run of "a", each match is one "a", and each search
+first reads to the end of the text looking for a `b`.
+
+Four calls measure a compiled pattern, for tests and tuning:
+
+| Call | What it gives |
+|---|---|
+| `program_size(expression)` | The size of the compiled program, in the instructions and edges the size limit counts. |
+| `prepared(expression)` | Three `bool`s, `lazy`, `one_pass` and `literals`: which engines were prepared beside the Pike VM. |
+| `work(expression)` | A count of the work the pattern's searches have done since it was compiled: the threads the Pike VM stepped, the bytes the DFAs and the prefilter read, and the instructions the lazy DFA's new states reached. |
+| `fallbacks(expression)` | How many searches the lazy DFA has left to the Pike VM since the pattern was compiled. |
+
+### Conformance and size
+
+The fixtures are the `regex-*` ones under
+`compiler/tests/fixtures/runtime/`, and they run on every hosted target:
+
+- `regex-rust-suite` runs the cases of the test suite of Rust's `regex`
+  crate, release 1.12.2, that this module can state, comparing every
+  match and its groups. `scripts/regex_tests.py` writes them from the
+  pinned crate archive, and the header of the fixture's `cases.ldn`
+  counts those taken and those left out of the suite's 1,184. The ones
+  left out are sets of patterns, other match and search kinds, bounds,
+  line terminators, texts that are not UTF-8, the cases of `regex-lite`,
+  and the properties listed above as left out.
+- `regex-engines-agree` checks the lazy DFA, the one-pass DFA and the
+  literal prefilter against the Pike VM, every match and group, over
+  patterns and texts from a seeded generator.
+- `regex-linear-time` searches patterns that are exponential for a
+  backtracking engine, or for a DFA built in full, over a text and over
+  one twice as long, and holds the work `regex.work` counts to linear
+  growth.
+
+A program that compiles a pattern links the parser, the compiler and
+every engine: about 140 KB of Thumb code at `size/auto`, even under
+`lean()`. That is past the 32 KiB Cortex-M0 profile, which records it as
+a size limit, so firmware runs `regex-linear-time`, over shorter texts,
+and the first example below on the Cortex-M7 corpus lane, whose map has
+4 MiB. Both compile with `lean()` into an arena over a static buffer.
+
+`core/unicode` gives a class its scalars a run at a time, through
+`unicode.category_run_end` and `unicode.property_run_end`, so compiling
+`\p{L}` or `\w` takes a few thousand steps and not one for each scalar.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-regex/main.ldn)
+
+The program compiles `(?<key>[a-z]+)=([0-9]+)` with `lean()` options and
+a 2 KiB cache into an arena, reads a match and its numbered and named
+groups, counts the matches with `for`, and replaces each from the
+template `$2:${key}`. It runs on the Cortex-M7 corpus lane as on the
+hosted targets.
+
+[Executable example](../compiler/tests/fixtures/runtime/regex-api/main.ldn)
+
+The program runs over a hosted heap. It shows a pattern for each failure
+of `compile`, the forms of a replacement template and what a missing
+group gives, a walk's empty matches, a search from a position, an
+anchored walk, and Unicode classes and case.
 
 ## core/io
 

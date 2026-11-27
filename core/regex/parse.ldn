@@ -1,0 +1,910 @@
+--  The parser: a pattern's text to its tree, flags applied, by recursive
+--  descent over the pattern's bytes.  The syntax is Rust's `regex`
+--  crate's, less what loses linear time, as regex.ldn says.
+
+import core/mem
+import core/text
+import core/vec
+
+--  The flags, as bits of `parser.flags`.
+flag_insensitive: u8 = 1
+flag_multi_line: u8 = 2
+flag_dot_all: u8 = 4
+flag_swap_greed: u8 = 8
+flag_unicode: u8 = 16
+flag_verbose: u8 = 32
+flag_crlf: u8 = 64
+
+--  How deep groups and brackets may nest, which bounds the parser's and
+--  the compiler's recursion.
+nest_limit: u32 = 64
+
+--  The largest count a counted repetition may write.
+repeat_limit: u32 = 100_000
+
+parser: type = struct
+    bytes: []u8
+    at: usize
+    flags: u8
+    depth: u32
+    source: unicode_source
+end parser
+
+parse_failure: type = invalid_pattern | unsupported_pattern
+    | pattern_too_large | unicode_unavailable | mem.out_of_memory
+
+--  Parse `pattern` into `tree`, whose root it sets.
+parse: (provider: type is mem.allocator, inout tree: hir, memory: provider,
+        pattern: utf8, source: unicode_source) -> none ! parse_failure =
+    mut p: parser = (bytes: text.bytes(pattern), at: 0,
+                     flags: flag_unicode, depth: 0, source: source)
+    root: u32 = try parse_alternation(p, tree, memory)
+    fail invalid_pattern when p.at < lenof p.bytes
+    tree.root = try add_node(tree, memory, node_capture, 0, root)
+end parse
+
+--  Whether the parser is at the end, past any space verbose mode skips.
+at_end: (inout p: parser) -> (yes: bool) =
+    skip_space(p)
+    yes = p.at >= lenof p.bytes
+end at_end
+
+--  The byte at the parser, past any space verbose mode skips, or zero at
+--  the end.
+peek: (inout p: parser) -> (byte: u8) =
+    skip_space(p)
+    byte = if p.at < lenof p.bytes then p.bytes[p.at] else 0 end if
+end peek
+
+--  The byte at the parser as it is, or zero at the end.
+peek_raw: (p: parser) -> (byte: u8) =
+    byte = if p.at < lenof p.bytes then p.bytes[p.at] else 0 end if
+end peek_raw
+
+--  The byte `ahead` bytes after the parser, or zero past the end.
+peek_at: (p: parser, ahead: usize) -> (byte: u8) =
+    byte = if p.at + ahead < lenof p.bytes then p.bytes[p.at + ahead]
+           else 0 end if
+end peek_at
+
+--  In verbose mode, pass over white space and comments.
+skip_space: (inout p: parser) -> none =
+    return when p.flags & flag_verbose == 0
+    while p.at < lenof p.bytes do
+        byte: u8 = p.bytes[p.at]
+        if byte == u8(' ') or byte >= 9 and byte <= 13 then
+            inc p.at
+        elsif byte == u8('#') then
+            while p.at < lenof p.bytes and p.bytes[p.at] <> u8('\n') do
+                inc p.at
+            end while
+        else
+            return
+        end if
+    end while
+end skip_space
+
+--  The scalar at the parser, and step past it.
+next_scalar: (inout p: parser) -> (scalar: u32) ! invalid_pattern =
+    fail invalid_pattern when p.at >= lenof p.bytes
+    lead: u8 = p.bytes[p.at]
+    mut length: usize = 1
+    if lead < 0x80 then
+        scalar = u32(lead)
+    elsif lead < 0xe0 then
+        scalar = u32(lead & 0x1f)
+        length = 2
+    elsif lead < 0xf0 then
+        scalar = u32(lead & 0x0f)
+        length = 3
+    else
+        scalar = u32(lead & 0x07)
+        length = 4
+    end if
+    for index in usize(1)..<length do
+        scalar = scalar << 6 | u32(p.bytes[p.at + index] & 0x3f)
+    end for
+    p.at += length
+end next_scalar
+
+--  Point the sibling link of node `from` at node `to`.
+link: (inout tree: hir, source: u32, to: u32) -> none =
+    slot := vec.at(tree.nodes, usize(source)) else (problem)
+        _ = problem
+        return
+    end
+    slot.val.sibling = to
+end link
+
+--  An alternation: concatenations between `|`s, up to a `)` or the end.
+parse_alternation: (provider: type is mem.allocator, inout p: parser,
+                    inout tree: hir, memory: provider)
+                   -> (node: u32) ! parse_failure =
+    first: u32 = try parse_concat(p, tree, memory)
+    node = first
+    return when peek(p) <> u8('|')
+    node = try add_node(tree, memory, node_alternate, 0, first)
+    mut last: u32 = first
+    while peek(p) == u8('|') do
+        inc p.at
+        next: u32 = try parse_concat(p, tree, memory)
+        link(tree, last, next)
+        last = next
+    end while
+end parse_alternation
+
+--  A concatenation of items, each an atom and the repetitions after it, up
+--  to a `|`, a `)` or the end.  None is the empty node.
+parse_concat: (provider: type is mem.allocator, inout p: parser,
+               inout tree: hir, memory: provider)
+              -> (node: u32) ! parse_failure =
+    mut first: u32 = nothing
+    mut last: u32 = nothing
+    mut count: u32 = 0
+    loop do
+        byte: u8 = peek(p)
+        break when p.at >= lenof p.bytes or byte == u8('|')
+          or byte == u8(')')
+        (node: item, present: present) := try parse_atom(p, tree, memory)
+        if not present then
+            fail invalid_pattern when is_repetition(peek(p))
+            continue
+        end if
+        mut wrapped: u32 = item
+        while is_repetition(peek(p)) do
+            wrapped = try parse_repetition(p, tree, memory, wrapped)
+        end while
+        if count == 0 then first = wrapped else link(tree, last, wrapped) end if
+        last = wrapped
+        inc count
+    end loop
+    if count == 0 then
+        node = try add_node(tree, memory, node_empty, 0, nothing)
+    elsif count == 1 then
+        node = first
+    else
+        node = try add_node(tree, memory, node_concat, 0, first)
+    end if
+end parse_concat
+
+is_repetition: (byte: u8) -> (yes: bool) =
+    yes = byte == u8('*') or byte == u8('+') or byte == u8('?')
+          or byte == u8('{')
+end is_repetition
+
+--  Wrap `operand` in the repetition at the parser.
+parse_repetition: (provider: type is mem.allocator, inout p: parser,
+                   inout tree: hir, memory: provider, operand: u32)
+                  -> (node: u32) ! parse_failure =
+    byte: u8 = p.bytes[p.at]
+    inc p.at
+    mut low: u32 = 0
+    mut high: u32 = nothing
+    if byte == u8('+') then
+        low = 1
+    elsif byte == u8('?') then
+        high = 1
+    elsif byte == u8('{') then
+        low = try parse_count(p)
+        high = low
+        if peek(p) == u8(',') then
+            inc p.at
+            high = if peek(p) == u8('}') then nothing else try parse_count(p)
+                   end if
+        end if
+        fail invalid_pattern when peek(p) <> u8('}')
+        inc p.at
+        fail invalid_pattern when high <> nothing and high < low
+    end if
+    mut greedy: bool = true
+    if peek(p) == u8('?') then
+        inc p.at
+        greedy = false
+    end if
+    if p.flags & flag_swap_greed <> 0 then greedy = not greedy end if
+    node = try add_node(tree, memory, node_repeat, 0, operand)
+    slot := vec.at(tree.nodes, usize(node)) else (problem)
+        _ = problem
+        fail invalid_pattern
+    end
+    slot.val.low = low
+    slot.val.high = high
+    slot.val.greedy = greedy
+end parse_repetition
+
+--  A decimal count in a counted repetition.
+parse_count: (inout p: parser) -> (count: u32)
+             ! invalid_pattern | pattern_too_large =
+    count = 0
+    fail invalid_pattern when not is_digit(peek(p))
+    while is_digit(peek(p)) do
+        count = count * 10 + u32(p.bytes[p.at] - u8('0'))
+        fail pattern_too_large when count > repeat_limit
+        inc p.at
+    end while
+end parse_count
+
+is_digit: (byte: u8) -> (yes: bool) =
+    yes = byte >= u8('0') and byte <= u8('9')
+end is_digit
+
+--  One atom: a group, a class, a literal, a look or an escape.  A group
+--  that only sets flags is no atom, and `present` is then false.
+parse_atom: (provider: type is mem.allocator, inout p: parser,
+             inout tree: hir, memory: provider)
+            -> (node: u32, present: bool) ! parse_failure =
+    present = true
+    node = nothing
+    byte: u8 = peek(p)
+    if byte == u8('(') then
+        (node: grouped, present: atom_present) := try parse_group(p, tree,
+                                                                  memory)
+        node = grouped
+        present = atom_present
+    elsif byte == u8('[') then
+        mut set: vec.list(scalar_range) = vec.new(item: scalar_range)
+        defer vec.release(set, memory)
+        try parse_bracketed(p, memory, set)
+        node = try class_node(tree, memory, set)
+    elsif byte == u8('.') then
+        inc p.at
+        node = try dot(p, tree, memory)
+    elsif byte == u8('^') then
+        inc p.at
+        kind: u8 = if p.flags & flag_multi_line == 0 then look_start_text
+                   elsif p.flags & flag_crlf <> 0 then look_start_line_crlf
+                   else look_start_line end if
+        node = try look_node(tree, memory, kind)
+    elsif byte == u8('$') then
+        inc p.at
+        kind: u8 = if p.flags & flag_multi_line == 0 then look_end_text
+                   elsif p.flags & flag_crlf <> 0 then look_end_line_crlf
+                   else look_end_line end if
+        node = try look_node(tree, memory, kind)
+    elsif byte == u8('\\') then
+        node = try parse_escape(p, tree, memory)
+    elsif is_repetition(byte) then
+        fail invalid_pattern
+    else
+        scalar: u32 = try next_scalar(p)
+        node = try literal(p, tree, memory, scalar)
+    end if
+end parse_atom
+
+--  A node for a look, noting the looks that need more than bytes.
+look_node: (provider: type is mem.allocator, inout tree: hir,
+            memory: provider, kind: u8)
+           -> (node: u32) ! mem.out_of_memory | pattern_too_large =
+    if kind >= look_word_unicode then tree.unicode_word = true end if
+    if kind == look_start_line_crlf or kind == look_end_line_crlf then
+        tree.crlf = true
+    end if
+    node = try add_node(tree, memory, node_look, u32(kind), nothing)
+end look_node
+
+--  A literal scalar, or under `i` the class of its case orbit.
+literal: (provider: type is mem.allocator, inout p: parser,
+          inout tree: hir, memory: provider, scalar: u32)
+         -> (node: u32) ! parse_failure =
+    if p.flags & flag_insensitive <> 0 then
+        mut set: vec.list(scalar_range) = vec.new(item: scalar_range)
+        defer vec.release(set, memory)
+        try add_range(set, memory, scalar, scalar)
+        try fold_set(p, memory, set)
+        if vec.length(set) > 1 or scalar_count(set) > 1 then
+            node = try class_node(tree, memory, set)
+            return
+        end if
+    end if
+    node = try add_node(tree, memory, node_literal, scalar, nothing)
+end literal
+
+--  How many scalars a set holds, up to two.
+scalar_count: (set: vec.list(scalar_range)) -> (count: u32) =
+    count = 0
+    for piece in vec.used(set) do
+        count += if piece.high > piece.low then 2 else 1 end if
+        return when count > 1
+    end for
+end scalar_count
+
+--  Case-fold a set under the parser's flags.
+fold_set: (provider: type is mem.allocator, inout p: parser,
+           memory: provider, inout set: vec.list(scalar_range))
+          -> none ! mem.out_of_memory | unicode_unavailable =
+    canonical(set)
+    if p.flags & flag_unicode == 0 then
+        try fold_ascii(set, memory)
+    else
+        fail unicode_unavailable when not p.source.present
+        try fold_unicode(set, memory, p.source)
+    end if
+end fold_set
+
+--  A class node over a canonical set's ranges.
+class_node: (provider: type is mem.allocator, inout tree: hir,
+             memory: provider, set: vec.list(scalar_range))
+            -> (node: u32) ! mem.out_of_memory | pattern_too_large =
+    first: usize = vec.length(tree.ranges)
+    fail pattern_too_large when first >= 0x0fff_ffff
+    for piece in vec.used(set) do
+        try vec.push(tree.ranges, memory, piece)
+    end for
+    node = try add_node(tree, memory, node_class, 0, u32(first))
+    slot := vec.at(tree.nodes, usize(node)) else (problem)
+        _ = problem
+        return
+    end
+    slot.val.count = u32(vec.length(set))
+end class_node
+
+--  `.`: any scalar, less \n unless `s`, and \r too under `R`.
+dot: (provider: type is mem.allocator, inout p: parser, inout tree: hir,
+      memory: provider) -> (node: u32) ! parse_failure =
+    fail invalid_pattern when p.flags & flag_unicode == 0
+    mut set: vec.list(scalar_range) = vec.new(item: scalar_range)
+    defer vec.release(set, memory)
+    if p.flags & flag_dot_all <> 0 then
+        try add_range(set, memory, 0, scalar_limit)
+    elsif p.flags & flag_crlf <> 0 then
+        try add_range(set, memory, 0, 9)
+        try add_range(set, memory, 11, 12)
+        try add_range(set, memory, 14, scalar_limit)
+    else
+        try add_range(set, memory, 0, 9)
+        try add_range(set, memory, 11, scalar_limit)
+    end if
+    try remove_surrogates(set, memory)
+    node = try class_node(tree, memory, set)
+end dot
+
+--  A group: `(...)`, `(?:...)`, `(?P<name>...)`, `(?<name>...)`,
+--  `(?flags:...)`, or `(?flags)`, which sets flags to the end of the group
+--  around it and is no atom.
+parse_group: (provider: type is mem.allocator, inout p: parser,
+              inout tree: hir, memory: provider)
+             -> (node: u32, present: bool) ! parse_failure =
+    node = nothing
+    present = true
+    inc p.at
+    saved: u8 = p.flags
+    mut group: u32 = nothing
+    if peek_raw(p) == u8('?') then
+        inc p.at
+        byte: u8 = peek_raw(p)
+        if byte == u8('P') and peek_at(p, 1) == u8('<') then
+            p.at += 2
+            group = try named_group(p, tree, memory)
+        elsif byte == u8('<') and peek_at(p, 1) <> u8('=')
+          and peek_at(p, 1) <> u8('!') then
+            inc p.at
+            group = try named_group(p, tree, memory)
+        elsif byte == u8('=') or byte == u8('!') or byte == u8('<') then
+            fail unsupported_pattern
+        else
+            flags_end: u8 = try parse_flags(p)
+            if flags_end == u8(')') then
+                present = false
+                return
+            end if
+        end if
+    else
+        group = tree.groups
+        fail pattern_too_large when group >= 0xffff
+        inc tree.groups
+    end if
+    inc p.depth
+    fail pattern_too_large when p.depth > nest_limit
+    inner: u32 = try parse_alternation(p, tree, memory)
+    dec p.depth
+    fail invalid_pattern when peek(p) <> u8(')')
+    inc p.at
+    p.flags = saved
+    node = inner
+    if group <> nothing then
+        node = try add_node(tree, memory, node_capture, group, inner)
+    end if
+end parse_group
+
+--  A group's name up to its `>`, recorded with the next group number.
+named_group: (provider: type is mem.allocator, inout p: parser,
+              inout tree: hir, memory: provider)
+             -> (group: u32) ! parse_failure =
+    begins: usize = p.at
+    while p.at < lenof p.bytes and p.bytes[p.at] <> u8('>') do
+        byte: u8 = p.bytes[p.at]
+        fail invalid_pattern when not name_byte(byte, p.at == begins)
+        if byte >= 0x80 then
+            _ = try next_scalar(p)
+        else
+            inc p.at
+        end if
+    end while
+    fail invalid_pattern when p.at >= lenof p.bytes or p.at == begins
+    name: []u8 = p.bytes[begins..<p.at]
+    for held in vec.used(tree.names) do
+        fail invalid_pattern
+            when same_bytes(p.bytes[usize(held.begins)..<usize(held.ends)], name)
+    end for
+    inc p.at
+    group = tree.groups
+    fail pattern_too_large when group >= 0xffff
+    inc tree.groups
+    added: group_name = (group: group, begins: u32(begins),
+                         ends: u32(begins + lenof name))
+    try vec.push(tree.names, memory, added)
+end named_group
+
+--  Whether `byte` may stand in a group's name: a letter, `_`, any scalar
+--  beyond ASCII, and after the first also a digit, `.`, `[` or `]`.
+name_byte: (byte: u8, first: bool) -> (yes: bool) =
+    yes = byte >= u8('a') and byte <= u8('z') or byte >= u8('A')
+                                                 and byte <= u8('Z') or byte == u8('_') or byte >= 0x80
+    return when yes or first
+    yes = is_digit(byte) or byte == u8('.') or byte == u8('[')
+          or byte == u8(']')
+end name_byte
+
+same_bytes: (left: []u8, right: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof left <> lenof right
+    for byte, index in left do
+        return when byte <> right[index]
+    end for
+    yes = true
+end same_bytes
+
+--  Flags after `(?` up to the `)` or `:` that ends them, which it gives:
+--  they apply from here.
+parse_flags: (inout p: parser) -> (ending: u8) ! invalid_pattern =
+    mut clear: bool = false
+    mut written: bool = false
+    mut seen: u8 = 0
+    loop do
+        fail invalid_pattern when p.at >= lenof p.bytes
+        byte: u8 = p.bytes[p.at]
+        inc p.at
+        if byte == u8(')') or byte == u8(':') then
+            fail invalid_pattern when clear and not written
+            fail invalid_pattern when seen == 0 and byte == u8(')')
+            ending = byte
+            return
+        end if
+        if byte == u8('-') then
+            fail invalid_pattern when clear
+            clear = true
+            written = false
+            continue
+        end if
+        bit: u8 = if byte == u8('i') then flag_insensitive
+                  elsif byte == u8('m') then flag_multi_line
+                  elsif byte == u8('s') then flag_dot_all
+                  elsif byte == u8('U') then flag_swap_greed
+                  elsif byte == u8('u') then flag_unicode
+                  elsif byte == u8('x') then flag_verbose
+                  elsif byte == u8('R') then flag_crlf
+                  else 0 end if
+        fail invalid_pattern when bit == 0 or seen & bit <> 0
+        seen = seen | bit
+        written = true
+        if clear then p.flags = p.flags & ~bit else p.flags = p.flags | bit end if
+    end loop
+end parse_flags
+
+--  An escape outside brackets.
+parse_escape: (provider: type is mem.allocator, inout p: parser,
+               inout tree: hir, memory: provider)
+              -> (node: u32) ! parse_failure =
+    inc p.at
+    fail invalid_pattern when p.at >= lenof p.bytes
+    byte: u8 = p.bytes[p.at]
+    unicode: bool = p.flags & flag_unicode <> 0
+    word_base: u8 = if unicode then look_word_unicode else look_word_ascii
+                    end if
+    if byte == u8('b') and peek_at(p, 1) == u8('{') then
+        p.at += 2
+        kind: u8 = try special_word_boundary(p)
+        node = try look_node(tree, memory, word_base + kind)
+    elsif byte == u8('b') or byte == u8('B') or byte == u8('<')
+      or byte == u8('>') or byte == u8('A') or byte == u8('z') then
+        inc p.at
+        if (byte == u8('b') or byte == u8('B') or byte == u8('<')
+            or byte == u8('>')) and unicode and not p.source.present then
+            fail unicode_unavailable
+        end if
+        kind: u8 = if byte == u8('b') then word_base
+                   elsif byte == u8('B') then word_base + 1
+                   elsif byte == u8('<') then word_base + 2
+                   elsif byte == u8('>') then word_base + 3
+                   elsif byte == u8('A') then look_start_text
+                   else look_end_text end if
+        node = try look_node(tree, memory, kind)
+    elsif is_class_escape(byte) then
+        mut set: vec.list(scalar_range) = vec.new(item: scalar_range)
+        defer vec.release(set, memory)
+        try parse_class_escape(p, memory, set)
+        if p.flags & flag_insensitive <> 0 then try fold_set(p, memory, set)
+        end if
+        node = try class_node(tree, memory, set)
+    else
+        scalar: u32 = try parse_literal_escape(p)
+        node = try literal(p, tree, memory, scalar)
+    end if
+end parse_escape
+
+--  The kind after `\b{` of `start}`, `end}`, `start-half}` or `end-half}`,
+--  as an offset from the plain word boundary of its family.
+special_word_boundary: (inout p: parser) -> (kind: u8) ! invalid_pattern =
+    begins: usize = p.at
+    while p.at < lenof p.bytes and p.bytes[p.at] <> u8('}') do
+        inc p.at
+    end while
+    fail invalid_pattern when p.at >= lenof p.bytes
+    name: []u8 = p.bytes[begins..<p.at]
+    inc p.at
+    kind = if same_bytes(name, "start") then 2
+           elsif same_bytes(name, "end") then 3
+           elsif same_bytes(name, "start-half") then 4
+           elsif same_bytes(name, "end-half") then 5
+           else 0 end if
+    fail invalid_pattern when kind == 0
+end special_word_boundary
+
+is_class_escape: (byte: u8) -> (yes: bool) =
+    yes = byte == u8('d') or byte == u8('D') or byte == u8('s')
+          or byte == u8('S') or byte == u8('w') or byte == u8('W')
+          or byte == u8('p') or byte == u8('P')
+end is_class_escape
+
+--  Add the class of the escape at the parser, past its `\`: \d, \s, \w,
+--  their negations, \p and \P.
+parse_class_escape: (provider: type is mem.allocator, inout p: parser,
+                     memory: provider, inout set: vec.list(scalar_range))
+                    -> none ! parse_failure =
+    byte: u8 = p.bytes[p.at]
+    inc p.at
+    unicode: bool = p.flags & flag_unicode <> 0
+    lower: u8 = byte | 0x20
+    negated: bool = byte < u8('a')
+    if lower == u8('p') then
+        fail invalid_pattern when not unicode
+        fail unicode_unavailable when not p.source.present
+        try parse_property(p, memory, set)
+    elsif unicode then
+        fail unicode_unavailable when not p.source.present
+        if lower == u8('d') then
+            try add_property(set, memory, p.source, category_bit(8), 0)
+        elsif lower == u8('s') then
+            try add_property(set, memory, p.source, 0, white_space_flag)
+        else
+            try add_unicode_word(set, memory, p.source)
+        end if
+    else
+        fail invalid_pattern when negated
+        if lower == u8('d') then
+            try add_range(set, memory, u32('0'), u32('9'))
+        elsif lower == u8('s') then
+            try add_ascii_space(set, memory)
+        else
+            try add_ascii_word(set, memory)
+        end if
+    end if
+    canonical(set)
+    if negated then try negate(set, memory) end if
+end parse_class_escape
+
+--  A property after `\p` or `\P`: one letter, or a name in braces.
+parse_property: (provider: type is mem.allocator, inout p: parser,
+                 memory: provider, inout set: vec.list(scalar_range))
+                -> none ! parse_failure =
+    fail invalid_pattern when p.at >= lenof p.bytes
+    mut name: []u8 = p.bytes[p.at..<p.at + 1]
+    mut negated: bool = false
+    if p.bytes[p.at] == u8('{') then
+        inc p.at
+        begins: usize = p.at
+        while p.at < lenof p.bytes and p.bytes[p.at] <> u8('}') do
+            inc p.at
+        end while
+        fail invalid_pattern when p.at >= lenof p.bytes
+        name = p.bytes[begins..<p.at]
+        if lenof name > 0 and name[0] == u8('^') then
+            negated = true
+            name = name[1..<lenof name]
+        end if
+    end if
+    inc p.at
+    (categories, flags, ascii) := try property_named(name)
+    if ascii then
+        try add_range(set, memory, 0, 127)
+    else
+        try add_property(set, memory, p.source, categories, flags)
+    end if
+    if negated then try negate(set, memory) end if
+end parse_property
+
+--  The literal of an escape that is one: a control letter, a code, or a
+--  meta character escaped.
+parse_literal_escape: (inout p: parser) -> (scalar: u32)
+                      ! invalid_pattern | unsupported_pattern =
+    byte: u8 = p.bytes[p.at]
+    inc p.at
+    scalar = u32(byte)
+    if byte == u8('a') then
+        scalar = 7
+    elsif byte == u8('f') then
+        scalar = 12
+    elsif byte == u8('t') then
+        scalar = 9
+    elsif byte == u8('n') then
+        scalar = 10
+    elsif byte == u8('r') then
+        scalar = 13
+    elsif byte == u8('v') then
+        scalar = 11
+    elsif byte == u8('x') or byte == u8('u') or byte == u8('U') then
+        digits: usize = if byte == u8('x') then 2
+                        elsif byte == u8('u') then 4 else 8 end if
+        scalar = try parse_code(p, digits)
+        fail invalid_pattern when byte == u8('x') and scalar >= 0x80
+          and p.flags & flag_unicode == 0
+    elsif is_digit(byte) then
+        fail unsupported_pattern
+    elsif byte >= 0x80 or byte <= u8(' ') and p.flags & flag_verbose == 0
+      or is_alphanumeric(byte) then
+        fail invalid_pattern
+    end if
+end parse_literal_escape
+
+is_alphanumeric: (byte: u8) -> (yes: bool) =
+    yes = is_digit(byte) or byte >= u8('a') and byte <= u8('z')
+          or byte >= u8('A') and byte <= u8('Z')
+end is_alphanumeric
+
+--  The hexadecimal code after `\x`, `\u` or `\U`: exactly `digits` digits,
+--  or one to eight in braces.  It must be a scalar.
+parse_code: (inout p: parser, digits: usize) -> (scalar: u32)
+            ! invalid_pattern =
+    scalar = 0
+    mut count: usize = 0
+    braced: bool = peek_raw(p) == u8('{')
+    if braced then inc p.at end if
+    loop do
+        break when not braced and count == digits
+        fail invalid_pattern when p.at >= lenof p.bytes
+        byte: u8 = p.bytes[p.at]
+        if braced and byte == u8('}') then
+            inc p.at
+            break
+        end if
+        value: u32 = if is_digit(byte) then u32(byte - u8('0'))
+                     elsif byte >= u8('a') and byte <= u8('f')
+                     then u32(byte - u8('a')) + 10
+                     elsif byte >= u8('A') and byte <= u8('F')
+                     then u32(byte - u8('A')) + 10
+                     else 16 end if
+        fail invalid_pattern when value == 16 or count == 8
+        scalar = scalar << 4 | value
+        inc count
+        inc p.at
+    end loop
+    fail invalid_pattern when count == 0
+    fail invalid_pattern when scalar > scalar_limit
+      or scalar >= 0xd800 and scalar <= 0xdfff
+end parse_code
+
+--  A bracketed class at the parser, into `set`, canonical.
+parse_bracketed: (provider: type is mem.allocator, inout p: parser,
+                  memory: provider, inout set: vec.list(scalar_range))
+                 -> none ! parse_failure =
+    inc p.at
+    inc p.depth
+    fail pattern_too_large when p.depth > nest_limit
+    mut negated: bool = false
+    if peek(p) == u8('^') then
+        inc p.at
+        negated = true
+    end if
+    try parse_set_symmetric(p, memory, set, true)
+    fail invalid_pattern when peek(p) <> u8(']')
+    inc p.at
+    dec p.depth
+    if p.flags & flag_insensitive <> 0 then try fold_set(p, memory, set) end if
+    if negated then
+        fail invalid_pattern when p.flags & flag_unicode == 0
+        try negate(set, memory)
+    end if
+end parse_bracketed
+
+--  The operations between a bracket's items, loosest first: `~~`, then
+--  `--`, then `&&`, then juxtaposition, which is union.
+parse_set_symmetric: (provider: type is mem.allocator, inout p: parser,
+                      memory: provider, inout set: vec.list(scalar_range),
+                      opening: bool) -> none ! parse_failure =
+    try parse_set_difference(p, memory, set, opening)
+    while at_operator(p, u8('~')) do
+        p.at += 2
+        mut other: vec.list(scalar_range) = vec.new(item: scalar_range)
+        defer vec.release(other, memory)
+        try parse_set_difference(p, memory, other, false)
+        try symmetric_difference(set, memory, other)
+    end while
+end parse_set_symmetric
+
+parse_set_difference: (provider: type is mem.allocator, inout p: parser,
+                       memory: provider, inout set: vec.list(scalar_range),
+                       opening: bool) -> none ! parse_failure =
+    try parse_set_intersection(p, memory, set, opening)
+    while at_operator(p, u8('-')) do
+        p.at += 2
+        mut other: vec.list(scalar_range) = vec.new(item: scalar_range)
+        defer vec.release(other, memory)
+        try parse_set_intersection(p, memory, other, false)
+        try difference(set, memory, other)
+    end while
+end parse_set_difference
+
+parse_set_intersection: (provider: type is mem.allocator, inout p: parser,
+                         memory: provider,
+                         inout set: vec.list(scalar_range), opening: bool)
+                        -> none ! parse_failure =
+    try parse_set_union(p, memory, set, opening)
+    while at_operator(p, u8('&')) do
+        p.at += 2
+        mut other: vec.list(scalar_range) = vec.new(item: scalar_range)
+        defer vec.release(other, memory)
+        try parse_set_union(p, memory, other, false)
+        try intersect(set, memory, other)
+    end while
+end parse_set_intersection
+
+--  Whether the parser is at the doubled operator `byte byte`.
+at_operator: (inout p: parser, byte: u8) -> (yes: bool) =
+    yes = peek(p) == byte and peek_at(p, 1) == byte
+end at_operator
+
+--  Items up to an operator or the `]`; a `]` or a `-` that opens the
+--  bracket is a literal.
+parse_set_union: (provider: type is mem.allocator, inout p: parser,
+                  memory: provider, inout set: vec.list(scalar_range),
+                  opening: bool) -> none ! parse_failure =
+    mut first: bool = opening
+    loop do
+        byte: u8 = peek(p)
+        fail invalid_pattern when p.at >= lenof p.bytes
+        if byte == u8(']') and not first then break end if
+        break when not first and (at_operator(p, u8('&'))
+                                  or at_operator(p, u8('~'))
+                                  or at_operator(p, u8('-')))
+        if byte == u8('[') and not first or byte == u8('[')
+                                            and peek_at(p, 1) == u8(':') then
+            if peek_at(p, 1) == u8(':') then
+                found: bool = try parse_posix(p, memory, set)
+                if found then
+                    first = false
+                    continue
+                end if
+            end if
+            if byte == u8('[') and not (first and peek_at(p, 1) == u8(':'))
+            then
+                mut inner: vec.list(scalar_range) = vec.new(item: scalar_range)
+                defer vec.release(inner, memory)
+                try parse_bracketed(p, memory, inner)
+                for piece in vec.used(inner) do
+                    try add_range(set, memory, piece.low, piece.high)
+                end for
+                first = false
+                continue
+            end if
+        end if
+        if byte == u8('\\') and p.at + 1 < lenof p.bytes
+          and is_class_escape(p.bytes[p.at + 1]) then
+            inc p.at
+            mut inner: vec.list(scalar_range) = vec.new(item: scalar_range)
+            defer vec.release(inner, memory)
+            try parse_class_escape(p, memory, inner)
+            for piece in vec.used(inner) do
+                try add_range(set, memory, piece.low, piece.high)
+            end for
+            first = false
+            continue
+        end if
+        low: u32 = try class_literal(p)
+        mut high: u32 = low
+        if peek(p) == u8('-') and peek_at(p, 1) <> u8(']')
+          and peek_at(p, 1) <> u8('-') then
+            inc p.at
+            fail invalid_pattern when peek(p) == u8('[')
+            high = try class_literal(p)
+            fail invalid_pattern when high < low
+        end if
+        try add_range(set, memory, low, high)
+        first = false
+    end loop
+    canonical(set)
+end parse_set_union
+
+--  A scalar standing for itself in brackets, or an escape that is one.
+class_literal: (inout p: parser) -> (scalar: u32)
+               ! invalid_pattern | unsupported_pattern =
+    if peek(p) == u8('\\') then
+        inc p.at
+        fail invalid_pattern when p.at >= lenof p.bytes
+        byte: u8 = p.bytes[p.at]
+        fail invalid_pattern when byte == u8('b') or byte == u8('B')
+          or byte == u8('A') or byte == u8('z') or byte == u8('<')
+          or byte == u8('>')
+        scalar = try parse_literal_escape(p)
+    else
+        scalar = try next_scalar(p)
+    end if
+end class_literal
+
+--  A POSIX class `[:name:]` or `[:^name:]`, ASCII alone, into `set`; or
+--  false, moving nothing, when the parser is at no such class.
+parse_posix: (provider: type is mem.allocator, inout p: parser,
+              memory: provider, inout set: vec.list(scalar_range))
+             -> (found: bool) ! mem.out_of_memory | invalid_pattern =
+    found = false
+    mut end_at: usize = p.at + 2
+    while end_at + 1 < lenof p.bytes and p.bytes[end_at] <> u8(':') do
+        inc end_at
+    end while
+    return when end_at + 1 >= lenof p.bytes or p.bytes[end_at + 1] <> u8(']')
+    mut name: []u8 = p.bytes[p.at + 2..<end_at]
+    negated: bool = lenof name > 0 and name[0] == u8('^')
+    if negated then name = name[1..<lenof name] end if
+    mut part: vec.list(scalar_range) = vec.new(item: scalar_range)
+    defer vec.release(part, memory)
+    if same_bytes(name, "alnum") then
+        try add_range(part, memory, u32('0'), u32('9'))
+        try add_range(part, memory, u32('A'), u32('Z'))
+        try add_range(part, memory, u32('a'), u32('z'))
+    elsif same_bytes(name, "alpha") then
+        try add_range(part, memory, u32('A'), u32('Z'))
+        try add_range(part, memory, u32('a'), u32('z'))
+    elsif same_bytes(name, "ascii") then
+        try add_range(part, memory, 0, 127)
+    elsif same_bytes(name, "blank") then
+        try add_range(part, memory, 9, 9)
+        try add_range(part, memory, 32, 32)
+    elsif same_bytes(name, "cntrl") then
+        try add_range(part, memory, 0, 31)
+        try add_range(part, memory, 127, 127)
+    elsif same_bytes(name, "digit") then
+        try add_range(part, memory, u32('0'), u32('9'))
+    elsif same_bytes(name, "graph") then
+        try add_range(part, memory, 33, 126)
+    elsif same_bytes(name, "lower") then
+        try add_range(part, memory, u32('a'), u32('z'))
+    elsif same_bytes(name, "print") then
+        try add_range(part, memory, 32, 126)
+    elsif same_bytes(name, "punct") then
+        try add_range(part, memory, 33, 47)
+        try add_range(part, memory, 58, 64)
+        try add_range(part, memory, 91, 96)
+        try add_range(part, memory, 123, 126)
+    elsif same_bytes(name, "space") then
+        try add_ascii_space(part, memory)
+    elsif same_bytes(name, "upper") then
+        try add_range(part, memory, u32('A'), u32('Z'))
+    elsif same_bytes(name, "word") then
+        try add_ascii_word(part, memory)
+    elsif same_bytes(name, "xdigit") then
+        try add_range(part, memory, u32('0'), u32('9'))
+        try add_range(part, memory, u32('A'), u32('F'))
+        try add_range(part, memory, u32('a'), u32('f'))
+    else
+        return
+    end if
+    canonical(part)
+    if negated then
+        fail invalid_pattern when p.flags & flag_unicode == 0
+        try negate(part, memory)
+    end if
+    for piece in vec.used(part) do
+        try add_range(set, memory, piece.low, piece.high)
+    end for
+    p.at = end_at + 2
+    found = true
+end parse_posix

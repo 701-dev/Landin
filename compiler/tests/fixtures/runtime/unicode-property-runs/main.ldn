@@ -1,0 +1,56 @@
+--  core/unicode's property runs: walking the code space from run to run,
+--  each run `property_run_end` gives holds scalars with one set of the six
+--  binary properties and the scalar after it has another.  A hosted
+--  target checks every scalar of every run; firmware every 37th, and each
+--  run's last.
+
+import core/unicode
+
+fixed if compiler.os == freestanding then
+    stride: u32 = 37
+else
+    stride: u32 = 1
+end if
+
+--  The six binary properties, one bit each, Alphabetic the lowest.
+bits_of: (scalar: u32) -> (value: u8) =
+    value = 0
+    if unicode.is_alphabetic(scalar) then value |= 1 end if
+    if unicode.is_white_space(scalar) then value |= 2 end if
+    if unicode.is_uppercase(scalar) then value |= 4 end if
+    if unicode.is_lowercase(scalar) then value |= 8 end if
+    if unicode.is_cased(scalar) then value |= 16 end if
+    if unicode.is_case_ignorable(scalar) then value |= 32 end if
+end bits_of
+
+--  Whether every property run is one and ends where the properties
+--  change; and how many runs there were.
+properties_hold: () -> (ok: bool, runs: u32) =
+    ok = false
+    runs = 0
+    mut scalar: u32 = 0
+    while scalar <= 0x10ffff do
+        last: u32 = unicode.property_run_end(scalar)
+        return when last < scalar or last > 0x10ffff
+        bits: u8 = bits_of(scalar)
+        mut probe: u32 = scalar
+        while probe < last do
+            return when bits_of(probe) <> bits
+            probe += stride
+        end while
+        return when bits_of(last) <> bits
+        return when last < 0x10ffff and bits_of(last + 1) == bits
+        inc runs
+        scalar = last + 1
+    end while
+    ok = true
+end properties_hold
+
+public main: () -> (code: i32) =
+    code = 1
+    (ok: properties, runs: property_runs) := properties_hold()
+    --  The runs are few: a scalar at a time would be over a million.
+    if properties and property_runs < 10_000 then
+        code = 42
+    end if
+end main

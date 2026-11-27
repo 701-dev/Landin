@@ -1007,6 +1007,17 @@ injector as arguments, as providers.
   tables its routines reach, which stay in flash; NFKC and NFKD alone do
   not fit Cortex-M0's 32 KiB profile. Scripts, line breaking, collation,
   locale-tailored case and encodings other than UTF-8 are not covered.
+- **Regular expressions.** `core/regex` compiles a pattern when the
+  program runs, with the caller's allocator, and searches `utf8` in time
+  linear in the text: the syntax and leftmost-first meaning of Rust's
+  `regex` crate, without backreferences and look-around, with groups,
+  walks over every match and replacement from a template. A Pike VM, a
+  lazy DFA, a one-pass DFA and a literal prefilter are chosen per
+  pattern. `lean` options link none of Unicode's tables; the engines are
+  still about 140 KB of Thumb code, past the 32 KiB Cortex-M0 profile,
+  so firmware runs it on the Cortex-M7 corpus lane. It passes the 897
+  cases of the `regex` crate's test suite that it can state; scripts and
+  the other properties `core/unicode` lacks are not covered.
 - **Complex numbers.** `core/complex` has `complex.number(f32)` and
   `complex.number(f64)`, a struct of a `real` and an `imaginary` part, and
   named routines generic over both: the arithmetic, the conjugate and the

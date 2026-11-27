@@ -12030,7 +12030,9 @@ def check_failure_words(full_run):
     is written out by hand, so a new atom in a `!` set or a `fail` would
     otherwise reach a program with no words, and a program passing it on
     would be refused.  This holds the set to the atoms core's signatures
-    and `fail` statements name, in both directions.
+    and `fail` statements name, in both directions.  A module that keeps
+    its atoms' words in a `public words` of its own, whose arms name them,
+    is excused them (D2683).
     """
     if not full_run:
         return []
@@ -12086,6 +12088,33 @@ def check_failure_words(full_run):
         for member in aliases.get(spelled, [spelled]):
             if member in atoms:
                 raised_atoms.setdefault(member, where)
+    #  D2683: a module may keep its atoms' words itself, in a `public words`
+    #  of its own whose arms name them, so that core/failure need not import
+    #  it; each atom its arms name is held there instead.
+    kept = set()
+    arm = re.compile(r"^\s+(" + name + r")\s*:\s*\"")
+    for here, directories, files in os.walk(core):
+        module = os.path.relpath(here, core).split(os.sep)[-1]
+        if module == "failure":
+            continue
+        for file in sorted(files):
+            if not file.endswith(".ldn"):
+                continue
+            with io.open(os.path.join(here, file), encoding="utf-8") as source:
+                inside = False
+                for line in source.read().splitlines():
+                    if line.startswith("public words: "):
+                        inside = True
+                    elif inside and line.startswith("end words"):
+                        inside = False
+                    elif inside:
+                        found = arm.match(line)
+                        if found:
+                            spelled = found.group(1)
+                            if "." not in spelled:
+                                spelled = module + "." + spelled
+                            if spelled.startswith(module + "."):
+                                kept.add(spelled)
     with io.open(words, encoding="utf-8") as source:
         text = source.read()
     found = re.search(r"^public reason: type = (.*?)\n\n", text,
@@ -12096,7 +12125,7 @@ def check_failure_words(full_run):
     listed = {part.strip() for part in found.group(1).split("|")
               if part.strip()}
     out = []
-    for member in sorted(set(raised_atoms) - listed):
+    for member in sorted(set(raised_atoms) - listed - kept):
         relative, n = raised_atoms[member]
         out.append((FAILURE_WORDS, line,
                     "%s fails with %s (%s:%d), which failure.reason does not "

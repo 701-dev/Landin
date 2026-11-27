@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/regex's lazy DFA, one-pass DFA and literal prefilter find what its Pike VM finds, every match and group, over seeded generated patterns and haystacks, unanchored and anchored, and with a cache small enough to be cleared mid-search
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 0520, 1150
