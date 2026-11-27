@@ -4262,7 +4262,7 @@ against the reference implementation's; the example program D1956 gave
 
 ### R22.43 — Sockets by name, with their options
 
-Status: planned
+Status: active
 Depends on: R20, R21.70
 
 What `core/net` lacks beside Rust's `socket2` and `mio` and Go's `net`.
