@@ -1934,7 +1934,7 @@ class RV32Lanes(unittest.TestCase):
         lock = json.loads((HERE / 'tools.lock.json').read_text())
         #  No Debian package is left (D2572): the emulators and GDB are
         #  archives 701-dev/nix-packages built, each unpacked into its area,
-        #  and so are the two bare-metal compilers (D3034).
+        #  and so are the two bare-metal compilers (D3134).
         self.assertEqual({item['kind'] for item in lock}, {'tar.xz'})
         self.assertEqual([item['into'] for item in lock],
                          [[ESPRESSIF, ESPRESSIF_XTENSA], QEMU_ARM, GDB, ARM, RISCV])

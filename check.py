@@ -3528,7 +3528,7 @@ NIX_TOOL_JOBS = ((".github/workflows/gate.yml", "packages: actionlint shellcheck
 
 #  The Cortex-M and RV32 lanes' compilers: nix-packages' builds, which the
 #  lanes' lock holds as Linux x86-64 archives and the nix shell takes from
-#  the flake's nix-packages input (D3034).
+#  the flake's nix-packages input (D3134).
 ELF_GCC_TARGETS = ("arm-eabi", "riscv64-elf")
 ELF_GCC_LOCK = "environments/cortex-m/tools.lock.json"
 

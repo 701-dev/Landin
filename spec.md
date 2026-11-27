@@ -39251,7 +39251,7 @@ sandbox.
 which holds `flake.nix` to reading `LANDIN_CLANG_NIX`, and nix-packages'
 `qemu-system` and `emacs-nox` checks.
 
-### D3034 — The bare-metal compilers and the gate's last downloaded tools are nix-packages builds
+### D3134 — The bare-metal compilers and the gate's last downloaded tools are nix-packages builds
 
 **The discrepancy:** after D2734 the Cortex-M and RV32 lanes still
 compiled with GNAT-FSF-builds' `gnat-arm-elf` and `gnat-riscv64-elf`

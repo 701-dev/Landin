@@ -421,7 +421,7 @@ whose driver is `riscv64-elf-gcc` (D660). Both are
 [701-dev/nix-packages](https://github.com/701-dev/nix-packages)' builds,
 configured as GNAT-FSF-builds configures its `gnat-arm-elf` and
 `gnat-riscv64-elf` archives of release 16.1.0-1, which the lanes used
-until D3034, for the C language alone, and static, so they need nothing of
+until D3134, for the C language alone, and static, so they need nothing of
 the host's. The arm-eabi multilibs cover ARMv6-M through Armv8.1-M with
 MVE; the riscv64-elf ones include `rv32im/ilp32`, which
 `-march=rv32imc_zicsr_zifencei -mabi=ilp32` selects, and `rv32imac/ilp32`.

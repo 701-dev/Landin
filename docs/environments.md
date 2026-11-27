@@ -435,7 +435,7 @@ likewise, the versions `scripts/actionlint.py` holds the workflows and
 their `run:` scripts to, as the gate's scripts job does; the flake refuses
 a lock whose packages are other versions. It holds the Cortex-M and RV32
 lanes' `arm-eabi-gcc` and `riscv64-elf-gcc` as well, nix-packages' builds,
-static on Linux (D3034). Its `bash` is nixpkgs' interactive one, because
+static on Linux (D3134). Its `bash` is nixpkgs' interactive one, because
 stdenv's has no `compgen` or `complete` and the completion case of
 `scripts/tests/test_cli_native.py` needs both. Its two `landin:` banner
 lines go to standard error, so `nix develop -c cmd > file` captures only

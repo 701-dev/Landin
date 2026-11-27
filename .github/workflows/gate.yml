@@ -920,7 +920,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       #  The nix-packages cache beside cache.nixos.org: the shell holds its
-      #  bare-metal compilers (D3034), which no other cache has.
+      #  bare-metal compilers (D3134), which no other cache has.
       - name: The nix-packages cache and its key
         id: nix-packages
         run: |
@@ -974,7 +974,7 @@ jobs:
         with:
           fetch-depth: 0
       #  The nix-packages cache beside cache.nixos.org: the shell holds its
-      #  bare-metal compilers (D3034), which no other cache has.
+      #  bare-metal compilers (D3134), which no other cache has.
       - name: The nix-packages cache and its key
         id: nix-packages
         run: |

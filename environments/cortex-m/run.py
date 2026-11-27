@@ -127,7 +127,7 @@ class Run:
         #  Every locked compiler, emulator and the GDB need no library path:
         #  the two compilers, the Espressif QEMU and GDB are static, and the
         #  Cortex-M QEMU's launcher names the libraries it carries (D2571,
-        #  D2572, D3034).
+        #  D2572, D3134).
         self.bin = tools / QEMU_ARM / 'bin'
         self.gdb = tools / GDB / 'bin/gdb'
         self.arm = tools / ARM / 'bin'
