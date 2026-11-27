@@ -2698,9 +2698,37 @@ class RoadmapStructure(unittest.TestCase):
             finally:
                 checker.ROOT = saved
         self.assertEqual(len(gone), 1)
-        self.assertIn("%s is on origin/main and its heading is gone" % item,
-                      gone[0][2])
+        self.assertIn("%s was on origin/main where this branch left it,"
+                      " and its heading is gone" % item, gone[0][2])
         self.assertEqual((kept, phase), ([], []))
+
+    def test_an_item_main_added_since_is_not_reported_gone(self):
+        from temporary_git import environment
+        added = "R%d.%d" % (15, 20)
+        roadmap = "# Roadmap\n\n## R15 — A phase\n"
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            def git(*arguments):
+                subprocess.run(["git", *arguments], cwd=root, check=True,
+                               env=environment(), stdout=subprocess.DEVNULL)
+            git("init", "-q", "-b", "main")
+            (root / "ROADMAP.md").write_text(roadmap)
+            git("add", "-A")
+            git("commit", "-q", "-m", "x")
+            git("checkout", "-q", "-b", "item")
+            git("checkout", "-q", "main")
+            (root / "ROADMAP.md").write_text(
+                roadmap + "\n### %s — Added on main\n" % added)
+            git("commit", "-q", "-am", "y")
+            git("update-ref", "refs/remotes/origin/main", "HEAD")
+            git("checkout", "-q", "item")
+            saved = checker.ROOT
+            checker.ROOT = str(root)
+            try:
+                said = checker.removed_item_problems(True)
+            finally:
+                checker.ROOT = saved
+        self.assertEqual(said, [])
 
     def test_a_phase_dependency_must_name_a_phase(self):
         said = roadmap_faults(restate_depends(PLANNED, "R%d" % 99))

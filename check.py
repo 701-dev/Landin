@@ -2276,7 +2276,7 @@ def check_roadmap(path):
 
 
 def removed_item_problems(full_run):
-    """No item heading `origin/main` holds is gone from ROADMAP.md.
+    """No item heading the branch's base on `origin/main` held is gone.
 
     An identity is never reused, so an item that will not be done is
     retired, its heading kept and marked ` (retired)` with a paragraph
@@ -2286,7 +2286,10 @@ def removed_item_problems(full_run):
     """
     if not full_run:
         return []
-    then = _git(ROOT, "show", "origin/main:" + ROADMAP)
+    #  Against the merge base, not main's tip: an item main added since
+    #  the branch left it is not one the branch removed.
+    base = (_git(ROOT, "merge-base", "HEAD", "origin/main") or "").strip()
+    then = _git(ROOT, "show", "%s:%s" % (base, ROADMAP)) if base else None
     path = os.path.join(ROOT, ROADMAP)
     if then is None or not os.path.exists(path):
         return []
@@ -2303,8 +2306,8 @@ def removed_item_problems(full_run):
         if not found or found.group(1) in present \
                 or found.group(1).split(".")[0] in retired_phases:
             continue
-        out.append((ROADMAP, 1, "%s is on origin/main and its heading is"
-                    " gone; an item that will not be done keeps its heading,"
+        out.append((ROADMAP, 1, "%s was on origin/main where this branch"
+                    " left it, and its heading is gone; an item that will not be done keeps its heading,"
                     " marked `(retired)`, and a paragraph saying why"
                     % found.group(1)))
     return out
