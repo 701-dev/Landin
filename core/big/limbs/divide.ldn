@@ -4,6 +4,7 @@
 --  limbs of what remains and the top two of the divisor, which leaves it
 --  at most one too large, corrected by adding the divisor back.
 
+import core/bits
 import core/panic
 
 --- The length of scratch `divide` needs for a numerator of `numerator`
@@ -33,7 +34,7 @@ public divide: (quotient: []mut u32, remainder: []mut u32,
                                    divisor[0])
         return
     end if
-    shift: u32 = leading_zeros(divisor[count - 1])
+    shift: u32 = bits.leading_zeros(divisor[count - 1])
     rest: []mut u32 = scratch[0..<length + 1]
     by: []mut u32 = scratch[length + 1..<length + 1 + count]
     out := shift_left(by, divisor, shift)

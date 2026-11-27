@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/bits's reader and writer round-trip every width in both byte orders and lay down each order's bytes, refuse short input with mem.out_of_bounds and a full buffer with mem.out_of_memory without moving, and read and write LEB128 varints at every length, accepting padding and refusing truncated, overlong and overflowing ones
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0150, 0570, 0940, 1030

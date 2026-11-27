@@ -8,6 +8,7 @@
 --  sequence on every target, a 32-bit Cortex-M0 included, and its
 --  multiplications by 5 and 9 are a shift and an addition each.
 
+import core/bits
 import core/cmp
 import core/io
 
@@ -58,10 +59,12 @@ public from_entropy: (provider: type is io.entropy, host: provider)
                      -> (result: generator) ! io.io_failed =
     mut bytes: [32]u8 = zeroed
     try io.fill_random(host, bytes[0..<32])
-    result = (s0: little_endian(bytes[0..<8]),
-              s1: little_endian(bytes[8..<16]),
-              s2: little_endian(bytes[16..<24]),
-              s3: little_endian(bytes[24..<32]))
+    --  Thirty-two bytes hold the four words, so no read falls short.
+    mut words := bits.reader_over(bytes[0..<32])
+    result = (s0: bits.read_u64(words, bits.little) else 0,
+              s1: bits.read_u64(words, bits.little) else 0,
+              s2: bits.read_u64(words, bits.little) else 0,
+              s3: bits.read_u64(words, bits.little) else 0)
     if result.s0 == 0 and result.s1 == 0 and result.s2 == 0
       and result.s3 == 0 then
         result = new(0)
@@ -76,28 +79,17 @@ public hash_seed: (provider: type is io.entropy, host: provider)
                   -> (seed: cmp.hash_seed) ! io.io_failed =
     mut bytes: [16]u8 = zeroed
     try io.fill_random(host, bytes[0..<16])
-    seed = cmp.seed_from(little_endian(bytes[0..<8]),
-                         little_endian(bytes[8..<16]))
+    mut words := bits.reader_over(bytes[0..<16])
+    first: u64 = bits.read_u64(words, bits.little) else 0
+    second: u64 = bits.read_u64(words, bits.little) else 0
+    seed = cmp.seed_from(first, second)
 end hash_seed
-
---  The eight bytes of `bytes`, least significant first.
-little_endian: (bytes: []u8) -> (value: u64) =
-    value = 0
-    for index in usize(0)..<8 do
-        value = value | (u64(bytes[index]) << u64(8 * index))
-    end for
-end little_endian
-
---  `value` rotated left by `count` bits, 0 < count < 64.
-rotate: (value: u64, count: u64) -> (result: u64) =
-    result = (value << count) | (value >> (64 - count))
-end rotate
 
 --- The next 64 bits of the sequence, each value equally likely.
 public next: (inout source: generator) -> (value: u64) =
     s1: u64 = source.s1
     times_five: u64 = (s1 << 2) +% s1
-    rotated: u64 = rotate(times_five, 7)
+    rotated: u64 = bits.rotate_left(times_five, 7)
     value = (rotated << 3) +% rotated
     t: u64 = s1 << 17
     source.s2 = source.s2 ^ source.s0
@@ -105,7 +97,7 @@ public next: (inout source: generator) -> (value: u64) =
     source.s1 = source.s1 ^ source.s2
     source.s0 = source.s0 ^ source.s3
     source.s2 = source.s2 ^ t
-    source.s3 = rotate(source.s3, 45)
+    source.s3 = bits.rotate_left(source.s3, 45)
 end next
 
 --- The next 32 bits of the sequence: the upper half of `next`.  Every

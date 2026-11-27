@@ -684,8 +684,8 @@ LIMB_ARMS = {
     12: 'order := limbs.compare(a, b)\n'
         'got = if order == cmp.less then 0 elsif order == cmp.equal then 1 else 2 end if',
     13: 'got = u32(limbs.significant(a))',
-    14: 'got = limbs.leading_zeros(p)',
-    15: 'got = limbs.trailing_zeros(p)',
+    14: 'got = bits.leading_zeros(p)',
+    15: 'got = bits.trailing_zeros(p)',
     16: 'limbs.multiply(out[0..<la + lb], a, b, room[0..<64])',
     17: 'limbs.divide(out[0..<la - lb + 1], out[la - lb + 1..<la + 1], a, b,\n'
         '             room[0..<64])',
@@ -729,6 +729,7 @@ def limb_table_program(records):
 --  that did not and 2 for the refusals.  It uses no allocator: its numbers
 --  live in the module's storage, as a firmware program's would.
 import core/big/limbs
+import core/bits
 import core/cmp
 import core/text
 

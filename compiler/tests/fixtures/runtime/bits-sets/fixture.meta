@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/bits's union, intersection, difference and emptiness over packed structs of bool, a named set with a gap in a u32 carrier, an eight-bit set over every pair and sixteen pins as an array field, agree with their fields' logic; a reserved bit makes an image nonempty
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0720, 0730

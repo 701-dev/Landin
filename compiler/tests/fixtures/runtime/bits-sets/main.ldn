@@ -1,0 +1,121 @@
+--  core/bits's set operations over [0730]'s packed structs of bool: a
+--  set of named members in a u32 carrier with a gap between them, an
+--  eight-bit set, and sixteen pins as an array field.  Union,
+--  intersection and difference are checked member by member against the
+--  logic of their fields, over every pair of the small set, and
+--  emptiness also counts a bit no field claims.  The program exits 42
+--  when every check holds, and otherwise the number of the first that
+--  did not.
+import core/bits
+
+irq_set: type = layout(packed, u32) struct
+    irq_rx: bool at 0
+    irq_tx: bool at 1
+    irq_err: bool at 9
+end irq_set
+
+irq_set is bits.flags ()
+
+permissions: type = layout(packed) struct
+    read: bool at 0
+    write: bool at 1
+    execute: bool at 2
+    shared: bool at 7
+end permissions
+
+permissions is bits.flags ()
+
+pins: type = layout(packed) struct
+    lines: [16]bool at 0..15
+end pins
+
+pins is bits.flags ()
+
+--  The set of permissions whose bits are those of `code`'s four lowest.
+permissions_of: (code: u32) -> (set: permissions) =
+    set = (read: code & 1 <> 0, write: code & 2 <> 0,
+           execute: code & 4 <> 0, shared: code & 8 <> 0)
+end permissions_of
+
+every_pair: () -> (failed: i32) =
+    for first in u32(0)..<16 do
+        for second in u32(0)..<16 do
+            left: permissions = permissions_of(first)
+            right: permissions = permissions_of(second)
+            either := bits.union(left, right)
+            both := bits.intersection(left, right)
+            only := bits.difference(left, right)
+            failed = 1
+            return when either.read <> (left.read or right.read)
+              or either.write <> (left.write or right.write)
+              or either.execute <> (left.execute or right.execute)
+              or either.shared <> (left.shared or right.shared)
+            failed = 2
+            return when both.read <> (left.read and right.read)
+              or both.write <> (left.write and right.write)
+              or both.execute <> (left.execute and right.execute)
+              or both.shared <> (left.shared and right.shared)
+            failed = 3
+            return when only.read <> (left.read and not right.read)
+              or only.write <> (left.write and not right.write)
+              or only.execute
+                 <> (left.execute and not right.execute)
+              or only.shared <> (left.shared and not right.shared)
+            failed = 4
+            return when bits.is_empty(left) <> (first == 0)
+            return when bits.is_empty(both) <> (first & second == 0)
+        end for
+    end for
+    failed = 0
+end every_pair
+
+named: () -> (failed: i32) =
+    received: irq_set = (irq_rx: true, irq_tx: false, irq_err: false)
+    errors: irq_set = (irq_rx: false, irq_tx: false, irq_err: true)
+    pending := bits.union(received, errors)
+    failed = 5
+    return when not pending.irq_rx or pending.irq_tx or not pending.irq_err
+    failed = 6
+    return when not bits.is_empty(bits.intersection(received, errors))
+    cleared := bits.difference(pending, errors)
+    return when not cleared.irq_rx or cleared.irq_err
+    failed = 7
+    return when bits.is_empty(pending)
+      or not bits.is_empty(bits.difference(pending, pending))
+    --  A bit no field claims makes an image nonempty: a device may set it.
+    failed = 8
+    mut reserved: irq_set = zeroed
+    image: ptr mut u32 = ptr(usize(addr reserved))
+    image.val = 0x100
+    return when bits.is_empty(reserved)
+    failed = 0
+end named
+
+lines: () -> (failed: i32) =
+    mut low: pins = zeroed
+    mut high: pins = zeroed
+    for index in usize(0)..<16 do
+        low.lines[index] = index < 8
+        high.lines[index] = index % 2 == 1
+    end for
+    both := bits.intersection(low, high)
+    either := bits.union(low, high)
+    only := bits.difference(high, low)
+    for index in usize(0)..<16 do
+        failed = 9
+        return when both.lines[index] <> (index < 8 and index % 2 == 1)
+        return when either.lines[index] <> (index < 8 or index % 2 == 1)
+        return when only.lines[index] <> (index >= 8 and index % 2 == 1)
+    end for
+    failed = 0
+end lines
+
+public main: () -> (code: i32) =
+    code = every_pair()
+    return when code <> 0
+    code = named()
+    return when code <> 0
+    code = lines()
+    return when code <> 0
+    code = 42
+end main

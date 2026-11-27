@@ -1,0 +1,144 @@
+--  core/bits's operations at u16 against references written bit by bit
+--  here, sharing no code with core/bits: every input of each one-operand
+--  operation, every rotation count up to twice the width, and every first operand against eighteen second ones: each power of
+--  two, the largest value and zero.
+--  The program exits 42 when all agree, and otherwise the number of the
+--  first operation that did not.
+import core/bits
+
+width: u32 = 16
+top: u32 = 65535
+
+--  Bit `index` of `value`.
+bit: (value: u32, index: u32) -> (set: bool) =
+    set = (value >> index) & 1 == 1
+end bit
+
+ones_by_bits: (value: u32) -> (count: u32) =
+    count = 0
+    for index in u32(0)..<width do
+        if bit(value, index) then inc count end if
+    end for
+end ones_by_bits
+
+leading_by_bits: (value: u32) -> (count: u32) =
+    count = 0
+    mut index: u32 = width
+    while index > 0 do
+        dec index
+        return when bit(value, index)
+        inc count
+    end while
+end leading_by_bits
+
+trailing_by_bits: (value: u32) -> (count: u32) =
+    count = 0
+    for index in u32(0)..<width do
+        return when bit(value, index)
+        inc count
+    end for
+end trailing_by_bits
+
+--  Each bit moved `count` places up, the top bits coming in at the bottom.
+rotated_by_bits: (value: u32, count: u32) -> (result: u32) =
+    result = 0
+    for index in u32(0)..<width do
+        if bit(value, index) then
+            result = result | (u32(1) << ((index + count) % width))
+        end if
+    end for
+end rotated_by_bits
+
+mirrored_by_bits: (value: u32) -> (result: u32) =
+    result = 0
+    for index in u32(0)..<width do
+        if bit(value, index) then
+            result = result | (u32(1) << (width - 1 - index))
+        end if
+    end for
+end mirrored_by_bits
+
+swapped_by_bytes: (value: u32) -> (result: u32) =
+    result = 0
+    for index in u32(0)..<width / 8 do
+        byte: u32 = (value >> (8 * index)) & 0xff
+        result = result | (byte << (width - 8 - 8 * index))
+    end for
+end swapped_by_bytes
+
+--  The product by shifts and additions, in a u64 so nothing is lost.
+product_by_bits: (x: u32, y: u32) -> (product: u64) =
+    product = 0
+    for index in u32(0)..<width do
+        if bit(y, index) then product = product + (u64(x) << u64(index)) end if
+    end for
+end product_by_bits
+
+--  Every operation on one operand, `x`, against the references.
+single: (x: u32) -> (failed: i32) =
+    value: u16 = u16(x)
+    failed = 1
+    return when bits.ones(value) <> ones_by_bits(x)
+    failed = 2
+    return when bits.leading_zeros(value) <> leading_by_bits(x)
+    failed = 3
+    return when bits.trailing_zeros(value) <> trailing_by_bits(x)
+    failed = 4
+    return when bits.bit_length(value) <> width - leading_by_bits(x)
+    failed = 5
+    return when u32(bits.reverse_bits(value)) <> mirrored_by_bits(x)
+    failed = 6
+    return when u32(bits.reverse_bytes(value)) <> swapped_by_bytes(x)
+    for count in u32(0)..<2 * width + 1 do
+        failed = 7
+        return when u32(bits.rotate_left(value, count))
+          <> rotated_by_bits(x, count % width)
+        failed = 8
+        return when u32(bits.rotate_right(value, count))
+          <> rotated_by_bits(x, (width - count % width) % width)
+    end for
+    failed = 0
+end single
+
+--  Every operation on two operands, `x` and `y`, against the references.
+pair: (x: u32, y: u32) -> (failed: i32) =
+    left: u16 = u16(x)
+    right: u16 = u16(y)
+    product: u64 = product_by_bits(x, y)
+    (high: high, low: low) := bits.multiply_wide(left, right)
+    failed = 9
+    return when u64(high) <> product >> u64(width)
+      or u64(low) <> product & u64(top)
+    for carry in u32(0)..<2 do
+        total: u32 = x + y + carry
+        (sum: sum, carry_out: carry_out) := bits.add_carry(left, right, carry == 1)
+        failed = 10
+        return when u32(sum) <> total & top or carry_out <> (total > top)
+        below: bool = x < y + carry
+        expected: u32 = if below then x + (top + 1) - y - carry
+                        else x - y - carry end if
+        (difference: difference, borrow_out: borrow_out) :=
+            bits.subtract_borrow(left, right, carry == 1)
+        failed = 11
+        return when u32(difference) <> expected or borrow_out <> below
+    end for
+    failed = 0
+end pair
+
+--  The second operands: zero, every power of two and the largest value.
+second: (index: u32) -> (y: u32) =
+    y = if index == 0 then 0 elsif index == 17 then top
+        else u32(1) << (index - 1) end if
+end second
+
+public main: () -> (code: i32) =
+    for x in u32(0)..<top + 1 do
+        code = single(x)
+        return when code <> 0
+        for index in u32(0)..<18 do
+            code = pair(x, second(index))
+            return when code <> 0
+        end for
+    end for
+    code = 42
+end main

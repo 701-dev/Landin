@@ -1,0 +1,153 @@
+--  Written by scripts/bits_oracle.py; edit that and run it again.
+--
+--  core/bits's operations at u32 and u64 against Python's integers: each
+--  operation's results over 2048 drawn cases per width fold into a
+--  64-bit FNV-1a digest, which the script computed from the same draws.
+--  The operands come from splitmix64, written out here so that they share
+--  no code with core/bits, each shaped into a random word, one set bit,
+--  one clear bit or a run of low ones.  The program exits 42 when every
+--  digest agrees, 10 plus an operation's number at u32 and 30 plus it at
+--  u64 for the first that does not.
+import core/bits
+
+expected_32: [14]u64 = [
+    0x2db1ab010011b547,
+    0xe26dc3187eb404d4,
+    0xd4d872db1e9c5e9b,
+    0xff9f15b4df48864e,
+    0x919f96e975d88bba,
+    0x805a1f5010d8bc8e,
+    0xef70eac58924f448,
+    0x28e6b3124e78a81d,
+    0x5fd6b66c4563ab51,
+    0xf1c44fa552c26fb1,
+    0x0f087f1e7654056e,
+    0xa49fcdf08c91dbff,
+    0x3257f653cf012ed8,
+    0x07634e491d399a86
+]
+
+expected_64: [14]u64 = [
+    0xc4dc1ee3b8f6100d,
+    0xaf4a44f442cfc8b5,
+    0x7e1bcc340f81ef63,
+    0xdcd3f37ad4397735,
+    0x4a17313de82fed41,
+    0xfdea7b4fb6ef02de,
+    0x70dafe1c139488ca,
+    0x48bfe60ba1bb93c6,
+    0xa096640b9bb769a6,
+    0xadb8fc1306789d19,
+    0x57757ab4451842d4,
+    0x09fe19dd5339f7e5,
+    0x2b982f70475eed04,
+    0xd3d3b6e387ad8901
+]
+
+--  splitmix64's step.
+splitmix: (inout state: u64) -> (value: u64) =
+    state = state +% 0x9e3779b97f4a7c15
+    mut z: u64 = state
+    z = (z ^ (z >> 30)) *% 0xbf58476d1ce4e5b9
+    z = (z ^ (z >> 27)) *% 0x94d049bb133111eb
+    value = z ^ (z >> 31)
+end splitmix
+
+--  An operand of `width` bits: a random word, one set bit, one clear bit
+--  or a random word shifted down, chosen by the low bits of a draw.
+shaped: (inout source: u64, width: u64) -> (value: u64) =
+    draw: u64 = splitmix(source)
+    mask: u64 = if width == 64 then 0xffffffffffffffff
+                else (u64(1) << width) - 1 end if
+    raw: u64 = splitmix(source) & mask
+    k: u64 = (draw >> 2) % width
+    shape: u64 = draw & 3
+    value = if shape == 0 then raw
+            elsif shape == 1 then u64(1) << k
+            elsif shape == 2 then ~(u64(1) << k) & mask
+            else raw >> k end if
+end shaped
+
+fold: (inout hash: u64, value: u64) -> none =
+    hash = (hash ^ value) *% 0x100000001b3
+end fold
+
+--  The digest of every operation's results over the u32 cases.
+narrow: (inout source: u64, inout hashes: [14]u64) -> none =
+    for case in usize(0)..<2048 do
+        _ = case
+        x: u32 = u32(shaped(source, 32) & 0xffffffff)
+        y: u32 = u32(shaped(source, 32) & 0xffffffff)
+        c: u64 = splitmix(source)
+        count: u32 = u32(c & 0xff)
+        carry: bool = (c >> 8) & 1 == 1
+        (high: high, low: low) := bits.multiply_wide(x, y)
+        (sum: sum, carry_out: carry_out) := bits.add_carry(x, y, carry)
+        (difference: difference, borrow_out: borrow_out) :=
+            bits.subtract_borrow(x, y, carry)
+        fold(hashes[0], u64(bits.ones(x)))
+        fold(hashes[1], u64(bits.leading_zeros(x)))
+        fold(hashes[2], u64(bits.trailing_zeros(x)))
+        fold(hashes[3], u64(bits.bit_length(x)))
+        fold(hashes[4], u64(bits.rotate_left(x, count)))
+        fold(hashes[5], u64(bits.rotate_right(x, count)))
+        fold(hashes[6], u64(bits.reverse_bytes(x)))
+        fold(hashes[7], u64(bits.reverse_bits(x)))
+        fold(hashes[8], u64(high))
+        fold(hashes[9], u64(low))
+        fold(hashes[10], u64(sum))
+        fold(hashes[11], if carry_out then 1 else 0 end if)
+        fold(hashes[12], u64(difference))
+        fold(hashes[13], if borrow_out then 1 else 0 end if)
+    end for
+end narrow
+
+--  The digest of every operation's results over the u64 cases.
+wide: (inout source: u64, inout hashes: [14]u64) -> none =
+    for case in usize(0)..<2048 do
+        _ = case
+        x: u64 = u64(shaped(source, 64) & 0xffffffffffffffff)
+        y: u64 = u64(shaped(source, 64) & 0xffffffffffffffff)
+        c: u64 = splitmix(source)
+        count: u32 = u32(c & 0xff)
+        carry: bool = (c >> 8) & 1 == 1
+        (high: high, low: low) := bits.multiply_wide(x, y)
+        (sum: sum, carry_out: carry_out) := bits.add_carry(x, y, carry)
+        (difference: difference, borrow_out: borrow_out) :=
+            bits.subtract_borrow(x, y, carry)
+        fold(hashes[0], u64(bits.ones(x)))
+        fold(hashes[1], u64(bits.leading_zeros(x)))
+        fold(hashes[2], u64(bits.trailing_zeros(x)))
+        fold(hashes[3], u64(bits.bit_length(x)))
+        fold(hashes[4], u64(bits.rotate_left(x, count)))
+        fold(hashes[5], u64(bits.rotate_right(x, count)))
+        fold(hashes[6], u64(bits.reverse_bytes(x)))
+        fold(hashes[7], u64(bits.reverse_bits(x)))
+        fold(hashes[8], u64(high))
+        fold(hashes[9], u64(low))
+        fold(hashes[10], u64(sum))
+        fold(hashes[11], if carry_out then 1 else 0 end if)
+        fold(hashes[12], u64(difference))
+        fold(hashes[13], if borrow_out then 1 else 0 end if)
+    end for
+end wide
+
+public main: () -> (code: i32) =
+    mut source: u64 = 0x5eed0b175
+    mut hashes: [14]u64 = zeroed
+    for index in usize(0)..<14 do
+        hashes[index] = 0xcbf29ce484222325
+    end for
+    narrow(source, hashes)
+    for index in usize(0)..<14 do
+        code = 10 + i32(index)
+        return when hashes[index] <> expected_32[index]
+        hashes[index] = 0xcbf29ce484222325
+    end for
+    wide(source, hashes)
+    for index in usize(0)..<14 do
+        code = 30 + i32(index)
+        return when hashes[index] <> expected_64[index]
+    end for
+    code = 42
+end main

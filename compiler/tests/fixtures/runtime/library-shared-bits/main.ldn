@@ -1,0 +1,49 @@
+import core/bits
+import core/mem
+
+flags: type = layout(packed) struct
+    ready: bool at 0
+    error: bool at 3
+end flags
+
+flags is bits.flags ()
+
+--  A count, a rotation and a wide product at three widths, a u32 written
+--  big-endian and read back, a varint, a short read refused, and two sets
+--  combined.
+exercise: () -> (ok: bool) =
+    ok = false
+    return when bits.ones(u8(0xb5)) <> 5
+      or bits.leading_zeros(u16(0x00f0)) <> 8
+      or bits.rotate_left(u32(0x80000001), 4) <> 0x18
+    (high: high, low: low) := bits.multiply_wide(u64(0x100000000),
+                                                 u64(0x100000001))
+    return when high <> 1 or low <> 0x100000000
+    mut buffer: [8]u8 = zeroed
+    mut out := bits.writer_over(buffer[0..<8])
+    bits.write_u32(out, 0xcafef00d, bits.big) else begin return end
+    bits.write_uleb128(out, 300) else begin return end
+    return when buffer[0] <> 0xca or buffer[4] <> 0xac or buffer[5] <> 0x02
+    mut source := bits.reader_over(bits.used(out))
+    return when (bits.read_u32(source, bits.big) else 0) <> 0xcafef00d
+      or (bits.read_uleb128(source) else 0) <> 300
+    _ = bits.read_u16(source, bits.little) else (problem)
+        ok = problem == mem.out_of_bounds
+        0
+    end
+    return when not ok
+    ok = false
+    ready: flags = (ready: true, error: false)
+    failed: flags = (ready: false, error: true)
+    both := bits.union(ready, failed)
+    ok = both.ready and both.error
+         and bits.is_empty(bits.intersection(ready, failed))
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise()
+    if ok then
+        code = 42
+    end if
+end main
