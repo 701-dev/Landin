@@ -89,7 +89,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.41, R22.42, R22.43, R22.44, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -3222,8 +3222,8 @@ What a newcomer expects to find, written against the library R20 left: a
 mathematical basis broad enough that people in most fields need no
 foreign library first, float text, Unicode, encodings, locale formatting
 and regular expressions, bits and byte order, random draws, sockets by
-name and command-line arguments, the five programs the Benchmarks Game comparison
-lacks, and at the end a measured basis for the library's optimization
+name, command-line arguments, text's everyday calls, the five programs
+the Benchmarks Game comparison lacks, and at the end a measured basis for the library's optimization
 with a continuous lane, as R16 has for code generation.
 
 Placement, data and evidence for each are in `library-inventory.md`'s
@@ -4318,6 +4318,58 @@ Exit evidence: a fixture for each form and each refusal; the help text
 pinned byte for byte; the example programs that read their arguments by
 hand moved to it; image size on Cortex-M0 measured.
 
+### R22.45 — Text's everyday calls
+
+Status: planned
+Depends on: R20, R22.30
+
+What `core/text` lacks beside Go's `strings` and `strconv`, Rust's `str`
+and Zig's `std.mem`, on Unicode text first. Over `utf8`, by scalars and
+never inside one: a test whether text starts or ends with another, the
+last place it occurs, how many times it occurs without overlap, as Go's
+`Count` counts, trimming White_Space or a given scalar from either end,
+walks over the parts between a scalar or a text, over the fields between
+runs of White_Space and over lines, joining parts with a separator,
+replacing each occurrence, and repeating text. White_Space is Unicode's
+property, 25 scalars written in `core/text` and held to the database by
+R22.30's generator check, so these calls carry no table. Byte forms of
+the searches beside them over `[]u8`, as Rust's `memchr` gives, since
+`find` takes only `utf8`.
+
+Case is `core/unicode`'s, which already has the simple and full mappings
+and folding. This item adds comparing two texts without case, equality, a
+prefix and a suffix, by full case folding scalar by scalar with no
+buffer, so "Straße" equals "STRASSE", and the canonical caseless match,
+with normalization, beside it; case conversion stays `append_upper` and
+`append_lower`. The default folding is wrong for Turkish, Azerbaijani and
+Lithuanian, and Q-410 asks which item tailors it. Where a 32 KiB image
+cannot carry the case tables, an ASCII variant beside each, named as
+one, folds only A to Z. Which caseless searches beyond the prefix and
+suffix are worth their cost, given `core/regex`'s case-insensitive
+patterns, is this item's to decide.
+
+Parsing in any radix from 2 to 36 with an optional `0x`, `0o` or `0b`
+prefix, and parsing `true` and `false`; a quoted form that writes text
+with its escapes as a Landin literal spells them, as Go's
+`strconv.Quote` and Rust's `{:?}` do; and `append_i8`, `append_i16` and
+their unsigned partners, which parsing has. A walk uses the
+end-of-iteration form R22.30 settled, and each call that writes text
+appends whole or nothing to a builder. From R20: placement and the
+failure names.
+
+Leaves out: collation and splitting by other properties, which a program
+does with `core/unicode` and `core/regex`; a replacement that allocates a
+new string, since the builder is the caller's.
+
+Exit evidence: a fixture for each call, its edges included (empty text,
+an empty separator, a match at either end, overlapping occurrences,
+scalars of every width); caseless equality against the Unicode
+database's case folding over every scalar, and the canonical match against
+the normalization test's pairs; the radix parses against an oracle at
+every width, prefix and radix; the quoted form read back as a literal by
+`refine`; the example programs that write these by hand moved to them;
+image size on Cortex-M0 measured for the Unicode and the ASCII forms.
+
 ### R22.50 — Locale formatting
 
 Status: planned
@@ -4584,7 +4636,7 @@ tree queries against brute force; on every target.
 ### R22.80 — The library measured
 
 Status: planned
-Depends on: R22.18, R22.40, R22.41, R22.42, R22.43, R22.44, R22.50, R22.63, R22.73, R22.75, R22.76
+Depends on: R22.18, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.63, R22.73, R22.75, R22.76
 
 The basis of R22's continuous lane, as R16.10 is of R16's: the time and
 size of the library's own code measured, held in the gate and ranked.
