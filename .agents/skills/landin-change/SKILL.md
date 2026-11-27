@@ -47,70 +47,68 @@ what a successor needs is never only in the conversation.
    takes over ten minutes. A new script that names `ROADMAP.md`,
    `README.md` or `roadmap/` needs an entry in `scripts/tests/
    test_gate_inputs.py`'s `READERS`, or the scripts job fails.
-3. **Push** once the affected checks pass, with `item.py push ITEM
-   --watch`: it refuses a stale `citations.txt`, runs the pre-push checks
-   the changed paths select (`--no-check` when a failure is not the
-   change's), pushes, records the head's runs and follows the gate in two
-   detached watches. Wait on the first: it returns at the first failed
-   job, so read that job's log and start the fix at once; push it when the
-   `--all` watch ends, or once every job still running is of a kind the
-   fix does not touch. A fixed push supersedes the run. Another item's
-   gate at the same time shares the runners and both take longer.
-4. **Boards.** Once main is an ancestor of the head, dispatch the boards
-   beside its gate rather than after it: `item.py push ITEM --boards
-   --watch` at the push, or `item.py boards ITEM --watch`, which also
-   follows a boards run already queued or running on the head rather
-   than dispatching another (`--again` dispatches anyway). It refuses
-   while main is not an ancestor of the head: merge main first (step 6),
-   and dispatch no boards on a tree main will move under. A closing commit that says
-   `Gate: explanatory` may be pushed beside it: a dispatch is not
-   cancelled by a push. A run that failed only in timing, every board leg
-   passed, is not a boards failure: read the timing log, and if it reads
-   as noise `item.py boards ITEM --rerun-failed --watch` re-runs only the
-   failed jobs instead of dispatching again.
-5. **Close** by [the checklist](../../../docs/process.md#closing-an-item):
+3. **Close** by [the checklist](../../../docs/process.md#closing-an-item):
    activations against the item's base, the passes it lists, the `Done:`
    paragraph naming the findings fixed, rows deleted or filed, the
    register's cap and age rule, the pointer, the full `python3 check.py`.
-   A closing commit that touches only the explanatory files says
-   `Gate: explanatory` and reuses the gate; any other is a new tree.
-6. **Promote** with `item.py promote ITEM` (`--dry-run` first if unsure). It
-   refuses unless the head is the pushed head, main is its ancestor, a push
-   gate on the head passed with every job passed or skipped, a boards run
-   passed on the same tree or before only explanatory commits, and the item
-   is complete in the candidate (`--partial` for work short of the close).
-   If main moved, `item.py merge-main ITEM`, once: it takes the
-   clone's promotion token, merges `origin/main`, and declares the merge
-   `Gate: explanatory` when everything main brings is declared and the
-   gate key is unchanged, so the pass and the boards are reused; otherwise
-   push the merged tree with its boards beside its gate. If another item
-   holds the token, keep working and wait with `item.py queue --wait
-   ITEM` rather than merging twice. Promotion takes the token too, and
-   main's gate verdict or `finish` gives it up. The holder may take other
-   waiting items' gated candidates into its final merge as
-   [a train](../../../docs/process.md#a-train), `item.py merge-main ITEM
-   --with OTHER`; an item riding one leaves its branch alone until it
-   lands, then follows main and finishes. An item that says
-   `Promotion: maintainer` stops at the passed candidate and gives the
-   token up with `item.py queue --release ITEM`.
-7. **Follow main**: `item.py gate ITEM --main --watch`, to its verdict,
+4. **Commit it complete and report.** The complete gate belongs to a
+   batch, not to an item: an item does not push or gate alone, and
+   `item.py push` and `promote` refuse it. Commit it complete on its
+   branch, its closing commit included, and report the branch and head.
+   The session that runs the roadmap adds it to
+   [a batch](../../../docs/process.md#a-batch), `item.py batch add BATCH
+   ITEM`; leave the branch alone from then on. A failed job the batch's
+   gate routes to the item (`item.py batch route`, written into its
+   journal) is fixed on the batch's branch, in the batch's worktree; an
+   item that cannot be fixed there is dropped and joins a later batch.
+   A change to the toolchain, CI or the rig gates alone, as a batch of
+   one, by steps 5 to 8 itself.
+5. **Push and boards**, the batch's integrator, or an item that gates
+   alone: `item.py push NAME --boards --watch` refuses a stale
+   `citations.txt`, runs the pre-push checks the changed paths select
+   (`--no-check` when a failure is not the change's), pushes, records the
+   head's runs, follows the gate in two detached watches and dispatches
+   the boards beside it once main is the head's ancestor. Wait on the
+   first watch: it returns at the first failed job, so read that job's
+   log and route it at once; push the fixes when the `--all` watch ends.
+   `item.py boards NAME --watch` follows a boards run already on the head
+   rather than dispatching another. A run that failed only in timing,
+   every board leg passed, is not a boards failure: `item.py boards NAME
+   --rerun-failed --watch` re-runs only the failed jobs. After the gate
+   and the boards pass, one commit declared `Gate: explanatory` names
+   them in every member's `Done:` paragraph; it reuses the gate.
+6. **Promote** with `item.py promote NAME` (`--dry-run` first if unsure).
+   It refuses unless the head is the pushed head, main is its ancestor, a
+   push gate on the head passed with every job passed or skipped, a
+   boards run passed on the same tree or before only explanatory commits,
+   and every member is complete in the candidate. If main moved,
+   `item.py merge-main NAME`, once: it takes the clone's promotion token,
+   merges `origin/main`, and declares the merge `Gate: explanatory` when
+   everything main brings is declared and the gate key is unchanged, so
+   the pass and the boards are reused; otherwise push the merged tree with
+   its boards beside its gate. If another holds the token, wait with
+   `item.py queue --wait NAME` rather than merging twice. Promotion takes
+   the token too, and main's gate verdict or `finish` gives it up. A
+   batch with a member that says `Promotion: maintainer` stops at the
+   passed candidate: report it, and the maintainer promotes it.
+7. **Follow main**: `item.py gate NAME --main --watch`, to its verdict,
    the aggregate `gate` job; the cache jobs after it are no evidence.
    Main's push takes the boards of the candidate's passed dispatch, so its
    gate is short. A failure there is investigated, never rerun blindly.
-8. **Finish**: `item.py finish ITEM`, from the worktree or anywhere in the
-   clone, refuses until main's gate passed, then removes the worktree, the
-   local and remote branch, and moves the state to `landin-items/done/`,
-   where it stays. The session's shell is then in a removed directory;
-   `cd` to the clone's main checkout.
+8. **Finish**: `item.py finish NAME` for the batch and for each member,
+   from anywhere in the clone, refuses until main's gate passed, then
+   removes the worktree, the local and remote branch, and moves the state
+   to `landin-items/done/`, where it stays. The session's shell is then
+   in a removed directory; `cd` to the clone's main checkout.
 9. **Report** in [the report form](report.md); `item.py report ITEM`
    drafts it from the state, with the open questions the item asked last.
 
 **In a breaking window**, a phase whose opening says `Window: BRANCH`,
 the same commands land the item on that integration branch in place of
 main ([process](../../../docs/process.md#a-breaking-window)): `start`
-branches from it, `merge-main` merges it, `promote` pushes to it once the
-push gate on the head passed, without step 4's boards, and `finish`
-follows at once. The window reaches main once, at its phase's gate, by
+branches from it, a batch formed with `--target BRANCH` takes it,
+`promote` pushes the batch to it once the push gate on the head passed,
+without step 5's boards, and `finish` follows at once. The window reaches main once, at its phase's gate, by
 the ordinary steps.
 
 A push the mirror refuses while GitHub takes it is no failed push:
@@ -127,11 +125,11 @@ answer cannot change. A finding the item fixes is named in its commit and
 `roadmap/register/`, and a usability finding met on the way is one too, as
 AGENTS.md's "Friction is a finding" says.
 
-The item's agent holds standing authority to push, promote and clean up
-its own worktrees and branches unless the item says `Promotion: maintainer`
-(`ROADMAP.md`'s Mechanics), and a train's integrator may promote the
-gated candidates riding it; other work promotes only when that action is
-authorized. Releases and versions are never covered.
+The item's agent commits its item complete and cleans up its own
+worktrees and branches; a batch's integrator pushes, gates and promotes
+the batch unless a member says `Promotion: maintainer` (`ROADMAP.md`'s
+Mechanics), and an item that gates alone does so itself; other work
+promotes only when that action is authorized. Releases and versions are never covered.
 
 ## Dispatching items to agents
 
@@ -146,15 +144,15 @@ own beyond what `item.py` keeps:
   idle agent is not proof that its runs ended: the state says.
 - Act on reports, not raw material: the report's runs and commits are what
   to check (`gh run view RUN`, `git log -1 COMMIT`).
-- When the token's holder is in its final merge and others wait with
-  passed gates, run them as one train: `item.py queue` names the line,
-  `item.py merge-main HOLDER --with A --with B` merges them (it says which
-  it left out and why), `item.py push HOLDER --boards --watch`, the
-  explanatory `Done:` commit, `item.py promote HOLDER`, `item.py gate
-  HOLDER --main --watch`, then `finish` for the holder and each member.
-  Tell each member's agent it rides and must not push. On a failed
-  train gate, read the first failed job, then `--drop` one member, as
-  [the train](../../../docs/process.md#a-train) says.
+- Form batches from the items reported complete: `item.py batch form
+  NAME --integrator WHO`, `item.py batch add NAME ITEM ...` (it says
+  which it left out and why), `item.py push NAME --boards --watch`, the
+  explanatory `Done:` commit, `item.py promote NAME`, `item.py gate NAME
+  --main --watch`, then `finish` for the batch and each member. Tell each
+  member's agent it is in the batch and must leave its branch alone. On a
+  failed gate, read the first failed job, `item.py batch route NAME --run
+  RUN`, send the member its job, and `item.py batch drop` one that cannot
+  be fixed there, as [a batch](../../../docs/process.md#a-batch) says.
 - A successor to such a session needs only `item.py status` and the open
   questions, which `roadmap/register.md` lists with their defaults.
 

@@ -10,9 +10,11 @@
     python3 scripts/item.py gate ITEM [--watch] # the gate runs of the branch head
     python3 scripts/item.py boards ITEM [--watch] [--rerun-failed] [--again]
                                                 # dispatch scope=boards
-    python3 scripts/item.py merge-main ITEM [--with OTHER ...]
-                                                # take the queue, merge main once;
-                                                # with --with, a train
+    python3 scripts/item.py merge-main ITEM     # merge main; a batch takes the queue
+    python3 scripts/item.py batch form NAME --integrator WHO [--target BRANCH]
+    python3 scripts/item.py batch add|drop NAME MEMBER ...
+    python3 scripts/item.py batch route NAME [--run RUN] [JOB ...]
+    python3 scripts/item.py batch list [NAME]
     python3 scripts/item.py queue [--wait ITEM | --release ITEM]
     python3 scripts/item.py promote ITEM        # check the evidence, push to main
     python3 scripts/item.py finish ITEM         # remove worktree and branches
@@ -38,22 +40,45 @@ the base, reserves identities no other running item of this clone holds
 moves the README.md and handoff.md pointer from the next form to the
 current one when it names the item, commits that, and writes the brief.
 
-`promote` pushes the branch head to main only when the head is the branch's
-pushed head, main is its ancestor, a push gate on the head passed with every
-job of its listing passed or skipped, and a boards dispatch passed on the
-same tree, or on an earlier commit from which every later commit says
-`Gate: explanatory`.  It does not follow main's gate: `gate --main --watch`
-does, and `finish` refuses until main's gate on the promoted commit passed.
+The complete gate belongs to a batch, not to an item.  An item is
+checked locally with the exact selectors for what it touches and committed
+complete on its branch, its closing commit included; it does not push or
+gate alone, and `push` and `promote` refuse it.  `batch form NAME` makes a
+batch, work that is no item with its own worktree and branch from its
+target, `main` or a phase's window branch, naming its integrator; `batch
+add` merges members' local branches after the target, in order, items of
+this clone or branches that are no item's, none of them gated first; `batch
+drop` rebuilds it without one; `batch route` names the member a failed job
+belongs to, the one whose change reaches the job's lane's inputs in
+`.github/gate-lanes.json`, the last joined when none does.  The batch is
+pushed, gated, given its boards and promoted as one, and `promote` writes
+every member item as promoted with the batch's runs, marked `via`.  A
+change to the toolchain (`environments/pins.sh`, `flake.nix`, `flake.lock`),
+to CI (`.github/`) or to the rig (`environments/boards/`, the board
+harness) still gates alone, as a batch of one: `batch add` refuses it
+beside other members, and the item may push and promote on its own gate.
+So may a change every commit of which says `Gate: explanatory`.  A batch
+with a `Promotion: maintainer` member is the maintainer's to promote.
 
-Promotions queue, so that an item merges main once rather than once for
-every item that lands before it.  The clone holds one promotion token,
+`promote` pushes the head to its target only when the head is the branch's
+pushed head, the target is its ancestor, a push gate on the head passed
+with every job of its listing passed or skipped, and a boards dispatch
+passed on the same tree, or on an earlier commit from which every later
+commit says `Gate: explanatory`.  It does not follow main's gate: `gate
+--main --watch` does, and `finish` refuses until main's gate on the
+promoted commit passed.
+
+Promotions queue, so that a batch merges main once rather than once for
+every batch that lands before it.  The clone holds one promotion token,
 `landin-items/queue.json`.  `merge-main` takes it before the item's final
 merge and `promote` takes it before pushing; the holder keeps it until
 main's gate on its promoted commit has its verdict, which `gate --main` and
 `finish` see, or until `queue --release` gives it up.  An item that finds
 it held is put in line and told the wait command; `queue --wait ITEM`
 returns once the token is the item's, taking it.  A holder whose state is
-gone, or whose main gate has its verdict, holds nothing.
+gone, or whose main gate has its verdict, holds nothing.  An item that
+does not gate alone never waits for the token: its `merge-main` only picks
+up the target, and its batch takes the token.
 
 `merge-main` merges `origin/main`.  When every commit it brings says
 `Gate: explanatory` and the merged tree has the candidate's gate key
@@ -73,26 +98,20 @@ the debugger workloads' closures, the library's comments, the whole
 `check.py` after a merge), refusing on the first that fails unless
 `--no-check`; `--boards` dispatches the boards beside the gate.
 
-A train: `merge-main HOLDER --with OTHER` merges other items' gated
-candidates into the token holder's final merge, which then lands them all
-on its own gate and boards.  A member rides until then: it refuses to push,
-merge, wait for the token or promote, and `promote HOLDER` writes it as
-promoted with the holder's runs, so its `finish` follows main's gate as any
-promoted item's does.  `--with-branch BRANCH` takes work that is no item,
-a register sweep say, on a passed push gate of its pushed head; its owner
-leaves the branch alone until the train lands.  `--drop OTHER` rebuilds
-the train without one.
+A member of a batch refuses to push, merge, wait for the token or promote
+until the batch lands, and its `finish` then follows main's gate as any
+promoted item's does.
 
-The token goes to an item only once its head has a passed push gate: until
-then `merge-main` and `queue --wait` keep its place in line and the token
-passes over it to the first ready.
+The token goes to a batch, or an item that gates alone, only once its head
+has a passed push gate: until then `merge-main` and `queue --wait` keep its
+place in line and the token passes over it to the first ready.
 
 A phase that declares a breaking window, a line `Window: BRANCH` in its
 opening paragraphs, keeps its serial items on that integration branch
 until its gate, and the script lands them there in place of main: `start`
 branches from it (from main while it has not been made), `merge-main`
-merges it, `promote` pushes the head to it once the push gate on the head
-passed, without boards, which the window's one promotion to main runs on
+merges it, a batch formed with `--target BRANCH` takes them, and `promote`
+pushes its head to it once the push gate on the head passed, without boards, which the window's one promotion to main runs on
 the integrated tree, and gives its token up at once, and `finish` follows
 the landing rather than main's gate.  Each window has its own token,
 `landin-items/queue-BRANCH.json`.  An item started before the script knew
@@ -491,19 +510,23 @@ Your reply: exactly one message in the form of
 {item}` drafts it), sent when everything you started has finished.
 """
 
-AUTHORITY = ("push the candidate, promote it to main once its gate and"
-             " boards dispatch pass (`item.py promote`), and remove its"
-             " worktree and branches (`item.py finish`), as ROADMAP.md's"
-             " Authority paragraph says.")
-WINDOW_AUTHORITY = (
-    "push the candidate, land it on the window's integration branch {target}"
-    " once its gate passes (`item.py promote`, which pushes to {target}, not"
-    " main: the window reaches main once, at its phase's gate), and remove"
-    " its worktree and branches (`item.py finish`), as ROADMAP.md's"
-    " Authority paragraph says.")
-MAINTAINER = ("push the candidate and follow its gate. The item says"
-              " `Promotion: maintainer`: promotion to main is the"
-              " maintainer's; report the passed candidate and stop there.")
+AUTHORITY = (
+    "check the candidate with the exact selectors for what it touches and"
+    " commit it complete on its branch, its closing commit included. It"
+    " does not push or gate alone: the complete gate belongs to a batch,"
+    " which merges it with others onto {target} (`item.py batch`), and one"
+    " gate and boards on the batch's merged tree are its evidence. A change"
+    " to the toolchain, CI or the rig gates alone, as a batch of one: then"
+    " push it, promote it once its gate and boards pass (`item.py"
+    " promote`), and remove its worktree and branches (`item.py finish`),"
+    " as ROADMAP.md's Authority paragraph says.")
+MAINTAINER = (
+    "check the candidate with the exact selectors for what it touches and"
+    " commit it complete on its branch, its closing commit included. It"
+    " does not push or gate alone: the complete gate belongs to a batch"
+    " (`item.py batch`). The item says `Promotion: maintainer`: a batch"
+    " holding it is the maintainer's to promote; report the committed"
+    " candidate and stop there.")
 
 
 def beside_text(item, items, cwd):
@@ -613,7 +636,8 @@ def start(arguments):
                           " --adopt it" % worktree)
         git("worktree", "add", "-q", "-b", branch, str(worktree), base,
             cwd=cwd)
-    reservation = reserve(item, base, cwd)
+    reservation = {} if getattr(arguments, "no_reserve", False) else \
+        reserve(item, base, cwd)
     changed = [] if arguments.no_commit or arguments.work is not None \
         else mark_active(worktree, item, entry)
     if changed:
@@ -629,6 +653,14 @@ def start(arguments):
     if arguments.work is not None:
         state["work"] = True
     save(state, cwd)
+    if not reservation:
+        #  A batch: no brief and no reservations of its own; its members
+        #  bring theirs.
+        journal(item, "started from %s in %s on %s" % (base[:12], worktree,
+                                                       branch), cwd)
+        print("started %s in %s on branch %s from %s" % (
+            item, worktree, branch, base[:12]))
+        return 0
     brief = BRIEF.format(
         item=item, title=entry["title"], line=entry["line"],
         worktree=worktree, branch=branch, base=base[:12],
@@ -636,8 +668,7 @@ def start(arguments):
         SR=reservation["SR"], Q=reservation["Q"],
         beside=beside_text(item, items, cwd),
         authority=MAINTAINER if entry["maintainer"] else
-        AUTHORITY if target == MAIN else WINDOW_AUTHORITY.format(
-            target=target))
+        AUTHORITY.format(target=target))
     if arguments.work is not None:
         brief = re.sub(r"You carry out roadmap item .*? not the file whole\. ",
                        "You carry out %s, work of Landin that is no roadmap"
@@ -653,8 +684,9 @@ def start(arguments):
     if target != MAIN:
         print("it lands on %s, its phase's breaking window" % target)
     print("brief: %s" % (item_directory(item, cwd) / "brief.md"))
-    print("reserved: D%d-D%d, SR-%d-%d, Q-%d-%d" % (
-        *reservation["D"], *reservation["SR"], *reservation["Q"]))
+    if reservation:
+        print("reserved: D%d-D%d, SR-%d-%d, Q-%d-%d" % (
+            *reservation["D"], *reservation["SR"], *reservation["Q"]))
     return 0
 
 
@@ -1277,8 +1309,8 @@ def take(item, why, ask=True, target=MAIN, session=False):
     """(True, None) when ITEM holds TARGET's promotion token, taking it if
     it is free and nobody waits before ITEM; else (False, why not), with
     ITEM put in line.  SESSION takes it for work that is no item, which
-    keeps its place in line while it keeps asking.  An item riding
-    another's train is refused: the holder's token serves it.
+    keeps its place in line while it keeps asking.  A member of a batch
+    is refused: the batch's token serves it.
 
     An item takes the token only once its head has a passed push gate:
     one that took it for its final merge while its candidate still gated
@@ -1384,11 +1416,19 @@ def queue(arguments):
         print("%s %s" % (arguments.release, "released the promotion token"
                          if held else "holds no token; left the line"))
         return 0
+    if arguments.take and alive(arguments.take):
+        #  Work this clone runs, a batch say, takes it as an item does,
+        #  once its head has a passed push gate; batch-1's integrator was
+        #  refused here ("is an item") and released by hand.
+        target = queue_target(arguments, arguments.take)
+        taken, why = take(arguments.take, arguments.why or "taken by hand",
+                          target=target)
+        if not taken:
+            print(why)
+            return 1
+        print("%s holds the promotion token of %s" % (arguments.take, target))
+        return 0
     if arguments.take:
-        if alive(arguments.take):
-            raise Refused("%s is an item of this clone: it takes the token"
-                          " with `merge-main`, `promote` or `queue --wait`"
-                          % arguments.take)
         target = arguments.target or MAIN
         taken, why = take(arguments.take, arguments.why or "taken by hand",
                           target=target, session=True)
@@ -1538,6 +1578,10 @@ def register_problem(worktree, since=None):
 LIBRARY_ROOTS = ("core/", "hosted/", "platform/")
 COMPILER_ROOTS = ("compiler/",) + LIBRARY_ROOTS
 FORMAT_CASE = "formatting/core and the examples are formatted"
+#  A new fixture's sources are held to `refine fmt`'s layout; a push that
+#  added one once did not select it.
+CORPUS_CASE = "formatting/the corpus is formatted"
+FIXTURE_ROOT = "compiler/tests/fixtures/"
 CLOSURE_CASE = ("fixture execution/debugger workload inventories are their"
                 " closures")
 #  Paths whose change moves emitted sizes or instruction counts.
@@ -1564,6 +1608,9 @@ def prepush_checks(worktree, since, roadmap_checked=False):
     selectors = []
     if any(path.endswith(".ldn") for path in paths):
         selectors.append("--case=" + FORMAT_CASE)
+    if any(path.startswith(FIXTURE_ROOT) and path.endswith(".ldn")
+           for path in added):
+        selectors.append("--case=" + CORPUS_CASE)
     if any(path.startswith(COMPILER_ROOTS) for path in paths):
         selectors.append("--suite=lowering")
     if any(path.startswith(LIBRARY_ROOTS) and path.endswith(".ldn")
@@ -1623,32 +1670,10 @@ def baseline_warning(worktree, since):
             " RUN` (docs/measurement.md, Size)")
 
 
-def riding(state):
-    """The train STATE's item rides and has not yet landed with, or None."""
-    train = state.get("train")
-    if train and train.get("holder") and not train.get("landed"):
-        return train
-    return None
-
-
-def refuse_riding(state, doing):
-    train = riding(state)
-    if train:
-        raise Refused(
-            "%s rides %s's train, merged at %s: it does not %s until the"
-            " train lands; `item.py merge-main %s --drop %s` takes it out"
-            % (state["item"], train["holder"], train["head"][:12], doing,
-               train["holder"], state["item"]))
-
-
 def merge_main(arguments):
     item = arguments.item
     state = load(item)
     refuse_riding(state, "merge main")
-    if getattr(arguments, "members", None) or getattr(arguments, "drop",
-                                                      None) or getattr(
-            arguments, "branches", None):
-        return train_merge(arguments, state)
     worktree = state["worktree"]
     git("fetch", "-q", "origin", cwd=worktree)
     if git("status", "--porcelain", cwd=worktree):
@@ -1673,7 +1698,11 @@ def merge_main(arguments):
            check=False) is not None:
         print("%s is already in %s: nothing to merge" % (landing, head[:12]))
         return 0
-    if not arguments.no_queue and not other:
+    #  An item that does not gate alone never takes the token: its batch
+    #  does, and its merge only picks up the target; an ungated head was
+    #  refused here before.
+    lone = lone_problem(state, head) is None or is_batch(state)
+    if not arguments.no_queue and not other and lone:
         taken, why = take(item, "final merge of %s" % target, target=target)
         if not taken:
             raise Refused(why)
@@ -1752,85 +1781,94 @@ def merge_main(arguments):
     return 0
 
 
-# ---------------------------------------------------------------- trains
+# ---------------------------------------------------------------- batches
 
-def train_problems(holder, name, worktree):
-    """Why the item NAME cannot ride HOLDER's train, and its pushed head:
-    (problems, head)."""
-    if name == holder["item"]:
-        return ["%s is the train's holder" % name], None
-    if not alive(name):
-        return ["this clone runs no item %s" % name], None
-    member = load(name)
-    problems = []
-    if member.get("maintainer"):
-        problems.append("%s says `Promotion: maintainer`: it never rides a"
-                        " train" % name)
-    if target_of(member) != MAIN:
-        problems.append("%s lands on %s, a window's branch, not main"
-                        % (name, target_of(member)))
-    train = riding(member)
-    if train and train["holder"] != holder["item"]:
-        problems.append("%s already rides %s's train" % (name,
-                                                         train["holder"]))
-    head = git("rev-parse", "-q", "--verify", "origin/" + member["branch"],
-               cwd=worktree, check=False)
-    own = Path(member["worktree"])
-    local = git("rev-parse", "HEAD", cwd=own, check=False) \
-        if own.exists() else None
-    if not head:
-        problems.append("%s's branch %s is not on GitHub" % (
-            name, member["branch"]))
-        return problems, None
-    if local != head:
-        problems.append("%s's worktree head %s is not its pushed head %s:"
-                        " it is still working" % (name, (local or "absent")[:12],
-                                                  head[:12]))
-    record_gates(member, head)
-    save(member)
-    software = [entry for entry in member["gates"]
-                if entry["commit"] == head and entry["kind"] == "software"
-                and entry.get("conclusion") == "success"]
-    if not software:
-        problems.append("%s has no passed push gate on its head %s"
-                        % (name, head[:12]))
-    else:
-        missing = complete_listing(software[-1]["run"])
-        if missing:
-            problems.append("%s's run %s does not pass whole: %s"
-                            % (name, software[-1]["run"], missing))
-    items, _ = roadmap_items(git("show", head + ":ROADMAP.md", cwd=worktree))
-    if items.get(name, {}).get("status") != "complete":
-        problems.append("%s is not complete in its own ROADMAP.md" % name)
-    return problems, head
+#  What still gates alone, as a batch of one: the toolchain, CI
+#  and the rig, the board harness with it.  Everything else an item
+#  changes reaches main in a batch.
+ALONE_FILES = ("environments/pins.sh", "flake.nix", "flake.lock")
+ALONE_TREES = (".github/", "environments/boards/", "compiler/tests/board/")
+#  The lane table: each lane's jobs and the paths whose change reaches it.
+LANES = ".github/gate-lanes.json"
 
 
-def branch_problems(holder, branch, worktree):
-    """Why BRANCH, work that is no item, cannot ride HOLDER's train, and
-    its pushed head: (problems, head).  It rides on a passed push gate of
-    its pushed head with its whole listing, as an item does; it has no
-    state here, so whoever owns it leaves it alone until the train lands."""
-    if branch in (MAIN, holder["branch"]):
-        return ["%s is no member's branch" % branch], None
-    if alive(branch) or any(state["branch"] == branch
-                            and state["phase"] != "finished"
-                            for state in running_states()):
-        return ["%s is an item's: name the item with --with" % branch], None
-    head = git("rev-parse", "-q", "--verify", "origin/" + branch,
-               cwd=worktree, check=False)
-    if not head:
-        return ["the branch %s is not on GitHub" % branch], None
-    passed = [found for found in runs_of(head)
-              if kind_of(found) == "software"
-              and found.get("conclusion") == "success"]
-    if not passed:
-        return ["%s has no passed push gate on its head %s"
-                % (branch, head[:12])], head
-    missing = complete_listing(passed[0]["databaseId"])
-    if missing:
-        return ["%s's run %s does not pass whole: %s"
-                % (branch, passed[0]["databaseId"], missing)], head
-    return [], head
+def alone_paths(paths):
+    """The paths of PATHS a change to which gates alone."""
+    return [path for path in paths
+            if path in ALONE_FILES or path.startswith(ALONE_TREES)]
+
+
+def change_of(worktree, base, head):
+    """The paths HEAD changes since its merge base with BASE."""
+    since = git("merge-base", base, head, cwd=worktree, check=False)
+    if not since:
+        return []
+    return (git("diff", "--name-only", since, head, cwd=worktree,
+                check=False) or "").splitlines()
+
+
+def is_batch(state):
+    return "batch" in state
+
+
+def in_batch(state):
+    """The batch STATE's item is a member of and has not landed with, or
+    None."""
+    member = state.get("in_batch")
+    if member and not member.get("landed"):
+        return member
+    return None
+
+
+riding = in_batch
+
+
+def refuse_riding(state, doing):
+    member = in_batch(state)
+    if member:
+        raise Refused(
+            "%s is a member of batch %s, merged at %s: it does not %s until"
+            " the batch lands; `item.py batch drop %s %s` takes it out"
+            % (state["item"], member["name"], member["head"][:12], doing,
+               member["name"], state["item"]))
+
+
+def lone_problem(state, commit):
+    """Why STATE's head may not reach its target on a gate of its own, or
+    None: only a batch, a change to the toolchain, CI or the rig, a batch
+    of one, or a change every commit of which says `Gate: explanatory`,
+    whose gate reuses a pass, may."""
+    if is_batch(state):
+        return None
+    worktree = place(state)
+    landing = landing_base(target_of(state), worktree)
+    if alone_paths(change_of(worktree, landing, commit)):
+        return None
+    since = git("merge-base", landing, commit, cwd=worktree, check=False)
+    if since == commit:
+        return None
+    #  The item's own commits: a merge of the target it made is not its
+    #  change, and is declared only when all the target brought is.
+    own = (git("log", "--no-merges", "--format=%B%x00", "%s..%s" % (
+        since, commit), cwd=worktree, check=False) or "") if since else ""
+    bodies = [body for body in own.split("\0") if body.strip()]
+    declaration = gate_module("gate_inputs").DECLARATION
+    if bodies and all(declaration.search(body) for body in bodies):
+        return None
+    return ("%s does not gate alone: the complete gate belongs to a batch."
+            " Check it with the exact selectors for what it touches, commit"
+            " it complete on its branch, its closing commit included, and"
+            " report it; a batch takes it (`item.py batch add BATCH %s`)"
+            " and one gate and boards on the batch's merged tree are its"
+            " evidence. Only a change to the toolchain (%s), CI or the rig"
+            " (%s) gates alone, as a batch of one" % (
+                state["item"], state["item"], ", ".join(ALONE_FILES),
+                ", ".join(ALONE_TREES)))
+
+
+def batch_states():
+    return [state for state in running_states() if is_batch(state)
+            and state["phase"] != "finished"]
 
 
 def generated_files(worktree):
@@ -1846,15 +1884,11 @@ def generated_files(worktree):
     return set(result.stdout.split()) if result.returncode == 0 else set()
 
 
-def merge_member(holder, name, head, worktree, branch=None):
-    """Merge NAME's HEAD into the holder's worktree as one commit; None,
-    or why it was not merged, the worktree then as before.  BRANCH names
-    a member that is no item, whose branch NAME is."""
-    member = {"branch": name} if branch else load(name)
+def merge_member(batch, name, branch, head, worktree, member=None):
+    """Merge NAME's HEAD, of BRANCH, into the batch's worktree as one
+    commit; None, or why it was not merged, the worktree then as before.
+    MEMBER is NAME's state when it is an item."""
     before = git("rev-parse", "HEAD", cwd=worktree)
-    clashes = reserved_clashes(holder, head)
-    if clashes:
-        return "; ".join(clashes)
     merged = subprocess.run(["git", "merge", "--no-ff", "--no-commit", head],
                             cwd=worktree, text=True, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
@@ -1865,8 +1899,9 @@ def merge_member(holder, name, head, worktree, branch=None):
         if not conflicted or not conflicted <= generated:
             subprocess.run(["git", "merge", "--abort"], cwd=worktree)
             return ("conflicts outside the generated files: %s; the"
-                    " integrator resolves no other item's source, so %s"
-                    " merges main after the train and gates alone"
+                    " integrator resolves no member's source, so %s joins a"
+                    " later batch, or this one once its agent has merged the"
+                    " batch's branch into its own"
                     % (", ".join(sorted(conflicted - generated))
                        or "the files git names", name))
         git("checkout", "--ours", "--", *sorted(conflicted), cwd=worktree)
@@ -1881,203 +1916,403 @@ def merge_member(holder, name, head, worktree, branch=None):
                         GENERATE_ALL, (regenerated.stdout.strip().splitlines()
                                        or ["no output"])[-1]))
         git("add", "-A", cwd=worktree)
-    git("commit", "-q", "-m", "Merge %s into %s: %s rides the train\n\n"
-        "%s's head %s, its own push gate passed." % (
-            member["branch"], holder["branch"], name, name, head[:12]),
-        cwd=worktree)
+    git("commit", "-q", "-m", "Merge %s into %s: %s joins the batch\n\n"
+        "%s's head %s, checked locally for what it touches." % (
+            branch, batch["branch"], name, name, head[:12]), cwd=worktree)
     merge = git("rev-parse", "HEAD", cwd=worktree)
-    clashes = [] if branch else reserved_clashes(member, merge)
+    clashes = reserved_clashes(member, merge) if member else []
     if clashes:
         git("reset", "-q", "--hard", before, cwd=worktree)
         return "; ".join(clashes)
     return None
 
 
-def train_merge(arguments, holder):
-    """Bring other items' gated candidates into HOLDER's final merge: a
-    train, promoted as one integrated tree on its own gate and boards."""
-    item = holder["item"]
-    worktree = holder["worktree"]
-    if target_of(holder) != MAIN or arguments.branch or arguments.no_queue:
-        raise Refused("a train lands on main, through main's token: no"
-                      " --branch, --no-queue or window's item")
+def member_head(batch, name, worktree):
+    """(kind, branch, head, problems) of NAME as a member of BATCH: an
+    item this clone runs, or a branch that is no item's."""
+    if name == batch["item"] or name in (MAIN, batch["branch"],
+                                         target_of(batch)):
+        return None, name, None, ["%s is no member's" % name]
+    if alive(name):
+        member = load(name)
+        problems = []
+        if is_batch(member):
+            return "item", None, None, ["%s is a batch" % name]
+        if target_of(member) != target_of(batch):
+            problems.append("%s lands on %s, the batch on %s" % (
+                name, target_of(member), target_of(batch)))
+        joined = in_batch(member)
+        if joined and joined["name"] != batch["item"]:
+            problems.append("%s is a member of batch %s" % (name,
+                                                            joined["name"]))
+        head = git("rev-parse", "-q", "--verify", "refs/heads/"
+                   + member["branch"], cwd=worktree, check=False)
+        if not head:
+            problems.append("%s's branch %s is not in this clone" % (
+                name, member["branch"]))
+            return "item", member["branch"], None, problems
+        if not member.get("work"):
+            items, _ = roadmap_items(git("show", head + ":ROADMAP.md",
+                                         cwd=worktree))
+            if items.get(name, {}).get("status") != "complete":
+                problems.append("%s is not complete in its own ROADMAP.md at"
+                                " %s: its closing commit is part of what it"
+                                " brings" % (name, head[:12]))
+        return "item", member["branch"], head, problems
+    if any(state["branch"] == name and state["phase"] != "finished"
+           for state in running_states()):
+        return "branch", name, None, ["%s is an item's branch: name the item"
+                                      % name]
+    head = git("rev-parse", "-q", "--verify", "refs/heads/" + name,
+               cwd=worktree, check=False) or git(
+        "rev-parse", "-q", "--verify", "origin/" + name, cwd=worktree,
+        check=False)
+    if not head:
+        return "branch", name, None, ["there is no item or branch %s" % name]
+    return "branch", name, head, []
+
+
+def batch_form(arguments):
+    name = arguments.name
+    if WORK_NAME.fullmatch(name) is None or ITEM_NAME.fullmatch(name):
+        raise Refused("%r is no name for a batch: lower-case letters, digits"
+                      " and hyphens, as batch-2" % name)
+    cwd = REPOSITORY[0]
+    git("fetch", "-q", "origin", cwd=cwd)
+    target = arguments.target or MAIN
+    landing = landing_base(target, cwd)
+    if git("rev-parse", "-q", "--verify", landing, cwd=cwd,
+           check=False) is None:
+        raise Refused("there is no branch %s on GitHub to land on" % landing)
+    form = argparse.Namespace(
+        item=name, work="a batch: one gate and boards for its members",
+        no_fetch=True, adopt=None, base=git("rev-parse", landing, cwd=cwd),
+        branch=None, worktree=arguments.worktree, force=False,
+        no_commit=True, no_reserve=True)
+    start(form)
+    state = load(name)
+    state["target"] = target
+    state["reserved"] = {}
+    state["batch"] = {"integrator": arguments.integrator, "members": [],
+                      "before": state["base"]}
+    save(state)
+    journal(name, "formed a batch landing on %s, integrator %s" % (
+        target, arguments.integrator))
+    print("batch %s lands on %s; its integrator is %s; add its members"
+          " with `item.py batch add %s MEMBER ...`" % (
+              name, target, arguments.integrator, name))
+    return 0
+
+
+def batch_add(arguments):
+    batch = load(arguments.name)
+    if not is_batch(batch):
+        raise Refused("%s is no batch: `item.py batch form %s` makes one"
+                      % (arguments.name, arguments.name))
+    name = batch["item"]
+    worktree = batch["worktree"]
     git("fetch", "-q", "origin", cwd=worktree)
     if git("status", "--porcelain", cwd=worktree):
-        raise Refused("the worktree has uncommitted changes: commit them"
-                      " first")
-    taken, why = take(item, "final merge of a train", target=MAIN)
-    if not taken:
-        raise Refused(why)
-    train = holder.get("train") or {}
-    members = dict(train.get("members") or {})
-    branches = dict(train.get("branches") or {})
-    dropped = [name for name in arguments.drop or [] if name in members]
-    dropped_branches = [name for name in arguments.drop or []
-                        if name in branches]
-    unknown = [name for name in arguments.drop or [] if name not in members
-               and name not in branches]
-    if unknown:
-        raise Refused("%s rides no train of %s" % (", ".join(unknown), item))
-    wanted_branches = [name for name in getattr(arguments, "branches", None)
-                       or [] if name not in branches]
-    if dropped or dropped_branches:
-        #  The members' merges are taken off by going back to the tree
-        #  before them, never by a revert, which would land on main and
-        #  undo the dropped member's change when it merges main later.
-        discarded = git("rev-list", "--count", "--first-parent",
-                        "--no-merges", "%s..HEAD"
-                        % train["before"], cwd=worktree)
-        git("reset", "-q", "--hard", train["before"], cwd=worktree)
-        if discarded != "0":
-            print("rebuilt from %s: %s commit(s) made after the members'"
-                  " merges were taken off with them; make them again"
-                  % (train["before"][:12], discarded))
-        rest = [name for name in members if name not in dropped]
-        for name in list(members):
-            member = load(name)
-            member.pop("train", None)
-            save(member)
-            if name in dropped:
-                journal(name, "dropped from %s's train; back at the head of"
-                        " the line" % item)
-        with queue_locked() as data:
-            data["waiting"] = dropped + [name for name in data["waiting"]
-                                         if name not in dropped]
-        members = {}
-        wanted = rest + [name for name in arguments.members or []
-                         if name not in rest]
-        wanted_branches = [name for name in branches
-                           if name not in dropped_branches] + [
-            name for name in wanted_branches if name not in branches]
-        branches = {}
-        train["rebuilt"] = True
-    else:
-        wanted = [name for name in arguments.members or []
-                  if name not in members]
-    landing = landing_base(MAIN, worktree)
-    if git("merge-base", "--is-ancestor", landing, "HEAD", cwd=worktree,
-           check=False) is None:
-        merged = subprocess.run(["git", "merge", "--no-ff", "--no-edit",
-                                 landing], cwd=worktree, text=True,
+        raise Refused("the batch's worktree has uncommitted changes: commit"
+                      " them first")
+    entry = batch["batch"]
+    members = entry["members"]
+    landing = landing_base(target_of(batch), worktree)
+    if not members and git("merge-base", "--is-ancestor", landing, "HEAD",
+                           cwd=worktree, check=False) is None:
+        merged = subprocess.run(["git", "merge", "--no-edit", landing],
+                                cwd=worktree, text=True,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
         if merged.returncode != 0:
-            raise Refused("the merge of %s stopped on conflicts: resolve and"
-                          " commit them, then run this again" % landing)
-        journal(item, "merged %s before the train's members" % landing)
-    if not members and not branches:
-        train["before"] = git("rev-parse", "HEAD", cwd=worktree)
+            subprocess.run(["git", "merge", "--abort"], cwd=worktree)
+            raise Refused("the merge of %s stopped on conflicts" % landing)
+        journal(name, "merged %s before the members" % landing)
+    if not members:
+        entry["before"] = git("rev-parse", "HEAD", cwd=worktree)
     refused = {}
-    for name in wanted:
-        problems, head = train_problems(holder, name, worktree)
+    for wanted in arguments.members:
+        if any(one["name"] == wanted for one in members):
+            refused[wanted] = "already a member"
+            continue
+        kind, branch, head, problems = member_head(batch, wanted, worktree)
+        if head:
+            #  Measured from the target, not from the batch's first base:
+            #  a member that merged the target since brings none of its
+            #  changes as its own.
+            alone = alone_paths(change_of(worktree, landing, head))
+            if alone and (members or len(arguments.members) > 1):
+                problems.append(
+                    "it changes %s, which gates alone, as a batch of one:"
+                    " form a batch of its own for it" % ", ".join(alone[:4]))
+            if any(one.get("alone") for one in members):
+                problems.append("the batch holds %s, which gates alone" % (
+                    ", ".join(one["name"] for one in members
+                              if one.get("alone"))))
         if problems:
-            refused[name] = "; ".join(problems)
+            refused[wanted] = "; ".join(problems)
             continue
-        why_not = merge_member(holder, name, head, worktree)
+        member = load(wanted) if kind == "item" else None
+        why_not = merge_member(batch, wanted, branch, head, worktree, member)
         if why_not:
-            refused[name] = why_not
+            refused[wanted] = why_not
             continue
-        members[name] = head
-        member = load(name)
-        member["train"] = {"holder": item, "head": head, "merged_at": stamp(),
-                           "merge": git("rev-parse", "HEAD", cwd=worktree)}
-        save(member)
-        journal(name, "rides %s's train: %s merged into %s; do not push"
-                " until it lands" % (item, head[:12], holder["branch"]))
-        journal(item, "train: %s's %s merged" % (name, head[:12]))
-        with queue_locked() as data:
-            data["waiting"] = [other for other in data["waiting"]
-                               if other != name]
-    for name in wanted_branches:
-        problems, head = branch_problems(holder, name, worktree)
-        why_not = "; ".join(problems) if problems else merge_member(
-            holder, name, head, worktree, branch=True)
-        if why_not:
-            refused[name] = why_not
-            continue
-        branches[name] = head
-        journal(item, "train: branch %s's %s merged; its owner leaves it"
-                " alone until the train lands" % (name, head[:12]))
-    train["members"] = members
-    train["branches"] = branches
-    holder["train"] = train
-    save(holder)
-    for name, why_not in refused.items():
-        print("not merged: %s: %s" % (name, why_not))
-    if not members and not branches:
-        print("the train has no members: %s's merge is an ordinary one"
-              % item)
-    else:
-        print("%s's train: %s, merged over %s" % (
-            item, ", ".join(["%s %s" % (name, head[:12])
-                             for name, head in members.items()]
-                            + ["branch %s %s" % (name, head[:12])
-                               for name, head in branches.items()]),
-            landing))
-        if branches:
-            print("tell the owners of %s to leave their branches alone"
-                  " until the train lands" % ", ".join(branches))
-        print("its tree is new: push it with its boards beside its gate"
-              " (`item.py push %s --boards --watch`).  The members' agents"
-              " leave their branches alone until it lands.  Once the gate"
-              " and the boards pass, one `%s` commit naming the train's runs"
-              " in every member's `Done:` paragraph, then `item.py promote"
-              " %s`" % (item, EXPLANATORY, item))
+        merge = git("rev-parse", "HEAD", cwd=worktree)
+        members.append({
+            "name": wanted, "kind": kind, "branch": branch, "head": head,
+            "base": git("merge-base", landing, head, cwd=worktree),
+            "merge": merge, "joined": stamp(), "alone": bool(alone)})
+        if member is not None:
+            member["in_batch"] = {"name": name, "head": head, "merge": merge,
+                                  "joined": stamp()}
+            save(member)
+            journal(wanted, "joined batch %s: %s merged into %s; leave the"
+                    " branch alone until the batch lands, and fix what its"
+                    " gate routes here on the batch's branch" % (
+                        name, head[:12], batch["branch"]))
+            #  A member never waits for a token: the batch takes it.
+            for each in queue_targets():
+                with queue_locked(target=each) as data:
+                    data["waiting"] = [other for other in data["waiting"]
+                                       if other != wanted]
+        journal(name, "%s %s's %s merged" % (kind, wanted, head[:12]))
+    save(batch)
+    for wanted, why_not in refused.items():
+        print("not added: %s: %s" % (wanted, why_not))
+    print(batch_text(batch))
+    if members:
+        print("push it once, %s(`item.py push %s%s --watch`); route a failed"
+              " job with `item.py batch route %s --run RUN`" % (
+                  "with its boards beside its gate " if target_of(batch)
+                  == MAIN else "", name, " --boards" if target_of(batch)
+                  == MAIN else "", name))
     for problem in filter(None, (citations_problem(worktree),
                                  register_problem(worktree))):
         print(problem)
     return 1 if refused else 0
 
 
-def train_landing_problems(state, commit, items, partial):
-    """Why the train STATE holds cannot land with COMMIT."""
-    problems = []
-    for name, head in (state.get("train") or {}).get("members", {}).items():
-        if not alive(name):
-            problems.append("train member %s is no longer run here" % name)
+def batch_drop(arguments):
+    """Rebuild the batch from the tree before its members, without those
+    named, never by a revert, which would land on the target and undo the
+    dropped member's change when it lands later."""
+    batch = load(arguments.name)
+    if not is_batch(batch):
+        raise Refused("%s is no batch" % arguments.name)
+    name = batch["item"]
+    worktree = batch["worktree"]
+    entry = batch["batch"]
+    members = entry["members"]
+    unknown = [one for one in arguments.members
+               if one not in [member["name"] for member in members]]
+    if unknown:
+        raise Refused("%s is no member of batch %s" % (", ".join(unknown),
+                                                        name))
+    if git("status", "--porcelain", cwd=worktree):
+        raise Refused("the batch's worktree has uncommitted changes")
+    original = git("rev-parse", "HEAD", cwd=worktree)
+    after = (git("rev-list", "--reverse", "--first-parent", "--no-merges",
+                 "%s..HEAD" % entry["before"], cwd=worktree) or "").split()
+    git("reset", "-q", "--hard", entry["before"], cwd=worktree)
+    kept = []
+    for member in members:
+        if member["name"] in arguments.members:
             continue
-        member = load(name)
-        if not riding(member) or member["train"]["head"] != head:
-            problems.append("%s no longer rides this train at %s: `item.py"
-                            " merge-main %s --drop %s`" % (
-                                name, head[:12], state["item"], name))
-        pushed = git("rev-parse", "-q", "--verify", "origin/"
-                     + member["branch"], cwd=state["worktree"], check=False)
-        if pushed != head:
+        state = load(member["name"]) if member["kind"] == "item" and alive(
+            member["name"]) else None
+        why_not = merge_member(batch, member["name"], member["branch"],
+                               member["head"], worktree, state)
+        if why_not:
+            #  Nothing changed: the branch, its fixes and every state are
+            #  as they were before the drop.
+            git("reset", "-q", "--hard", original, cwd=worktree)
+            raise Refused("rebuilding without %s, %s no longer merges: %s;"
+                          " the batch is left as it was" % (
+                              ", ".join(arguments.members), member["name"],
+                              why_not))
+        kept.append(dict(member, merge=git("rev-parse", "HEAD",
+                                           cwd=worktree)))
+    for member in kept:
+        if member["kind"] == "item" and alive(member["name"]):
+            state = load(member["name"])
+            state["in_batch"]["merge"] = member["merge"]
+            save(state)
+    for member in members:
+        if member["name"] not in arguments.members:
+            continue
+        if member["kind"] == "item" and alive(member["name"]):
+            state = load(member["name"])
+            state.pop("in_batch", None)
+            save(state)
+            journal(member["name"], "dropped from batch %s; its branch is"
+                    " as it was, and it joins a later batch" % name)
+        journal(name, "dropped %s" % member["name"])
+    entry["members"] = kept
+    entry["rebuilt"] = True
+    save(batch)
+    print("rebuilt %s from %s without %s" % (batch["branch"],
+                                              entry["before"][:12],
+                                              ", ".join(arguments.members)))
+    if after:
+        print("%d commit(s) made on the batch after its merges were taken"
+              " off with them; those a kept member needs go back with `git"
+              " cherry-pick %s`" % (len(after), " ".join(
+                  sha[:12] for sha in after)))
+    print(batch_text(batch))
+    return 0
+
+
+def lane_table(worktree):
+    path = Path(worktree) / LANES
+    if not path.exists():
+        raise Refused("%s has no %s to read the lanes from" % (worktree,
+                                                              LANES))
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def route(batch, jobs):
+    """[(job, lane, member, path)] for each failed JOB: the member whose
+    change reaches its lane's inputs, the last joined of them when several
+    do, with the path that reaches; the one that joined last, with no
+    path, when none does."""
+    history = gate_module("gate_history")
+    worktree = place(batch)
+    table = lane_table(worktree)
+    index = history.lane_index(table)
+    members = batch["batch"]["members"]
+    if not members:
+        raise Refused("batch %s has no members" % batch["item"])
+    out = []
+    for job in jobs:
+        lane = history.lane_of(job, index)
+        row = table["lanes"].get(lane, {"inputs": ["**"]})
+        globs = history.expand(row["inputs"], table.get("sets", {}))
+        reaching = []
+        for member in members:
+            paths = (git("diff", "--name-only", member["base"],
+                         member["head"], cwd=worktree, check=False)
+                     or "").splitlines()
+            found = history.reaches(paths, globs)
+            if found:
+                reaching.append((member["name"], found))
+        name, path = reaching[-1] if reaching else (members[-1]["name"], None)
+        out.append((job, lane, name, path))
+    return out
+
+
+def batch_route(arguments):
+    batch = load(arguments.name)
+    if not is_batch(batch):
+        raise Refused("%s is no batch" % arguments.name)
+    jobs = list(arguments.members or [])
+    if arguments.run:
+        listed, _ = gate_module("gate_watch").jobs_of(arguments.run)
+        jobs += [job["name"] for job in listed
+                 if job.get("conclusion") in ("failure", "timed_out",
+                                              "cancelled")
+                 and job["name"] != VERDICT_JOB]
+    if not jobs:
+        print("no failed job to route")
+        return 0
+    for job, lane, name, path in route(batch, jobs):
+        print("%s (lane %s): %s, %s" % (
+            job, lane, name, "whose change reaches the lane's inputs by %s"
+            % path if path else "the member that joined last, since no"
+            " member's change reaches the lane's inputs"))
+        if alive(name):
+            journal(name, "batch %s's job %s failed and is this member's:"
+                    " fix it on the batch's branch %s in %s, or `item.py"
+                    " batch drop %s %s`" % (batch["item"], job,
+                                             batch["branch"],
+                                             batch["worktree"],
+                                             batch["item"], name))
+    return 0
+
+
+def batch_text(batch):
+    entry = batch["batch"]
+    lines = ["batch %s: lands on %s, integrator %s, %s, branch %s" % (
+        batch["item"], target_of(batch), entry.get("integrator"),
+        batch["phase"], batch["branch"])]
+    for member in entry["members"]:
+        lines.append("  %s %s %s%s" % (member["kind"], member["name"],
+                                       member["head"][:12],
+                                       ", gates alone" if member.get("alone")
+                                       else ""))
+    if not entry["members"]:
+        lines.append("  no members yet")
+    return "\n".join(lines)
+
+
+def batch_list(arguments):
+    states = [load(arguments.name)] if arguments.name else batch_states()
+    if not states:
+        print("this clone forms no batch")
+    for state in states:
+        if not is_batch(state):
+            raise Refused("%s is no batch" % state["item"])
+        print(batch_text(state))
+    return 0
+
+
+def batch(arguments):
+    handler = {"form": batch_form, "add": batch_add, "drop": batch_drop,
+               "route": batch_route, "list": batch_list}[arguments.action]
+    if arguments.action != "list" and not arguments.name:
+        raise Refused("name the batch")
+    if arguments.action in ("add", "drop") and not arguments.members:
+        raise Refused("name the members")
+    return handler(arguments)
+
+
+def batch_landing_problems(state, commit, items, partial):
+    """Why the batch STATE cannot land with COMMIT."""
+    problems = []
+    worktree = state["worktree"]
+    for member in state["batch"]["members"]:
+        name, head = member["name"], member["head"]
+        if member["kind"] == "item":
+            if not alive(name):
+                problems.append("member %s is no longer run here" % name)
+                continue
+            joined = in_batch(load(name))
+            if not joined or joined["name"] != state["item"] or \
+                    joined["head"] != head:
+                problems.append("%s is no longer a member at %s: `item.py"
+                                " batch drop %s %s`" % (name, head[:12],
+                                                        state["item"], name))
+        now = git("rev-parse", "-q", "--verify", "refs/heads/"
+                  + member["branch"], cwd=worktree, check=False) or git(
+            "rev-parse", "-q", "--verify", "origin/" + member["branch"],
+            cwd=worktree, check=False)
+        if now and now != head:
             problems.append("%s's branch moved past %s since it was merged:"
-                            " `item.py merge-main %s --drop %s`, or rebuild"
-                            " with it" % (name, head[:12], state["item"],
-                                          name))
-        if git("merge-base", "--is-ancestor", head, commit,
-               cwd=state["worktree"], check=False) is None:
+                            " its work goes on the batch's branch; `item.py"
+                            " batch drop %s %s` otherwise" % (
+                                name, head[:12], state["item"], name))
+        if git("merge-base", "--is-ancestor", head, commit, cwd=worktree,
+               check=False) is None:
             problems.append("%s's %s is not in %s" % (name, head[:12],
                                                       commit[:12]))
-        if not partial and items.get(name, {}).get("status") != "complete":
-            problems.append("train member %s is not complete in the"
-                            " candidate's ROADMAP.md" % name)
-    for branch, head in (state.get("train") or {}).get("branches",
-                                                         {}).items():
-        pushed = git("rev-parse", "-q", "--verify", "origin/" + branch,
-                     cwd=state["worktree"], check=False)
-        if pushed != head:
-            problems.append("branch %s moved past %s since it was merged:"
-                            " `item.py merge-main %s --drop %s`, or rebuild"
-                            " with it" % (branch, head[:12], state["item"],
-                                          branch))
-        if git("merge-base", "--is-ancestor", head, commit,
-               cwd=state["worktree"], check=False) is None:
-            problems.append("branch %s's %s is not in %s" % (
-                branch, head[:12], commit[:12]))
+        if member["kind"] == "item" and not partial and not load(name).get(
+                "work") and items.get(name, {}).get("status") != "complete":
+            problems.append("member %s is not complete in the batch's"
+                            " ROADMAP.md" % name)
+    if not state["batch"]["members"]:
+        problems.append("batch %s has no members" % state["item"])
     return problems
 
 
-def land_train(state, commit):
-    """Write every member of STATE's train as promoted with COMMIT, with
-    the holder's gate and boards entries it rests on, marked `via`."""
+def land_batch(state, commit):
+    """Write every item of the batch STATE as promoted with COMMIT, with
+    the batch's gate and boards entries it rests on, marked `via`."""
     tree = git("rev-parse", commit + "^{tree}", cwd=state["worktree"])
-    for name in (state.get("train") or {}).get("members", {}):
-        member = load(name)
-        known = {entry["run"] for entry in member["gates"]}
+    for member in state["batch"]["members"]:
+        if member["kind"] != "item" or not alive(member["name"]):
+            continue
+        name = member["name"]
+        own = load(name)
+        known = {entry["run"] for entry in own["gates"]}
         for entry in state["gates"]:
             if entry["run"] in known:
                 continue
@@ -2085,13 +2320,14 @@ def land_train(state, commit):
                     entry["kind"] == "boards" and (
                         entry["tree"] == tree
                         or entry.get("conclusion") == "success")):
-                member["gates"].append(dict(entry, via=state["item"]))
-        member["promoted"] = commit
-        member["phase"] = "promoted"
-        member["train"]["landed"] = commit
-        save(member)
-        journal(name, "promoted %s to main on %s's train" % (
-            commit[:12], state["item"]))
+                own["gates"].append(dict(entry, via=state["item"]))
+        own["promoted"] = commit
+        own["phase"] = "promoted"
+        own["target"] = target_of(state)
+        own["in_batch"]["landed"] = commit
+        save(own)
+        journal(name, "promoted %s to %s with batch %s" % (
+            commit[:12], target_of(state), state["item"]))
 
 
 def shown_url(url):
@@ -2184,12 +2420,21 @@ def push(arguments):
     if git("rev-parse", "-q", "--verify", "MERGE_HEAD", cwd=worktree,
            check=False):
         raise Refused("a merge is in progress: commit it first")
+    lone = lone_problem(state, git("rev-parse", "HEAD", cwd=worktree))
+    if lone:
+        raise Refused(lone + "\nnothing was pushed")
     stale = citations_problem(worktree)
     if stale:
         raise Refused(stale)
     pushed = git("rev-parse", "-q", "--verify", "origin/" + state["branch"],
                  cwd=worktree, check=False)
-    since = pushed or git("merge-base", "HEAD", landing_base(
+    if pushed and git("merge-base", "--is-ancestor", pushed, "HEAD",
+                      cwd=worktree, check=False) is None:
+        #  A rebuilt batch: its old head is no base for what it changes.
+        pushed_base = None
+    else:
+        pushed_base = pushed
+    since = pushed_base or git("merge-base", "HEAD", landing_base(
         target_of(state), worktree), cwd=worktree, check=False)
     refused = register_problem(worktree, since)
     if refused:
@@ -2204,17 +2449,18 @@ def push(arguments):
     warning = baseline_warning(worktree, since)
     if warning:
         print(warning)
-    #  A train rebuilt without a dropped member replaces the branch's
+    #  A batch rebuilt without a dropped member replaces the branch's
     #  merges; nothing else is pushed over a head it does not contain.
-    rebuilt = (state.get("train") or {}).get("rebuilt") and pushed and git(
+    rebuilt = (state.get("batch") or {}).get("rebuilt") and pushed and git(
         "merge-base", "--is-ancestor", pushed, "HEAD", cwd=worktree,
         check=False) is None
     push_origin(item, worktree, "%sHEAD:refs/heads/%s" % (
         "+" if rebuilt else "", state["branch"]))
-    if rebuilt:
-        state["train"].pop("rebuilt", None)
+    if is_batch(state) and state["batch"].pop("rebuilt", None):
         save(state)
-        journal(item, "the rebuilt train replaced %s on GitHub" % pushed[:12])
+        if rebuilt:
+            journal(item, "the rebuilt batch replaced %s on GitHub"
+                    % pushed[:12])
     git("branch", "-q", "--set-upstream-to=origin/%s" % state["branch"],
         cwd=worktree, check=False)
     head = git("rev-parse", "HEAD", cwd=worktree)
@@ -2355,9 +2601,15 @@ def evidence(state, commit):
 def promote(arguments):
     item = arguments.item
     state = load(item)
-    if state.get("maintainer"):
-        raise Refused("%s says `Promotion: maintainer`; report the passed"
-                      " candidate instead" % item)
+    maintainers = [item] if state.get("maintainer") else []
+    if is_batch(state):
+        maintainers = [member["name"] for member in state["batch"]["members"]
+                       if member["kind"] == "item" and alive(member["name"])
+                       and load(member["name"]).get("maintainer")]
+    if maintainers and not arguments.maintainer:
+        raise Refused("%s says `Promotion: maintainer`, so %s is the"
+                      " maintainer's to promote: report the passed candidate"
+                      " instead" % (", ".join(maintainers), item))
     refuse_riding(state, "promote itself")
     worktree = state["worktree"]
     git("fetch", "-q", "origin", cwd=worktree)
@@ -2376,6 +2628,9 @@ def promote(arguments):
                       " %s and says whether the merged tree reuses"
                       " the pass; push it and gate it" % (landing, item,
                                                           landing))
+    lone = lone_problem(state, commit)
+    if lone:
+        raise Refused("not promoted: " + lone)
     record_gates(state, commit)
     for older in {entry["commit"] for entry in state["gates"]} - {commit}:
         record_gates(state, older)
@@ -2386,8 +2641,9 @@ def promote(arguments):
             item, {}).get("status") != "complete":
         problems.append("%s is not complete in the candidate's ROADMAP.md;"
                         " --partial promotes work short of its close" % item)
-    problems += train_landing_problems(state, commit, items,
-                                       arguments.partial)
+    if is_batch(state):
+        problems += batch_landing_problems(state, commit, items,
+                                           arguments.partial)
     try:
         others = gh("run", "list", "--workflow=gate.yml", "--status",
                     "in_progress", "--json", "databaseId,headBranch") or []
@@ -2419,9 +2675,10 @@ def promote(arguments):
     state["promoted"] = commit
     state["phase"] = "promoted"
     save(state)
+    if is_batch(state):
+        land_batch(state, commit)
     if target == MAIN:
         mark_promoted(item, commit)
-        land_train(state, commit)
     else:
         #  A sibling may land once this one has: the window's gate on the
         #  landed commit runs the tree the candidate's gate passed.
@@ -2562,19 +2819,15 @@ def describe(state, full=False):
     for entry in state["gates"]:
         out.append("  gate run %s %s on %s: %s%s" % (
             entry["run"], entry["kind"], entry["commit"][:12],
-            gate_text(entry, state["item"]), ", via %s's train"
+            gate_text(entry, state["item"]), ", via batch %s"
             % entry["via"] if entry.get("via") else ""))
-    train = state.get("train") or {}
-    if train.get("holder"):
-        out.append("  rides %s's train with %s%s" % (
-            train["holder"], train["head"][:12], ", landed as %s"
-            % train["landed"][:12] if train.get("landed") else ""))
-    if train.get("members") or train.get("branches"):
-        out.append("  holds a train: %s" % ", ".join(
-            ["%s %s" % (name, head[:12])
-             for name, head in (train.get("members") or {}).items()]
-            + ["branch %s %s" % (name, head[:12])
-               for name, head in (train.get("branches") or {}).items()]))
+    member = state.get("in_batch") or {}
+    if member:
+        out.append("  member of batch %s with %s%s" % (
+            member["name"], member["head"][:12], ", landed as %s"
+            % member["landed"][:12] if member.get("landed") else ""))
+    if is_batch(state):
+        out.extend("  " + line for line in batch_text(state).splitlines())
     return out
 
 
@@ -2608,24 +2861,38 @@ def phase_step(state):
         return ("run %s was lost (%s); read its log and start it anew under"
                 " another name" % (lost[0]["name"], lost[0]["directory"]))
     phase = state["phase"]
-    train = riding(state)
-    if train:
-        return ("ride %s's train: leave the branch alone, which its"
-                " integrator pushes, gates and promotes with %s's %s; once"
-                " it lands, `item.py gate %s --main --watch` and `item.py"
-                " finish %s`" % (train["holder"], state["item"],
-                                 train["head"][:12], item, item))
-    members = list((state.get("train") or {}).get("members") or ()) + [
-        "branch " + name for name in (state.get("train") or {}).get(
-            "branches") or ()]
-    if members and phase in ("pushed", "gate-passed", "boards-passed"):
-        return ("`item.py gate %s` for the train's runs: push it with its"
-                " boards beside its gate (`item.py push %s --boards"
-                " --watch`); once both pass, one `%s` commit naming them in"
-                " each member's `Done:` (%s), then `item.py promote %s`; a"
-                " member that breaks it leaves with `item.py merge-main %s"
-                " --drop MEMBER`" % (item, item, EXPLANATORY,
-                                    ", ".join(members), item, item))
+    member = in_batch(state)
+    if member:
+        return ("a member of batch %s: leave the branch alone, which its"
+                " integrator gates and promotes with %s's %s, and fix what"
+                " its gate routes here on the batch's branch; once it lands,"
+                " `item.py gate %s --main --watch` and `item.py finish %s`"
+                % (member["name"], item, member["head"][:12], item, item))
+    if is_batch(state):
+        if not state["batch"]["members"]:
+            return "`item.py batch add %s MEMBER ...`" % item
+        if phase == "started":
+            return ("push it once (`item.py push %s%s --watch`); route a"
+                    " failed job with `item.py batch route %s --run RUN`"
+                    % (item, " --boards" if target_of(state) == MAIN
+                       else "", item))
+        if phase in ("pushed", "gate-passed", "boards-passed"):
+            return ("`item.py gate %s` for the batch's runs; a failed job"
+                    " goes to its member (`item.py batch route %s --run"
+                    " RUN`), fixed on this branch or dropped (`item.py batch"
+                    " drop %s MEMBER`); once the gate%s pass, one `%s`"
+                    " commit naming the runs in each member's `Done:`, then"
+                    " `item.py promote %s`, the maintainer's when a member"
+                    " says `Promotion: maintainer`" % (
+                        item, item, item, " and the boards" if target_of(
+                            state) == MAIN else "", EXPLANATORY, item))
+    if phase == "started" and lone_problem(
+            state, git("rev-parse", "HEAD", cwd=place(state))):
+        return ("continue the work in the worktree; check it with the exact"
+                " selectors for what it touches and commit it complete on"
+                " its branch, its closing commit included, then report it:"
+                " a batch takes it (`item.py batch add BATCH %s`); it does"
+                " not push or gate alone" % item)
     if phase == "started":
         return ("continue the work in the worktree; push once its checks pass"
                 ", then `item.py gate %s --watch`" % item)
@@ -2905,18 +3172,27 @@ def main(argv=None):
     sub.add_argument("--no-queue", action="store_true", help="a merge to"
                      " pick up main while work goes on, without the token;"
                      " the final merge still takes it")
-    sub.add_argument("--with", dest="members", action="append",
-                     metavar="ITEM", help="also merge this item's gated"
-                     " candidate, a train promoted as one tree; repeat it")
-    sub.add_argument("--with-branch", dest="branches", action="append",
-                     metavar="BRANCH", help="also merge this branch, work"
-                     " that is no item, on a passed push gate of its pushed"
-                     " head; repeat it")
-    sub.add_argument("--drop", action="append", metavar="ITEM",
-                     help="take a member, an item or a --with-branch"
-                     " branch, off the train: rebuild it from the tree"
-                     " before the members, without this one")
     sub.set_defaults(handler=merge_main)
+
+    sub = commands.add_parser("batch", help="form, list, add a member to,"
+                              " drop one from, or route a failed job of a"
+                              " batch: one gate and boards for its members")
+    sub.add_argument("action", choices=("form", "add", "drop", "route",
+                                        "list"))
+    sub.add_argument("name", nargs="?", help="the batch, as batch-2")
+    sub.add_argument("members", nargs="*", metavar="MEMBER", help="with add"
+                     " or drop, items of this clone or branches that are no"
+                     " item's; with route, the failed jobs' names")
+    sub.add_argument("--integrator", default="the session that runs the"
+                     " roadmap", help="with form, who merges, pushes and"
+                     " follows it")
+    sub.add_argument("--target", metavar="BRANCH", help="with form, main"
+                     " (the default) or a phase's window branch")
+    sub.add_argument("--worktree", help="with form, its worktree"
+                     " (Landin-NAME beside the clone's main checkout)")
+    sub.add_argument("--run", type=int, help="with route, the gate run"
+                     " whose failed jobs to route")
+    sub.set_defaults(handler=batch)
 
     sub = commands.add_parser("queue", help="the promotion token's holder"
                               " and line")
@@ -2971,6 +3247,9 @@ def main(argv=None):
     sub.add_argument("--partial", action="store_true", help="promote work"
                      " short of the item's close")
     sub.add_argument("--dry-run", action="store_true")
+    sub.add_argument("--maintainer", action="store_true", help="the"
+                     " maintainer's own promotion of an item or a batch"
+                     " that says `Promotion: maintainer`; never an agent's")
     sub.set_defaults(handler=promote)
 
     sub = commands.add_parser("finish", help="after main's gate, or once a"
