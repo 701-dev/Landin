@@ -4320,7 +4320,7 @@ hand moved to it; image size on Cortex-M0 measured.
 
 ### R22.45 — Text's everyday calls
 
-Status: planned
+Status: active
 Depends on: R20, R22.30
 
 What `core/text` lacks beside Go's `strings` and `strconv`, Rust's `str`
