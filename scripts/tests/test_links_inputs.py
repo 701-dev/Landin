@@ -75,6 +75,7 @@ class LinkInputsTests(unittest.TestCase):
         self.assertIn("if: steps.inputs.outputs.scope != 'none'", install_step)
         self.assertIn("uses: ./.github/actions/nix-tools", install_step)
         self.assertIn("packages: lychee\n", install_step)
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}\n", check_step)
         self.assertIn("lychee --config lychee.toml --no-progress\n"
                       "          --files-from \"$RUNNER_TEMP/lychee-inputs.txt\"\n",
                       check_step)

@@ -45,8 +45,12 @@ jobs:
         with:
           packages: lychee
 
+      #  lychee asks GitHub with the job's token, as lychee-action did;
+      #  unauthenticated, github.com answers 503 to dozens of its links.
       - name: Check links
         if: steps.inputs.outputs.scope != 'none'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: >-
           lychee --config lychee.toml --no-progress
           --files-from "$RUNNER_TEMP/lychee-inputs.txt"
