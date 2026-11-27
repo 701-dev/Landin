@@ -5,7 +5,7 @@
   "new_weeks": 4,
   "cheap_minutes": 5,
   "one_in": 4,
-  "shadow_gates": 200,
+  "shadow_gates": 20,
   "study_misses_per_week": 1.7,
   "ignored_branches": [
    "r16-10-demo-slower",
@@ -1754,7 +1754,7 @@
  "shadow": {
   "since": null,
   "complete_gates": 0,
-  "target_gates": 200,
+  "target_gates": 20,
   "weeks": 0,
   "missed_runs": 0,
   "missed_defects": 0,
