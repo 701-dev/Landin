@@ -1209,9 +1209,13 @@ linked images:
 | Grapheme clusters | 5,388 | 2,636 |
 | Words | 7,100 | 3,480 |
 | Sentences | 7,964 | 2,816 |
+| Equality, a prefix and a suffix without case | 5,662 | 3,648 |
+| The canonical caseless match | 19,570 | 9,440 |
 
 NFKC and NFKD do not fit Cortex-M0's 32 KiB profile beside anything. Each
-of the others does.
+of the others does. The caseless rows were measured against an image that
+calls only `text.equal`; their ASCII variants in `core/text` take 724
+bytes of code and no table.
 
 [Executable example](../compiler/tests/fixtures/runtime/example-text-as-read/main.ldn)
 

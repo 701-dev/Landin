@@ -4320,7 +4320,7 @@ hand moved to it; image size on Cortex-M0 measured.
 
 ### R22.45 — Text's everyday calls
 
-Status: active
+Status: complete
 Depends on: R20, R22.30
 
 What `core/text` lacks beside Go's `strings` and `strconv`, Rust's `str`
@@ -4369,6 +4369,30 @@ the normalization test's pairs; the radix parses against an oracle at
 every width, prefix and radix; the quoted form read back as a literal by
 `refine`; the example programs that write these by hand moved to them;
 image size on Cortex-M0 measured for the Unicode and the ASCII forms.
+
+Done: `core/text` has `starts_with`, `ends_with`, `find_last`,
+`occurrences` and the byte searches over `[]u8` (D3114); trimming
+White_Space, 25 scalars the Unicode generator holds to the database, or
+a named scalar (D3115); `split`, `split_scalar`, `fields` and `lines`
+walks whose items are a `text.span` (D3116); `append_joined`,
+`append_replaced`, `append_repeated`, the narrow integer appends
+(D3117) and `append_quoted`, whose output reads back as its text
+(D3118); and the radix and `bool` parses (D3119). `core/unicode`
+compares without case by full folding with no buffer, equality, a prefix
+and a suffix, beside the canonical caseless match, and `core/text` has the
+ASCII forms (D3120); no caseless search was worth its cost beside
+`core/regex`'s `(?i)`. The oracles: every scalar's caseless comparisons
+against the database's folding, the canonical match among every
+NormalizationTest line's forms, the radix parses against Python's `int`
+at every width, prefix and radix, and the quoted form pasted back as a
+literal. `example-text-as-read` calls the canonical match where it
+folded and normalized by hand. On Cortex-M0 at `size/auto` equality, a
+prefix and a suffix without case take 5,662 bytes of tables and the
+canonical match 19,570, and the ASCII forms 724 bytes of code. Fixed on the
+way: `docs/library.md` named the scalar walk's `done` and `width`, renamed
+by D2030 and D2031, and a narrow integer had no append. SR-1939's and
+SR-2012's refusals were met again and recorded in their rows.
+
 
 ### R22.50 — Locale formatting
 

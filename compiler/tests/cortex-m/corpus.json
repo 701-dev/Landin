@@ -2465,6 +2465,10 @@
         "sifive-e": {
           "mode": "limit",
           "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 44,372 of this lane's 32 KiB, over by 11,604."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 44,628 of this lane's 32 KiB, over by 11,860."
         }
       }
     },
@@ -2510,6 +2514,10 @@
         "sifive-e": {
           "mode": "limit",
           "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 37,668 of this lane's 32 KiB, over by 4,900."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 37,924 of this lane's 32 KiB, over by 5,156."
         }
       }
     },
@@ -2519,6 +2527,10 @@
         "sifive-e": {
           "mode": "limit",
           "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 35,932 of this lane's 32 KiB, over by 3,164."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 36,188 of this lane's 32 KiB, over by 3,420."
         }
       }
     },
