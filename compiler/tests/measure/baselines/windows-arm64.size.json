@@ -69,6 +69,17 @@
     ".reloc": 32
    }
   },
+  "armv8-a/none-all/regex-redux": {
+   "sections": {
+    ".text": 1230420,
+    ".rdata": 111860,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 284
+   }
+  },
   "armv8-a/none-all/reverse-complement": {
    "sections": {
     ".text": 159448,
@@ -156,6 +167,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 32
+   }
+  },
+  "armv8-a/none-auto/regex-redux": {
+   "sections": {
+    ".text": 1231188,
+    ".rdata": 111860,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 284
    }
   },
   "armv8-a/none-auto/reverse-complement": {
@@ -247,6 +269,17 @@
     ".reloc": 52
    }
   },
+  "armv8-a/none-off/regex-redux": {
+   "sections": {
+    ".text": 1231332,
+    ".rdata": 111860,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 308
+   }
+  },
   "armv8-a/none-off/reverse-complement": {
    "sections": {
     ".text": 159592,
@@ -334,6 +367,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 32
+   }
+  },
+  "armv8-a/size-all/regex-redux": {
+   "sections": {
+    ".text": 356720,
+    ".rdata": 82148,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 284
    }
   },
   "armv8-a/size-all/reverse-complement": {
@@ -425,6 +469,17 @@
     ".reloc": 32
    }
   },
+  "armv8-a/size-auto/regex-redux": {
+   "sections": {
+    ".text": 357200,
+    ".rdata": 82148,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 284
+   }
+  },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
     ".text": 46716,
@@ -512,6 +567,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 52
+   }
+  },
+  "armv8-a/size-off/regex-redux": {
+   "sections": {
+    ".text": 357272,
+    ".rdata": 82148,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 308
    }
   },
   "armv8-a/size-off/reverse-complement": {
@@ -603,6 +669,17 @@
     ".reloc": 32
    }
   },
+  "armv8-a/speed-all/regex-redux": {
+   "sections": {
+    ".text": 424320,
+    ".rdata": 81300,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 284
+   }
+  },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
     ".text": 53048,
@@ -690,6 +767,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 32
+   }
+  },
+  "armv8-a/speed-auto/regex-redux": {
+   "sections": {
+    ".text": 424320,
+    ".rdata": 81300,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 284
    }
   },
   "armv8-a/speed-auto/reverse-complement": {
@@ -781,6 +869,17 @@
     ".reloc": 52
    }
   },
+  "armv8-a/speed-off/regex-redux": {
+   "sections": {
+    ".text": 424588,
+    ".rdata": 81300,
+    ".buildid": 81,
+    ".data": 33057,
+    ".pdata": 4864,
+    ".tls": 8,
+    ".reloc": 308
+   }
+  },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
     ".text": 52800,
@@ -868,6 +967,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-all/regex-redux": {
+   "sections": {
+    ".text": 1234376,
+    ".rdata": 112408,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 284
    }
   },
   "armv8.1-a/none-all/reverse-complement": {
@@ -959,6 +1069,17 @@
     ".reloc": 32
    }
   },
+  "armv8.1-a/none-auto/regex-redux": {
+   "sections": {
+    ".text": 1235144,
+    ".rdata": 112408,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 284
+   }
+  },
   "armv8.1-a/none-auto/reverse-complement": {
    "sections": {
     ".text": 163404,
@@ -1046,6 +1167,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 52
+   }
+  },
+  "armv8.1-a/none-off/regex-redux": {
+   "sections": {
+    ".text": 1235288,
+    ".rdata": 112408,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 308
    }
   },
   "armv8.1-a/none-off/reverse-complement": {
@@ -1137,6 +1269,17 @@
     ".reloc": 32
    }
   },
+  "armv8.1-a/size-all/regex-redux": {
+   "sections": {
+    ".text": 358172,
+    ".rdata": 82696,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 284
+   }
+  },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
     ".text": 48168,
@@ -1224,6 +1367,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-auto/regex-redux": {
+   "sections": {
+    ".text": 358652,
+    ".rdata": 82696,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 284
    }
   },
   "armv8.1-a/size-auto/reverse-complement": {
@@ -1315,6 +1469,17 @@
     ".reloc": 52
    }
   },
+  "armv8.1-a/size-off/regex-redux": {
+   "sections": {
+    ".text": 358724,
+    ".rdata": 82696,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 308
+   }
+  },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
     ".text": 48240,
@@ -1402,6 +1567,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-all/regex-redux": {
+   "sections": {
+    ".text": 425844,
+    ".rdata": 81848,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 284
    }
   },
   "armv8.1-a/speed-all/reverse-complement": {
@@ -1493,6 +1669,17 @@
     ".reloc": 32
    }
   },
+  "armv8.1-a/speed-auto/regex-redux": {
+   "sections": {
+    ".text": 425844,
+    ".rdata": 81848,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 284
+   }
+  },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
     ".text": 54572,
@@ -1580,6 +1767,17 @@
     ".landin": 64,
     ".tls": 8,
     ".reloc": 52
+   }
+  },
+  "armv8.1-a/speed-off/regex-redux": {
+   "sections": {
+    ".text": 426112,
+    ".rdata": 81848,
+    ".buildid": 81,
+    ".data": 33089,
+    ".pdata": 4912,
+    ".tls": 8,
+    ".reloc": 308
    }
   },
   "armv8.1-a/speed-off/reverse-complement": {
