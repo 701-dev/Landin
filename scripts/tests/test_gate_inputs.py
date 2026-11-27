@@ -135,7 +135,7 @@ class Key(unittest.TestCase):
         self.assertFalse(self.same())
 
     def test_the_measured_key_leaves_out_the_size_and_instruction_baselines(self):
-        #  R22.34: the key a recording commit is held to leaves out the
+        #  D2854: the key a recording commit is held to leaves out the
         #  files it records, and nothing else.
         self.write("compiler/tests/measure/baselines/cortex-m0.size.json", "{}\n")
         self.write("compiler/tests/measure/baselines/cortex-m0.instructions.json", "{}\n")
@@ -1025,7 +1025,7 @@ def size_baseline(**entries):
 
 
 class Figures(unittest.TestCase):
-    """R22.34: a branch's pass that reported figures no baseline records is
+    """D2854: a branch's pass that reported figures no baseline records is
     reused only by the commit that records them, and main refuses a tree
     whose last pass reported one not recorded since."""
 
@@ -1237,7 +1237,7 @@ class Workflow(unittest.TestCase):
     """Hold every required matrix leg to the literal reuse inventory."""
 
     def test_every_comparison_reports_on_a_branch_and_keeps_what_it_reported(self):
-        #  R22.34: each measurement comparison the gate runs reports a move
+        #  D2854: each measurement comparison the gate runs reports a move
         #  and passes on every event but main's, and the artifact its
         #  figures go to carries the report to the aggregate's annotation.
         source = (ROOT / ".github/workflows/gate.yml").read_text()

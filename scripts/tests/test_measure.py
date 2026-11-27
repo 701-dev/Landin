@@ -140,7 +140,7 @@ class Compare(unittest.TestCase):
         self.assertEqual(status, 1)
 
     def test_a_branch_s_comparison_reports_a_move_and_passes(self):
-        #  R22.34: a branch's lane names what no baseline records, in
+        #  D2854: a branch's lane names what no baseline records, in
         #  moves.json beside the figures and in the step summary, and
         #  passes; main's comparison, without --report, fails as before.
         with tempfile.TemporaryDirectory() as where:

@@ -316,7 +316,7 @@ class Baselines(unittest.TestCase):
         return code, printed.getvalue()
 
     def test_a_branch_s_comparison_reports_a_move_and_passes(self):
-        # R22.34: the cycles comparison on a branch's dispatch names what
+        # D2854: the cycles comparison on a branch's dispatch names what
         # no baseline records, in moves.json beside the figures, and passes.
         key = 'esp32/xtensa-esp32/size-auto/sieve'
         new = 'esp32/xtensa-esp32/size-auto/search'

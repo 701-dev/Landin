@@ -194,7 +194,7 @@ NAMES_THE_TREE = {"bundle.json": ("compiler_identity", "source_identity"),
 IDENTITY_PARTS = ("images", "harness", "records", "workflow")
 IDENTITY_TITLE = "board identity"
 #  The annotation the aggregate writes when a comparison reported a
-#  figure no baseline records (R22.34), and the baselines a recording
+#  figure no baseline records (D2854), and the baselines a recording
 #  commit may change.
 MOVES_TITLE = "unrecorded figures"
 MOVES = "moves.json"
@@ -219,7 +219,7 @@ def entries(rev, cwd=None):
 
 def key(rev="HEAD", cwd=None, content_free=CONTENT_FREE, measured=False):
     """REV's key.  MEASURED leaves out the size and instruction baselines
-    too, the files a recording commit changes (R22.34)."""
+    too, the files a recording commit changes (D2854)."""
     digest = hashlib.sha256()
     for mode, kind, name, path in entries(rev, cwd):
         decoded = path.decode("utf-8", "surrogateescape")
@@ -344,7 +344,7 @@ def full_run(run, listing, required, now):
 
 class Unrecorded(Exception):
     """Main's push of a tree whose last pass reported figures no baseline
-    records (R22.34): the gate fails at once rather than run every lane
+    records (D2854): the gate fails at once rather than run every lane
     to fail the same way."""
 
 
@@ -426,7 +426,7 @@ def decide(event_name, event, api, key_of, checked_out, workflow, required, now,
     by a commit that records its figures: RECORDING(run, base) answers
     (same, recorded, why), whether the trees differ in nothing else and
     whether this tree's baselines hold the run's figures, read from its
-    artifacts (R22.34).  Main's push of a tree whose newest such run's
+    artifacts (D2854).  Main's push of a tree whose newest such run's
     figures it does not record raises Unrecorded.
     """
     tips, why = tips_of(event_name, event, checked_out)
@@ -694,7 +694,7 @@ def decide_boards(event_name, event, api, key_of, candidate_key_of,
             continue
         #  A branch's dispatch reports cycles no baseline records and
         #  passes; main takes its boards only with those cycles recorded
-        #  (R22.34), and its push refuses the tree otherwise.
+        #  (D2854), and its push refuses the tree otherwise.
         cycles = {kind: targets for kind, targets in moves_of(run, listing).items()
                   if kind in ("cycles", "unreadable")}
         if cycles:
@@ -1475,7 +1475,7 @@ def main(argv):
         #  The aggregate's record of what this run's comparisons reported
         #  and no baseline records, or what the identical tree's pass it
         #  took did ($INHERITED): one annotation, which a later run's reuse
-        #  and item.py's promotion read (R22.34).
+        #  and item.py's promotion read (D2854).
         found = merged_moves(moves_in(argv[1:]),
                              json.loads(os.environ.get("INHERITED") or "{}"))
         if not found:

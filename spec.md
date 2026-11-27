@@ -27197,7 +27197,7 @@ without a baseline recording it failed its lane on every event, so an
 emission change cost a gate that failed only to measure it and a second
 for the commit recording what the first had measured: 48 of the 254
 defects the gate-time study of 2026-11-26 classified. The maintainer
-accepted the change that day, as R22.34.
+accepted the change that day.
 
 **Chosen:** on every event but `main`'s, `measure.py compare` and
 `timing.py compare` take `--report`: what no baseline records goes into

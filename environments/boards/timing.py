@@ -805,7 +805,7 @@ def compare(args):
           ' %d unrecorded, %d at another clock' % (len(measured['figures']), base, ok, len(declared),
                                                   len(undeclared), len(unrecorded), len(clocks)))
     if getattr(args, 'report', False) is True:
-        # A branch's comparison reports and passes (R22.34): the commit
+        # A branch's comparison reports and passes (D2854): the commit
         # recording these figures reuses the run, and main refuses the
         # tree until one does.
         sys.path.insert(0, str(ROOT / 'scripts'))

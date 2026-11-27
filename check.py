@@ -11026,8 +11026,9 @@ PROCESS_SECTION_BUDGETS = {
     #  push and merge-main learned the register check, merge-main a named
     #  branch and the queue a line for work that is no item; and again
     #  when push learned the pre-push checks and boards beside the gate,
-    #  gate the first-failure watch and main's verdict, merge-main trains.
-    "Running an item": 6700,
+    #  gate the first-failure watch and main's verdict, merge-main trains;
+    #  and again when promotion refused unrecorded figures (D2854).
+    "Running an item": 6800,
     "Closing an item": 6400,
     "Local agent feedback": 16800,
     "Parallel sessions and shared resources": 14600,
@@ -11043,8 +11044,9 @@ PROCESS_SECTION_BUDGETS = {
     #  item rode trains, beside main's flake-tools row of the same day;
     #  and again when the failure causes and the selection in shadow
     #  joined it, and when board legs taken by identity and the daily
-    #  schedule did.
-    "The mechanical gate": 58000,
+    #  schedule did; and again when figures were recorded from the run
+    #  that measured them (D2854).
+    "The mechanical gate": 59000,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

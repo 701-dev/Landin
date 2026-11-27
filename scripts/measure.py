@@ -894,7 +894,7 @@ def compare(args) -> int:
 
 
 #  What a reporting comparison found no baseline records, beside the
-#  figures, so the run's artifact carries it to the aggregate (R22.34).
+#  figures, so the run's artifact carries it to the aggregate (D2854).
 MOVES = "moves.json"
 
 

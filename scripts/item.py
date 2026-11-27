@@ -2192,7 +2192,7 @@ def explanatory_since(worktree, older, newer):
 
 def unrecorded_figures(run):
     """{class: {target: count}} of what RUN's aggregate recorded as figures
-    no baseline records (R22.34); {} when it recorded none."""
+    no baseline records (D2854); {} when it recorded none."""
     jobs, _ = gate_module("gate_watch").jobs_of(run)
     inputs = gate_module("gate_inputs")
     for job in jobs:
@@ -2212,7 +2212,7 @@ def unrecorded_figures(run):
 def figures_problems(state, commit, software, boards):
     """Why COMMIT may not land for figures its gate run SOFTWARE, or the
     boards run BOARDS it takes, reported and no baseline records since:
-    main's push would refuse the tree (R22.34)."""
+    main's push would refuse the tree (D2854)."""
     worktree = state["worktree"]
     inputs = gate_module("gate_inputs")
     problems = []

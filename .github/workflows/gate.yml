@@ -89,7 +89,7 @@ jobs:
     outputs:
       reuse: ${{ steps.reuse.outputs.reuse }}
       #  What an identical tree's pass taken here reported and no baseline
-      #  records, which the aggregate reports again (R22.34).
+      #  records, which the aggregate reports again (D2854).
       moves: ${{ steps.reuse.outputs.moves }}
       #  The selected gate in shadow: what it would run, which no
       #  job's condition reads, and the passed run it compared with.
@@ -988,7 +988,7 @@ jobs:
             -C compiler/ada/build/linux-amd64/release
       - name: Measure every section and compare it with the base's baselines
         #  A branch's comparison reports a figure no baseline records and
-        #  passes; main's fails (docs/measurement.md, R22.34).
+        #  passes; main's fails (docs/measurement.md, D2854).
         env:
           REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
@@ -1136,7 +1136,7 @@ jobs:
       - name: Count every firmware workload's instructions and compare them with the base's baselines
         if: ${{ !cancelled() && matrix.part == 'programs' && steps.restore.outcome == 'success' && steps.tools.outcome == 'success' }}
         #  A branch's comparison reports a figure no baseline records and
-        #  passes; main's fails (docs/measurement.md, R22.34).
+        #  passes; main's fails (docs/measurement.md, D2854).
         env:
           REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
@@ -1836,7 +1836,7 @@ jobs:
       - name: Measure Darwin's sections and compare them with the base's baselines
         if: ${{ !cancelled() && matrix.shard == 2 && steps.restore.outcome == 'success' }}
         #  A branch's comparison reports a figure no baseline records and
-        #  passes; main's fails (docs/measurement.md, R22.34).
+        #  passes; main's fails (docs/measurement.md, D2854).
         env:
           REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
@@ -3682,7 +3682,7 @@ jobs:
           && needs.inputs.outputs.boards == 'true' && (needs.board.result == 'success'
           || needs.board-bundles.outputs.legs-reuse == 'true')
         #  A branch's comparison reports a figure no baseline records and
-        #  passes; main's fails (docs/measurement.md, R22.34).
+        #  passes; main's fails (docs/measurement.md, D2854).
         env:
           REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
@@ -3705,7 +3705,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
       #  What this run's comparisons reported and no baseline records, on
-      #  an event that is not main's (R22.34), or what the identical
+      #  an event that is not main's (D2854), or what the identical
       #  tree's pass it took did: one annotation on this job, which a
       #  later run's reuse and item.py's promotion read.  Not
       #  continue-on-error: a record that could not be made fails the run.

@@ -292,7 +292,7 @@ class Promote(Clone):
             item.complete_listing, item.unrecorded_figures = saved
 
     def test_a_gate_that_reported_unrecorded_figures_is_no_promotion(self):
-        #  R22.34: a branch's gate reports a figure no baseline records and
+        #  D2854: a branch's gate reports a figure no baseline records and
         #  passes; main would refuse the tree, so promotion refuses first
         #  and says how the figures are recorded.
         head = self.commit("work")
