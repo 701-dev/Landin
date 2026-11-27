@@ -3971,7 +3971,7 @@ dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
 
-Status: planned
+Status: active
 Depends on: none
 
 The size, instruction-count and cycles figures an emission change moves,
