@@ -465,6 +465,41 @@ class Promote(Clone):
                                    (prefix + "2-first", ["--run", "5"]),
                                    (prefix + "2", ["--run", "5"])])
 
+    def test_a_watch_that_ended_before_its_run_is_started_again(self):
+        #  A watch that reached its limit while its run still waited for
+        #  runners is no watch: `gate --watch` starts another.
+        head = self.commit("work")
+        git(self.worktree, "push", "-q", "origin", self.state["branch"])
+        listing = [{"databaseId": 5, "event": "push",
+                    "headBranch": self.state["branch"],
+                    "status": "in_progress", "conclusion": "",
+                    "displayTitle": "x", "attempt": 1}]
+        started = []
+
+        def run(arguments):
+            directory = item.item_directory(FIRST) / "runs" / arguments.name
+            directory.mkdir(parents=True)
+            (directory / "result.json").write_text('{"exit_status": 143}')
+            started.append(arguments.name)
+            return 0
+
+        saved = item.runs_of, item.run
+        item.runs_of, item.run = (lambda commit: listing), run
+        try:
+            self.item("gate", FIRST, "--watch")
+            status, out = self.item("gate", FIRST, "--watch")
+            self.assertIn("watching it again", out)
+            listing[0].update(status="completed", conclusion="success")
+            status, again = self.item("gate", FIRST, "--watch")
+        finally:
+            item.runs_of, item.run = saved
+        self.assertEqual(status, 0, out)
+        self.assertIn("already watched", again)
+        prefix = "gate-branch-%s-run5-attempt1" % head[:12]
+        self.assertEqual(started, [prefix + "-first", prefix,
+                                   prefix + "-again2-first",
+                                   prefix + "-again2"])
+
     def test_run_in_another_directory_is_kept_and_reported(self):
         elsewhere = self.top / "stream"
         elsewhere.mkdir()

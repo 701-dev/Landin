@@ -4872,8 +4872,11 @@ longer asks for the token its ungated head cannot have, and `push`'s
 pre-push checks select the corpus's layout case for a new fixture
 source. `SR-2213` records `build-modes`'s margin to its limit,
 `SR-2214` lock files committed under a checkout-relative path,
-`SR-2215` the counts each member set for its own tree, and `SR-2216`
-the Darwin LLDB archive step failing after an earlier failure.
+`SR-2215` the counts each member set for its own tree, `SR-2216`
+the Darwin LLDB archive step failing after an earlier failure, and
+`SR-2217` again the Windows arm64 LLDB step whose row had been deleted.
+`item.py gate --watch` starts a watch again when the one it names ended
+at its limit before its run, which retires `SR-2134` and `SR-2164`.
 
 
 ### R22.50 — Locale formatting

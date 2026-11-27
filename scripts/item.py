@@ -957,9 +957,19 @@ def watch_gate(arguments, state, commit, shown):
         command = ["--run", str(newest["run"])]
     directory = runs / name
     if directory.exists():
-        print("already watched: python3 scripts/run_logged.py --wait %s"
+        if newest is not None and newest.get("status") == "completed":
+            print("already watched: python3 scripts/run_logged.py --wait %s"
+                  % directory)
+            return 0
+        #  The watch ended, at its limit, while the run still waits for
+        #  runners: watch it again under a new name rather than name the
+        #  ended watch, whose --wait returns at once.
+        again = 2
+        while (runs / ("%s-again%d" % (name, again))).exists():
+            again += 1
+        name = "%s-again%d" % (name, again)
+        print("the watch %s ended before its run; watching it again"
               % directory)
-        return 0
     watcher = ["python3", str(ROOT / "scripts/gate_watch.py")]
     if arguments.main:
         #  The token and the finish wait end at the verdict: the cache
