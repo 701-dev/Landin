@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/regex's watch sets a literal prefilter aside on a haystack where the literals' first bytes are half the text, and every match a walk or find_at finds afterwards, the lazy DFA's from where the prefilter stopped, is the Pike VM's, for patterns that are their literals and that begin with them, and for a pattern the prefilter was chosen for, which keeps it
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 0520, 1150

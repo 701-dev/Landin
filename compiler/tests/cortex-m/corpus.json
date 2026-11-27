@@ -1692,6 +1692,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/benchmark-game-regex-redux": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/benchmark-game-reverse-complement": {
       "codes": [
         "L0015"
@@ -5508,6 +5514,12 @@
       "mode": "execute",
       "profile_limit": "selected-image",
       "reason": "Each search compiles its pattern with regex.lean(), linking core/regex's parser, compiler and four engines: 149,532 bytes of flash at size/auto, overflowing the 32 KiB profile by 116,764, beside a 64 KiB arena and a 4 KiB text (D2680). Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/regex-prefilter-watch": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/regex-redux-patterns": {
       "codes": [

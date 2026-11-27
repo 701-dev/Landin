@@ -4255,7 +4255,7 @@ artifact upload failed on DNS) and boards run 44535495255 on f968ab7f3.
 
 ### R22.62 — regex-redux ported
 
-Status: active
+Status: complete
 Depends on: R22.60
 
 The Benchmarks Game's regex program over `core/regex`, its five
@@ -4263,6 +4263,21 @@ replacements by R22.60's replace-all.
 
 Exit evidence: the game's output for its 1,000 input as a runtime
 fixture, pinned and published as R22.21's are; 5,000,000 timed.
+
+Done: `runtime/benchmark-game-regex-redux` reads FASTA's output, takes
+out its headers and line breaks, counts the nine variants and applies
+the five replacements by `regex.replace_all`, and prints the game's
+output for 1,000 byte for byte, its input and output digests pinned in
+`check.py`; it is in `examples.md` and in `workloads.json`'s hosted set,
+timed over the 1,000 input repeated 200 times. 5,000,000, the output
+equal to Python's `re`, took 36.3 s on the EPYC host: every variant is
+a set of literals whose first bytes are half of DNA, so the prefilter
+stopped at every other byte. A search now watches its prefilter and,
+once it has stopped at nearly every byte, sets it aside and goes on with
+the lazy DFA from where it stopped (D2834, pinned by
+`runtime/regex-prefilter-watch`), and the run takes 10.6 s against 12.5
+s for Python's `re`; the rest is the DFA's own speed, which R22.80
+measures.
 
 ### R22.63 — The ten programs measured
 

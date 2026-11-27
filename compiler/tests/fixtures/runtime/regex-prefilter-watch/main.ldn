@@ -1,0 +1,125 @@
+--  core/regex's watch over its literal prefilter (D2834): over haystacks
+--  where the literals' first bytes are half the text, a search sets the
+--  prefilter aside after 40 tries and goes on with the lazy DFA from where
+--  the prefilter stopped.  Every match a walk finds, and every match
+--  `find_at` finds from every eighth position, is the Pike VM's, for
+--  patterns that are their literals and patterns that only begin with
+--  them, and for a pattern the prefilter was chosen for, which keeps it.
+
+import core/mem
+import core/regex
+import core/text
+import hosted/heap
+
+--  xorshift32.
+next_random: (inout state: u32) -> (value: u32) =
+    mut x: u32 = state
+    x = x ^ (x << 13)
+    x = x ^ (x >> 17)
+    x = x ^ (x << 5)
+    state = x
+    value = x
+end next_random
+
+patterns: [8]utf8 = [
+    "agggtaaa|tttaccct", "[cgt]gggtaaa|tttaccc[acg]", "ag|ta", "tac|gat|a",
+    "a[ct]g+t", "(?:ag|ta)c+", "ac[gt]*a|tg", "t(?:ca|ga)\\b"
+]
+
+bases: []u8 = "acgt"
+
+--  Every match of `expression` in `haystack`, as begin and end pairs, into
+--  `into`; and how many words that took.
+walk: (inout expression: regex.regex, haystack: utf8, into: []mut usize)
+      -> (count: usize) =
+    count = 0
+    mut at := regex.walk_start()
+    loop do
+        found := regex.next_match(expression, haystack, at, false) else begin
+            break
+        end
+        if count + 2 <= lenof into then
+            into[count] = text.offset(found.begins)
+            into[count + 1] = text.offset(found.ends)
+            count += 2
+        end if
+    end loop
+end walk
+
+--  Whether `other` finds what `reference` does in `haystack`, walking and
+--  from every eighth position.
+agree: (inout reference: regex.regex, inout other: regex.regex,
+        haystack: utf8) -> (yes: bool) =
+    yes = false
+    mut want: [8192]usize = zeroed
+    mut got: [8192]usize = zeroed
+    wanted: usize = walk(reference, haystack, want)
+    found: usize = walk(other, haystack, got)
+    return when wanted <> found
+    for index in usize(0)..<wanted do
+        return when want[index] <> got[index]
+    end for
+    bytes: []u8 = text.bytes(haystack)
+    mut offset: usize = 0
+    while offset < lenof bytes do
+        place: text.position = text.from_offset(bytes, offset)
+        expected := regex.find_at(reference, haystack, place) else begin
+            _ = regex.find_at(other, haystack, place) else begin
+                offset += 8
+                continue
+            end
+            return
+        end
+        actual := regex.find_at(other, haystack, place) else begin
+            return
+        end
+        return when text.offset(expected.begins) <> text.offset(actual.begins)
+                 or text.offset(expected.ends) <> text.offset(actual.ends)
+        offset += 8
+    end while
+    yes = true
+end agree
+
+check: (provider: type is mem.allocator, memory: provider, haystack: utf8,
+        pattern: utf8, which: regex.engine) -> (ok: bool) =
+    ok = false
+    reference_settings := regex.with_engine(regex.defaults(), regex.pike_vm)
+    mut reference := regex.compile_with(memory, pattern, reference_settings)
+        else begin
+            return
+        end
+    defer regex.release(reference, memory)
+    settings := regex.with_engine(regex.defaults(), which)
+    mut other := regex.compile_with(memory, pattern, settings) else begin
+        return
+    end
+    defer regex.release(other, memory)
+    ok = agree(reference, other, haystack)
+end check
+
+public main: () -> (code: i32) =
+    code = 1
+    memory := heap.new()
+    mut random: u32 = 0x2834_d2a1
+    mut storage: [4096]u8 = zeroed
+    for round in usize(0)..<3 do
+        _ = round
+        for byte in storage do
+            byte = bases[usize(next_random(random) % 4)]
+        end for
+        --  A space now and then gives `\b` somewhere to hold.
+        for at in usize(0)..<16 do
+            storage[usize(next_random(random)) % lenof storage] = u8(' ')
+            _ = at
+        end for
+        haystack := text.from_bytes(storage) else begin
+            return
+        end
+        for pattern in patterns do
+            return when not check(memory, haystack, pattern, regex.automatic)
+        end for
+        return when not check(memory, haystack, patterns[0],
+                              regex.literal_prefilter)
+    end for
+    code = 42
+end main

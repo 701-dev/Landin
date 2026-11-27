@@ -46652,6 +46652,16 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **Pinned by** `scripts/tests/test_check_controls.py`'s `FailureWords`, which holds a module's own words to its atoms, and `runtime/regex-api`.
 
+### D2834 — A search sets its literal prefilter aside once it stops at nearly every byte
+
+**The tour said** nothing; D2678 has a search skip to the next of a pattern's literals, and search for them alone when they are the whole pattern.
+
+**Chosen:** a search, and a walk over its haystack's matches through the walk's cursor, keeps a watch over its prefilter: the positions it tried, those whose byte begins a literal, and how far it moved. Once it has tried 40, a prefilter that has moved less than twice its longest literal a position tried is set aside for the rest of the search or walk, and the search goes on from the position the prefilter reached, which no literal before it begins at, with the lazy DFA alone; this is the rule the aho-corasick crate's prefilter state keeps. A pattern compiled with `with_engine(literal_prefilter)`, or whose DFA cannot be built, keeps its prefilter. regex-redux's variants are each a set of literals whose first bytes are two or three of DNA's four, so the prefilter tried every other byte: FASTA's output for 5,000,000 took 36.3 s, the DFA alone a third of that, and takes 10.6 s with the watch, on the host of `compiler/tests/big/README.md`, against 12.5 s for Python's `re`; the output is the same.
+
+**The alternatives:** choosing the prefilter at compile time by how many first bytes its literals have, which cannot know the haystack, since two first bytes are rare in English and half of DNA; a table of how often each byte occurs, the crate's `memchr` ranking, which is a guess about the haystack that DNA breaks; and a faster scalar scan alone, which still stops at every other byte. All were declined.
+
+**Pinned by** `runtime/benchmark-game-regex-redux`, whose output the watch leaves the same, and `runtime/regex-engines-agree` and `runtime/regex-linear-time`, which hold every engine to the Pike VM and each search to linear work.
+
 ### D2694 — `core/dense` is a vector and a matrix view over the caller's storage, generic over `math.floating`
 
 **The tour said** nothing about linear algebra; the roadmap asks for a vector or matrix as a view over caller storage, with rows, columns and strides in either order and transposed and sub-matrix views without copying, its elements real, with room left for complex ones.
