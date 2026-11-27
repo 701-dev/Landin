@@ -89,7 +89,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.39, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -4189,6 +4189,43 @@ and a change to anything a lane reads does not, that `release.py gated`
 takes a declaration on a reused complete pass, and that a flake-hash
 commit reuses and runs the flake jobs; a rehearsal of the release
 workflow on such a tree; process.md's recipe saying the steps.
+
+### R22.39 — Tools that share a host's memory
+
+Status: planned
+Depends on: none
+
+A host shared by many agents ran out of memory when each of them built
+and ran complete suites at once, and the kill took the agents' service
+with every run under it. Three tool changes, which the maintainer
+accepted, make the tools hold the rules the agents were asked to keep.
+First, local selection follows the gate's: `dev-test.sh` takes a base,
+reads the change from it, and prints or runs the exact suites, cases
+and fixtures that stand for the lanes the change reaches, from the same
+table the `inputs` job reads, `.github/gate-lanes.json`, each lane there
+naming its local selectors; a change that reaches no local selector
+says so. The complete local suite stops being a step before a push.
+Second, a host-wide limit on heavy jobs: `dev-build.sh`, `dev-test.sh`,
+`run_logged.py` and the manifest and measurement scripts each take one
+of a small number of slots, held in a lock directory outside any
+worktree, so that every worktree and clone of the host counts against
+the same number; a job without a slot waits and says which jobs hold
+the slots, and the number is a host setting with a default. Third, a
+detached run starts in a systemd scope or transient unit of its own with
+a memory cap where the user's systemd is there, and as today where it is
+not, so it outlives a restart of the service that launched it and an
+overrun kills that run alone. Placed here so that no phase gate waits
+for it; it depends on no other item.
+
+Exit evidence: a script test that a diff's printed selectors are those
+the gate's table gives for the lanes it reaches, one per kind of lane;
+a control that every lane with local work names its selectors; a test
+that a second heavy job on a host with its slots taken waits, names the
+holders, and starts when one is freed, across two worktrees; a run
+detached on a host with user systemd that outlives a restart of its
+launching service, and one over its cap killed while a run beside it
+continues, named runs; `docs/process.md`'s local feedback recipe and
+AGENTS.md saying what the tools do.
 
 ### R22.40 — Character encodings
 
