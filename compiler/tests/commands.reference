@@ -152,8 +152,9 @@ Example: refine compile --emit asm program.ldn -o program.s
 Example: refine compile program.s -o program
 An executable's assembly is the link's input and is
 removed after it; --keep-asm keeps it as OUT.s, and
-a .s operand is linked as a compiled program is,
-with the same --target, --level and --link.
+for a hosted target, a .s operand is linked the same
+way as a compiled program, with the same --target,
+--level and --link.
 --emit ir writes the IR the backend receives.
 --emit ir-annotated also records the target and
 settings, module-qualified routine names and the IR's

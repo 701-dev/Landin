@@ -180,6 +180,9 @@ package body Landin.Testing.Fixtures is
 
    function Traps (Item : Fixture) return Boolean is (Item.Traps);
 
+   function Protected_Write (Item : Fixture) return Boolean
+     is (Item.Protected_Write);
+
    function Trap_Report (Item : Fixture) return String
      is (Unbounded.To_String (Item.Trap_Report));
 
@@ -795,6 +798,7 @@ package body Landin.Testing.Fixtures is
       Seen_Status  : Boolean := False;
       Seen_Traps   : Boolean := False;
       Seen_Trap_Report : Boolean := False;
+      Seen_Protected : Boolean := False;
       Seen_Constructs : Boolean := False;
       Seen_With    : Boolean := False;
       Seen_Root    : Boolean := False;
@@ -1607,6 +1611,18 @@ package body Landin.Testing.Fixtures is
                Seen_Trap_Report := True;
                Item.Trap_Report := Unbounded.To_Unbounded_String (Value);
 
+            elsif Key = "protected" then
+               if Seen_Protected then
+                  Complain ("duplicate key: protected");
+                  return;
+               end if;
+               Seen_Protected := True;
+               if Value = "yes" then
+                  Item.Protected_Write := True;
+               else
+                  Complain ("protected is not yes: " & Value);
+               end if;
+
             elsif Key = "status" then
                if Seen_Status then
                   Complain ("duplicate key: status");
@@ -1643,6 +1659,7 @@ package body Landin.Testing.Fixtures is
                Status  => 0,
                Traps   => False,
                Trap_Report => Unbounded.Null_Unbounded_String,
+               Protected_Write => False,
                Made_Of => Unbounded.Null_Unbounded_String,
                Beside  => Unbounded.Null_Unbounded_String,
                Root    => Unbounded.Null_Unbounded_String,
@@ -2052,6 +2069,11 @@ package body Landin.Testing.Fixtures is
       if Seen_Trap_Report and then not (Seen_Traps and then Item.Traps)
       then
          Complain ("trap_report is the line a trapping program writes,"
+                   & " and needs traps: yes");
+      end if;
+
+      if Seen_Protected and then not (Seen_Traps and then Item.Traps) then
+         Complain ("protected says the program is ended by a refused write,"
                    & " and needs traps: yes");
       end if;
 

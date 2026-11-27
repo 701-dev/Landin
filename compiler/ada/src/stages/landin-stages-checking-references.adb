@@ -3142,7 +3142,6 @@ package body Landin.Stages.Checking.References is
             From : Landin.Source.Byte_Offset := 0) return Boolean is
          begin
             if Node = Syn.No_Node
-              or else Syn.Kind (Of_Tree, Node) = Syn.Anonymous_Function
               or else (Syn.Kind (Of_Tree, Node) = Syn.Match_Statement
                        and then Binds_Borrower (Node)
                        --  Not the match the question is asked inside.
@@ -4492,11 +4491,6 @@ package body Landin.Stages.Checking.References is
                      end if;
                   end;
                end if;
-
-            when Syn.Anonymous_Function =>
-               --  Creating a code value does not run its separately checked
-               --  body or any transfers in that body's cleanup arguments.
-               return No_Origin;
 
             when Syn.Empty_Slice_Literal =>
                return

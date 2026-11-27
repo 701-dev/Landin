@@ -524,8 +524,7 @@ package Landin.Backend is
    --  symbol named after its routine, as a profiler and `nm` show it, and
    --  a second instance of one routine is qualified as D417 says.  An
    --  evidence provider binding an instance's evidence is named after the
-   --  same routine (Landin.IR.Named_After).  No declaration only for an
-   --  anonymous function.
+   --  same routine (Landin.IR.Named_After).
    function Symbol_Declaration
      (Of_Unit : Landin.IR.Unit;
       Item    : Landin.IR.Item_Id) return Landin.IR.Declaration_Id;
@@ -571,6 +570,23 @@ package Landin.Backend is
    --  D496: whether Item is a datum the backend places in the system's
    --  thread storage and reaches through the thread pointer.
    function In_Thread_Storage
+     (Of_Unit : Landin.IR.Unit;
+      Facts   : Landin.Targets.Target_Facts;
+      Item    : Landin.IR.Item_Id) return Boolean;
+
+   --  D3014: whether Item's image names another symbol, a routine, an
+   --  address, a slice's source or a field's target, which the loader of
+   --  a position-independent image would have to write.
+   function Image_Relocates
+     (Of_Unit : Landin.IR.Unit;
+      Item    : Landin.IR.Item_Id) return Boolean;
+
+   --  D3014: whether a datum sits in the target's read-only section:
+   --  D161's read-only images, and every immutable module value but one
+   --  in thread storage and, on a hosted target, whose image relocates.
+   --  A firmware image is linked where it runs, so its relocated
+   --  constants stay in flash too.
+   function In_Read_Only_Section
      (Of_Unit : Landin.IR.Unit;
       Facts   : Landin.Targets.Target_Facts;
       Item    : Landin.IR.Item_Id) return Boolean;

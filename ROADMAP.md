@@ -2273,7 +2273,7 @@ what an array length folds (D1663). [1795] and the tree-sitter grammar lost
 the inline body and the `->` lookahead it needed. `refine fix --allow all`
 migrated the corpus, and an L0696-only script the negative fixtures, whose
 own refusals a full `refine fix` would have mended (`SR-1558`); seventeen
-fixtures that pinned only a removed form left with it. SR-1568 is filed for
+fixtures that pinned only a removed form left with it. `SR-1568` is filed for
 the anonymous-function paths the stages after the parser still hold.
 
 ### R19.70 — Range subtypes become distinct types
@@ -2724,7 +2724,7 @@ first; check.py's derivable-negative refusal did not name its exemption
 list; L0301 called a concept or function value "something unknown"; and
 the gate's fuzz round met D1656's rewrite raising a parser defect at a
 declaration of several names whose `=` ends the source. Filed:
-SR-1693, a library module the program does not reach is still a plain
+`SR-1693`, a library module the program does not reach is still a plain
 misspelling.
 
 ### R20.62 — Tools that know a window
@@ -2908,7 +2908,7 @@ past its locals (D2288); ranges out of address order joined into one;
 and a Windows program WSL starts from a process group other than the
 terminal's stalls, which a debugger `refine dap` started in a group of its
 own did in about half of the gate's runs, so a Windows adapter now shares
-refine dap's group (D2292). Rows SR-1746 to `SR-1748` record the inline
+refine dap's group (D2292). Rows `SR-1746` to `SR-1748` record the inline
 sites CodeView lacks (D2290), the stack-switch session Windows lacks and
 two `--debug=full` builds that differ by their temporary object's name.
 
@@ -3538,8 +3538,8 @@ R22.13 fixed the same on main first, and the merge keeps its fix with
 vector instructions, and `SR-1979`, an `if` expression's or a literal
 range's type taken from a literal or an atom with no note of the written
 type that fixes it. It landed in R22.36's train: gate run 45920421418,
-passed on its second attempt after the first failed only in SR-1882's
-cancellation race and SR-1940's stack-switch step, and boards run
+passed on its second attempt after the first failed only in `SR-1882`'s
+cancellation race and `SR-1940`'s stack-switch step, and boards run
 45920432106.
 
 ### R22.16 — Linear systems and least squares
@@ -3683,8 +3683,8 @@ padding, so eight format fixtures' corpus rows record limits at
 `none/off` and RV32's 32 KiB maps, with their sizes, and
 `compiler/tests/float-text/README.md` holds the figures. Settled: `SR-97`, `SR-285`. The renamed
 `negative/format-array-names-its-type` keeps D880's pin now that an
-`f64` is formattable. Met on the way: SR-1939's grammar defect again,
-in `core/text/shortest.ldn`, and restated; filed: SR-2012, L0102's
+`f64` is formattable. Met on the way: `SR-1939`'s grammar defect again,
+in `core/text/shortest.ldn`, and restated; filed: `SR-2012`, L0102's
 `else begin return end` that L0329 then refuses in an `if` arm.
 
 ### R22.21 — n-body and spectral-norm ported
@@ -3876,7 +3876,7 @@ own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
 `mem.allocate_copy`; the heap handed beside a region is a zone over the
 region's parent; and `time -f %M` is `heap.in_use` and
 `heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
-SR-1881 records the misleading refusal a new Linux wrapper meets.
+`SR-1881` records the misleading refusal a new Linux wrapper meets.
 
 ### R22.27 — Process tools' remaining faults
 
@@ -3927,21 +3927,44 @@ Q-347 are answered.
 
 ### R22.28 — What Windows still lacks after R21.70
 
-Status: planned
+Status: complete
 Depends on: none
 
 The Windows gaps R21.70 left or met, scheduled by the register sweep of
-2026-11-26: SR-1746's inlined copies, which CodeView does not describe;
-SR-1767's Microsoft lanes, which link with whatever Clang and Visual
-Studio the runner image carries; SR-1851's C symbol whose link name
-begins with `.L`, which COFF's assembler takes as private; SR-1852's
-eight ABI fixtures whose C peers are not Windows C; and SR-1940's arm64
+2026-11-26: `SR-1746`'s inlined copies, which CodeView does not describe;
+`SR-1767`'s Microsoft lanes, which link with whatever Clang and Visual
+Studio the runner image carries; `SR-1851`'s C symbol whose link name
+begins with `.L`, which COFF's assembler takes as private; `SR-1852`'s
+eight ABI fixtures whose C peers are not Windows C; and `SR-1940`'s arm64
 LLDB session that did not step through `landin.stack_switch` once.
 Placed here so that no phase gate waits for it; it depends on no other
 item.
 
 Exit evidence: each row's completion on both Windows architectures, in
 the gate's Windows lanes.
+
+Done: a Windows program's CodeView describes each of D339's inlined
+copies as an inline site of the copied routine, holding its own
+parameters, locals and blocks, so LLDB shows a stop in a copy as that
+routine's frame with its locals (D2964, superseding D2290); a session of
+the Windows debugger lane holds it on both architectures. A COFF object
+names a `.L` link name through a substitute that `/alternatename` binds
+to it (D2954), so `abi/r440-native-link-namespace` names both Windows
+targets; the Darwin parity lane met that fixture's `-Wa,-L` at a link of
+objects, and now gives assembler options to the peers' compiles alone.
+Seven of the eight ABI fixtures whose peers were POSIX have Windows arms,
+a peer starting itself again where a POSIX one forks and the two
+conventions' own register and result rules (D2960-D2962);
+`r440-native-renamed-main` has no Windows form while Windows has no
+C-callable argument root (D2963, Q-411). The Microsoft lanes link with
+llvm-mingw's pinned Clang against the MSVC toolset and Windows SDK
+`environments/pins.sh` names, refusing an image that lacks them and
+recording what ran (D2969). The arm64 stack-switch session was LLDB
+losing a `thread step-inst` about one session in fifty, never the
+switch's code: the lane recognises a lost step exactly and runs the
+session again, three attempts at most (D2970). The friction items the
+Windows VM's build met were already settled by R21.70; SR-2113 records
+a probe branch's delete failing at the sr.ht mirror.
 
 ### R22.29 — Release archives that say where they run
 
@@ -4004,46 +4027,96 @@ holds the tables to the pin in the gate. On Cortex-M0 at `size/auto` a
 program links only the tables it reaches (D2617): 5,388 bytes for
 grapheme clusters, 12,420 for the general category, 19,817 for NFC and
 NFD, and 36,084 for all four forms, which do not fit the 32 KiB profile.
-Q-321 asks how Unicode's notice goes with a program; SR-1938 records the
+Q-321 asks how Unicode's notice goes with a program; `SR-1938` records the
 hosted backends' writable sections for immutable data, met laying out
 the tables.
 
 ### R22.31 — Refusals that say what to do
 
-Status: planned
+Status: complete
 Depends on: none
 
 Refusals met since R20.61 that do not say what to do, or say something
-misleading, scheduled by the register sweep of 2026-11-26: SR-1693's
-L0201 at a library module no import reaches, and SR-1881's at an
+misleading, scheduled by the register sweep of 2026-11-26: `SR-1693`'s
+L0201 at a library module no import reaches, and `SR-1881`'s at an
 undeclared `*_number` of `platform/linux`, both with [1860]'s note to
-check the spelling; SR-1896's L0011 at a hexadecimal float without its
-point; SR-1714's internal defect where a firmware assembly operand is
-linked; SR-1716's developer's linker script that puts a routine at
-address zero without a refusal; and SR-1214's misuse traps of the root,
+check the spelling; `SR-1896`'s L0011 at a hexadecimal float without its
+point; `SR-1714`'s internal defect where a firmware assembly operand is
+linked; `SR-1716`'s developer's linker script that puts a routine at
+address zero without a refusal; and `SR-1214`'s misuse traps of the root,
 which carry no words. Placed here so that no phase gate waits for it; it
 depends on no other item.
 
 Exit evidence: each refusal pinned by a negative fixture or a driver
 case, and `docs/diagnostics.md` saying the new notes.
 
+Done: L0201 names the import of a library module no import of the program
+reaches, from a listing of the library the driver hands the stages (D2994,
+`SR-1693`), and inside `platform/linux` says that an undeclared `*_number`
+is `wrapped.ldn`'s and to run its generator (D2999, `SR-1881`). A float that
+lacks only its point, `0x1p-20` or `1e10`, is L0321 with an exact fix
+writing `.0` before the exponent (D2995, `SR-1896`). A firmware target's
+assembly operand is L0002 saying how it links, no longer an internal
+defect (D2996, `SR-1714`). D546's fifth clause holds the startup routines,
+so a script that puts reset at address zero is L0519 (D2997, `SR-1716`).
+The root's other misuses say what was misused before they trap (D2998,
+`SR-1214`), and L0329's note in an `if` arm writes the leaving recovery in
+parentheses, which L0102's fix left out (D3000, `SR-2012`). Pinned by
+`negative/unreached-library-module-prefix-names-its-import`,
+`negative/hexadecimal-float-without-point-is-fixed`,
+`negative/leaving-recovery-in-an-if-arm-is-parenthesised`,
+`abi/r440-native-startup-invalid`, the `trap_report` of
+`abi/r440-native-startup-replaced`, the driver cases `an unwritten call
+number names its generator` and `an assembly operand links`, and
+`environments/cortex-m/descriptions.py`'s `reset.ld`. SR-1979, offered
+beside the item, stays open: its notes need the inferred type each
+inference path decides, not a note's words.
+
 ### R22.32 — Defects the library work met
 
-Status: planned
+Status: complete
 Depends on: none
 
 Defects R19 to R22.30 met beside their own work, scheduled by the
-register sweep of 2026-11-26: SR-1938's immutable module arrays in a
-hosted image's writable section; SR-1939's Tree-sitter grammar, which
-misreads a sum of three operands followed by a statement; SR-1568's
-anonymous-function paths that nothing reaches since D1654; SR-1882's
+register sweep of 2026-11-26: `SR-1938`'s immutable module arrays in a
+hosted image's writable section; `SR-1939`'s Tree-sitter grammar, which
+misreads a sum of three operands followed by a statement; `SR-1568`'s
+anonymous-function paths that nothing reaches since D1654; `SR-1882`'s
 cancellation test, which signals `refine` before its handlers are
-installed on a loaded host; and SR-1740's runtime outcome that never
+installed on a loaded host; and `SR-1740`'s runtime outcome that never
 ends and holds the whole test program until the job's limit. Placed
 here so that no phase gate waits for it; it depends on no other item.
 
 Exit evidence: each row's completion with the fixture, corpus test or
 control it names.
+
+Done: an immutable module value is in its target's read-only section
+on every backend, `.rodata`, `__TEXT,__const` or `.rdata`, a wholly zero
+one written there and no longer reserved in RAM on RV32 and Xtensa, by one
+predicate the backends and the image measurement share (D3014);
+`runtime/immutable-module-value-write-faults` and its zero counterpart end
+by the fault on every hosted target, and a new metadata key,
+`protected: yes`, says the oracle is a refused write: the lanes that name
+a trap's signal expect SIGSEGV or SIGBUS for it, Windows
+`STATUS_ACCESS_VIOLATION`, and the firmware corpora read it as an oracle
+firmware without memory protection cannot give. A relocated immutable value on a hosted target stays writable,
+`SR-2147`. The Tree-sitter grammar reads a sum of any length before a
+statement: each operator level's tail is right-recursive at the level's
+own precedence, where `repeat1`'s helper had none, so a `-` that could
+begin the next statement no longer ended the sum; the measurement's
+operator is the words `lenof` and `offsetof`, `offsetof` as well since
+[1820] and the from-c fixtures have it, which the row's completion did
+not name; the three library lines are written plainly again, with
+`highlight/tree-sitter/test/corpus/sums.txt`. The anonymous-function node and every stage's
+path for it are gone, the parser returning an error expression over the
+refused span, about 400 lines. The cancellation test signals `refine`
+once the kernel shows its handler installed and, for a run, once it holds
+its directory, with a `-delayed` case starting it a second late. A
+runtime outcome has a limit of its own, two minutes: the runner's ten
+already stopped a QEMU program, but `events-network-limits` ran at six
+profiles in one piece, six hung ten-minute accepts past the job's hour.
+Filed from findings handed to the item or met on the way: `SR-2143` to
+`SR-2146`.
 
 ### R22.33 — Boards reused on identical images
 
@@ -4229,7 +4302,7 @@ yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
 the table's `shadow` entry, which the weekly `table --write` keeps.
 Its own gate run 45902780283 and boards run 45902794687 passed; it landed
 with R22.15 as one train on gate run 45920421418, passed on its second
-attempt after two known flakes (SR-1882, SR-1940), and boards run
+attempt after two known flakes (`SR-1882`, `SR-1940`), and boards run
 45920432106. The shadow period, the causes it records and the measured
 miss rate remain for the item to close.
 
@@ -4629,8 +4702,8 @@ folded and normalized by hand. On Cortex-M0 at `size/auto` equality, a
 prefix and a suffix without case take 5,662 bytes of tables and the
 canonical match 19,570, and the ASCII forms 724 bytes of code. Fixed on the
 way: `docs/library.md` named the scalar walk's `done` and `width`, renamed
-by D2030 and D2031, and a narrow integer had no append. SR-1939's and
-SR-2012's refusals were met again and recorded in their rows.
+by D2030 and D2031, and a narrow integer had no append. `SR-1939`'s and
+`SR-2012`'s refusals were met again and recorded in their rows.
 
 ### R22.46 — The complete gate belongs to a batch
 

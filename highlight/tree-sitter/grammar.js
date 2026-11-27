@@ -29,10 +29,10 @@ const PREC = {
 };
 
 // A contextual word the lexer may offer as its own token where a
-// declaration, a label or a parameter could begin, read as the name it is
-// everywhere else.
+// declaration, a label, a parameter or a measurement could begin, read as
+// the name it is everywhere else.
 function contextualName($) {
-  return alias(choice('distinct', 'link', 'option', 'as', 'caller', 'through', 'held'), $.identifier);
+  return alias(choice('distinct', 'link', 'option', 'as', 'caller', 'through', 'held', 'lenof', 'offsetof'), $.identifier);
 }
 
 // A statement's label, as it is written, left and closed, which may be a
@@ -90,7 +90,7 @@ module.exports = grammar({
     [$.type_application, $._union_member],
     [$.slice_type, $.empty_slice],
     [$.array_type, $.array_literal],
-    [$.indexed_expression, $.declaration_reference, $.measurement_expression, $.of_keyword],
+    [$.indexed_expression, $.declaration_reference, $.of_keyword],
     [$.routine_formals],
     [$.parameters],
     [$.labeled_arguments, $.arguments],
@@ -99,8 +99,6 @@ module.exports = grammar({
     [$.struct_body],
     [$.concept_body],
     [$.destructured_field, $.indexed_expression],
-    [$.indexed_expression, $.declaration_reference, $.measurement_expression],
-    [$.measurement_expression, $.of_keyword],
     [$.indexed_expression, $.of_keyword],
     [$.indexed_expression, $.recovery_clause],
     [$.indexed_expression, $.measurement_expression],
@@ -234,6 +232,8 @@ module.exports = grammar({
       alias('caller', $.identifier),
       alias('through', $.identifier),
       alias('held', $.identifier),
+      alias('lenof', $.identifier),
+      alias('offsetof', $.identifier),
     ),
 
     // D1656: a binding names one thing; the compiler refuses a list with
@@ -617,8 +617,10 @@ module.exports = grammar({
     place: $ => $.indexed_expression,
 
     _expression: $ => $.logical_or_expression,
-    logical_or_expression: $ => binaryLevel($, PREC.logical_or, $.logical_and_expression, ['or']),
-    logical_and_expression: $ => binaryLevel($, PREC.logical_and, $.comparison_expression, ['and']),
+    logical_or_expression: $ => binaryLevel($, PREC.logical_or, $.logical_and_expression, $._logical_or_operations),
+    _logical_or_operations: $ => binaryOperations($, PREC.logical_or, $.logical_and_expression, ['or'], $._logical_or_operations),
+    logical_and_expression: $ => binaryLevel($, PREC.logical_and, $.comparison_expression, $._logical_and_operations),
+    _logical_and_operations: $ => binaryOperations($, PREC.logical_and, $.comparison_expression, ['and'], $._logical_and_operations),
     comparison_expression: $ => choice(
       prec.dynamic(1, $.alternation_expression),
       prec.dynamic(2, prec.left(PREC.comparison, seq(
@@ -627,12 +629,18 @@ module.exports = grammar({
         $.alternation_expression,
       ))),
     ),
-    alternation_expression: $ => binaryLevel($, PREC.alternation, $.exclusion_expression, ['|']),
-    exclusion_expression: $ => binaryLevel($, PREC.exclusion, $.conjunction_expression, ['^']),
-    conjunction_expression: $ => binaryLevel($, PREC.conjunction, $.shift_expression, ['&']),
-    shift_expression: $ => binaryLevel($, PREC.shift, $.sum_expression, ['<<', '>>']),
-    sum_expression: $ => binaryLevel($, PREC.sum, $.product_expression, ['+', $.minus, '+%', $.minus_percent]),
-    product_expression: $ => binaryLevel($, PREC.product, $.unary_expression, ['*', '/', '%', '*%']),
+    alternation_expression: $ => binaryLevel($, PREC.alternation, $.exclusion_expression, $._alternation_operations),
+    _alternation_operations: $ => binaryOperations($, PREC.alternation, $.exclusion_expression, ['|'], $._alternation_operations),
+    exclusion_expression: $ => binaryLevel($, PREC.exclusion, $.conjunction_expression, $._exclusion_operations),
+    _exclusion_operations: $ => binaryOperations($, PREC.exclusion, $.conjunction_expression, ['^'], $._exclusion_operations),
+    conjunction_expression: $ => binaryLevel($, PREC.conjunction, $.shift_expression, $._conjunction_operations),
+    _conjunction_operations: $ => binaryOperations($, PREC.conjunction, $.shift_expression, ['&'], $._conjunction_operations),
+    shift_expression: $ => binaryLevel($, PREC.shift, $.sum_expression, $._shift_operations),
+    _shift_operations: $ => binaryOperations($, PREC.shift, $.sum_expression, ['<<', '>>'], $._shift_operations),
+    sum_expression: $ => binaryLevel($, PREC.sum, $.product_expression, $._sum_operations),
+    _sum_operations: $ => binaryOperations($, PREC.sum, $.product_expression, ['+', $.minus, '+%', $.minus_percent], $._sum_operations),
+    product_expression: $ => binaryLevel($, PREC.product, $.unary_expression, $._product_operations),
+    _product_operations: $ => binaryOperations($, PREC.product, $.unary_expression, ['*', '/', '%', '*%'], $._product_operations),
     unary_expression: $ => prec.right(PREC.unary, seq(
       repeat(field('operator', choice($.minus, '~', 'not'))),
       $._primary_expression,
@@ -808,13 +816,16 @@ module.exports = grammar({
     empty_slice: _ => seq('[', ']'),
     measurement_expression: $ => choice(
       seq(choice('sizeof', 'alignof'), $._type),
-      // `lenof` is contextual in the kernel: a declaration may also be named
-      // lenof.  Keep the leading token an identifier and let highlight queries
-      // apply an equality predicate instead of turning it into a keyword.
+      // `lenof` and `offsetof` are contextual in the kernel: a declaration
+      // may also be named lenof, and contextualName reads it as one where
+      // the next token decides.  Only those two words measure: with any
+      // identifier as the operator, `a - c` before a line beginning with a
+      // name read as `a - (c x)`.  The word stays an identifier node so
+      // highlight queries apply an equality predicate to it.
       // [1820]: the primary a name begins -- the name, a path through it
       // or a call's result -- or D31's parenthesised literal.
       prec.dynamic(20, seq(
-        field('operator', $.identifier),
+        field('operator', alias(choice('lenof', 'offsetof'), $.identifier)),
         field('value', choice(
           $.indexed_expression, $.call_expression, $.labeled_application,
           seq('(', $.array_literal, ')'),
@@ -835,13 +846,24 @@ function commaSep1(rule) {
   return seq(rule, repeat(seq(',', rule)));
 }
 
-function binaryLevel($, precedence, operand, operators) {
-  const operator = operators.length === 1 ? operators[0] : choice(...operators);
+// A level's operands and operators are one flat node.  Its operations
+// after the first operand are a hidden right-recursive rule rather than a
+// repeat: Tree-sitter gives the helper rule of a repeat no precedence, so
+// after a level's second operand an operator that may also begin the next
+// statement -- `-`, a block's value being a negation -- was a shift of
+// precedence 0 against reducing the level at its own, and the level ended
+// there.  An operation that may be followed by another now shifts it at
+// the level's precedence, as the first one always did.
+function binaryLevel($, precedence, operand, operations) {
   return choice(
     prec.dynamic(1, operand),
-    prec.dynamic(2, prec.left(precedence, seq(
-      operand,
-      repeat1(seq(field('operator', operator), operand)),
-    ))),
+    prec.dynamic(2, prec.left(precedence, seq(operand, operations))),
   );
+}
+
+function binaryOperations($, precedence, operand, operators, operations) {
+  const operator = operators.length === 1 ? operators[0] : choice(...operators);
+  return prec.right(precedence, seq(
+    field('operator', operator), operand, optional(operations),
+  ));
 }

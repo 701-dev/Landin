@@ -25,6 +25,53 @@ extern int r440_probe_sret_indirect(struct large *, producer,
                                     uint64_t, double, uint64_t);
 extern struct large r440_bad_sret(uint64_t, double, uint64_t);
 
+#if defined(_WIN32)
+/* Win64 returns the hidden destination in rax too, and passes it in rcx,
+   which moves the explicit arguments one slot along: rdx, xmm2 and r9.
+   Entry rsp is 8 mod 16; saving rbx and taking the 32-byte shadow area
+   every call needs aligns each nested call and keeps the caller's rbx and
+   our original destination.  The indirect wrapper's arguments are rdx's
+   function pointer, r8, xmm3 and the fifth on the stack, which it shifts
+   to the producer's places. */
+__asm__(".text\n"
+        ".globl r440_probe_sret_direct\n"
+        "r440_probe_sret_direct:\n"
+        "pushq %rbx\n"
+        "subq $32, %rsp\n"
+        "movq %rcx, %rbx\n"
+        "call r440_l_sret\n"
+        "cmpq %rbx, %rax\n"
+        "sete %al\n"
+        "movzbl %al, %eax\n"
+        "addq $32, %rsp\n"
+        "popq %rbx\n"
+        "ret\n"
+        ".globl r440_probe_sret_indirect\n"
+        "r440_probe_sret_indirect:\n"
+        "pushq %rbx\n"
+        "subq $32, %rsp\n"
+        "movq %rcx, %rbx\n"
+        "movq %rdx, %r11\n"
+        "movq %r8, %rdx\n"
+        "movaps %xmm3, %xmm2\n"
+        "movq 80(%rsp), %r9\n"
+        "call *%r11\n"
+        "cmpq %rbx, %rax\n"
+        "sete %al\n"
+        "movzbl %al, %eax\n"
+        "addq $32, %rsp\n"
+        "popq %rbx\n"
+        "ret\n"
+        ".globl r440_bad_sret\n"
+        "r440_bad_sret:\n"
+        "pushq %rbx\n"
+        "subq $32, %rsp\n"
+        "call r440_c_sret\n"
+        "xorl %eax, %eax\n"
+        "addq $32, %rsp\n"
+        "popq %rbx\n"
+        "ret\n");
+#else
 /* SysV entry rsp is 8 mod 16. Saving rbx aligns every nested call and
    preserves both the caller's rbx and our original hidden destination.
    Compare rax immediately on return, before C can ignore that register.
@@ -69,6 +116,8 @@ __asm__(".text\n"
         "popq %rbx\n"
         "ret\n"
         ".size r440_bad_sret, .-r440_bad_sret\n");
+
+#endif
 
 static int fields_equal(struct large actual, struct large expected) {
     return actual.first == expected.first && actual.second == expected.second

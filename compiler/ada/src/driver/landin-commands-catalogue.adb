@@ -575,8 +575,9 @@ package body Landin.Commands.Catalogue is
                  & "Example: refine compile program.s -o program" & LF
                  & "An executable's assembly is the link's input and is"
                  & LF & "removed after it; --keep-asm keeps it as OUT.s, and"
-                 & LF & "a .s operand is linked as a compiled program is,"
-                 & LF & "with the same --target, --level and --link."
+                 & LF & "for a hosted target, a .s operand is linked the same"
+                 & LF & "way as a compiled program, with the same --target,"
+                 & LF & "--level and --link."
                  & LF & "--emit ir writes the IR the backend receives."
                  & LF & "--emit ir-annotated also records the target and"
                  & LF & "settings, module-qualified routine names and the IR's"

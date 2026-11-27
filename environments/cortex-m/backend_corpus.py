@@ -163,7 +163,10 @@ STOPS = ('defect', 'c-options', 'c-headers', 'c-source', 'link', 'oracle')
 HOSTED_ORACLE = (('stdin', 'reads standard input (stdin:)'),
                  ('run_args', 'takes arguments (run_args:)'),
                  ('run_files', 'reads files beside it (run_files:)'),
-                 ('run_expect', 'has its output as its oracle (run_expect:)'))
+                 ('run_expect', 'has its output as its oracle (run_expect:)'),
+                 ('protected', 'is ended by the system refusing a write to'
+                  ' read-only memory, which no memory protection gives here'
+                  ' (protected:)'))
 
 
 def hosted_oracle(meta):

@@ -1,0 +1,9 @@
+import core/io
+import hosted/blocking
+
+-- The C root initialized the arguments with a negative count, which the
+-- call refuses before any world is made.
+public extern(c) l_root: () -> (count: usize) =
+    state: blocking.host = blocking.new()
+    count = io.arguments_length(state)
+end l_root

@@ -10,6 +10,7 @@ from pathlib import Path
 import platform
 import re
 import resource
+import signal
 import shlex
 import shutil
 import subprocess
@@ -318,7 +319,13 @@ def execute(args, manifest):
         #  `level_status:` gives a level's own status, LEVEL=STATUS, as
         #  the test program reads it.
         status = -4 if meta.traps else meta.status_at(result.get('level'))
-        require(completed.returncode == status, f'{label}: status {completed.returncode}, expected {status}')
+        if meta.traps and meta.get('protected') == 'yes':
+            #  D3014: a refused write ends it by SIGSEGV or SIGBUS.
+            require(completed.returncode in (-signal.SIGSEGV, -signal.SIGBUS),
+                    f'{label}: status {completed.returncode}, expected the refused'
+                    ' write\'s SIGSEGV or SIGBUS')
+        else:
+            require(completed.returncode == status, f'{label}: status {completed.returncode}, expected {status}')
         base = ROOT / 'compiler/tests/fixtures' / result['case']
         expected = meta.run_expected(base)
         if expected is None:

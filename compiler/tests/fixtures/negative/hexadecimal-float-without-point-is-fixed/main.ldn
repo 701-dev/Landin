@@ -1,0 +1,2 @@
+scale: f64 = 0x1p-20
+large: f64 = 1e10

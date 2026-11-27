@@ -281,7 +281,7 @@ composite_of: (first: u32, second: u32) -> (result: u32) =
       and (first - s_base) % t_count == 0 and second > t_base
       and second < t_base + t_count
     then
-        result = first + (second - t_base)
+        result = first + second - t_base
         return
     end if
     found := entry_of(composite_block(first >> 6), composite_masks,

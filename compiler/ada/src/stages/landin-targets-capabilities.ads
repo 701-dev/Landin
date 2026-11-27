@@ -70,6 +70,17 @@ package Landin.Targets.Capabilities is
    --  Compiler-local labels and assembler quoting are separate concerns.
    function Link_Symbol (Facts : Target_Facts; Name : String) return String;
 
+   --  D2954: a name LLVM's COFF assembler takes as its own label, which
+   --  it refuses undefined and leaves out of the symbol table defined.  A
+   --  COFF backend spells an import or export of such a name with
+   --  COFF_Substitute_Prefix before it, and the object names the real one
+   --  to the linker by `/alternatename` (Landin.Backend.COFF).
+   function Is_COFF_Private (Name : String) return Boolean
+     is (Name'Length >= 2
+         and then Name (Name'First .. Name'First + 1) = ".L");
+
+   COFF_Substitute_Prefix : constant String := "__landin_dot";
+
    type Backend_Kind is
      (No_Backend, X86_64_ELF, Darwin_Arm64_Mach_O, Arm64_ELF, RV64_ELF,
       Cortex_M0_ELF, RV32_ELF, Xtensa_ELF, X86_64_COFF, Arm64_COFF);
@@ -99,11 +110,6 @@ package Landin.Targets.Capabilities is
    --  within Image_Reach, and its zero images within the address space.
    function Image_Budget_Of (Facts : Target_Facts) return Image_Budget
      with Pre => Backend_For (Facts) /= No_Backend;
-
-   --  Whether the backend writes an immutable image that is wholly zero
-   --  into the object, as firmware does into flash, rather than reserving
-   --  it as it reserves a mutable one.
-   function Writes_Zero_Constants (Facts : Target_Facts) return Boolean;
 
    --  The operating system whose C library a hosted program runs on, which
    --  `compiler.os` names to source: `platform/libc` selects its errno

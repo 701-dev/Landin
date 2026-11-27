@@ -5,49 +5,49 @@
   "rv64gc/none-all/binary-trees": {
    "sections": {
     ".text": 122132,
-    ".rodata": 28361,
+    ".rodata": 29241,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-all/fannkuch-redux": {
    "sections": {
     ".text": 97888,
-    ".rodata": 24159,
+    ".rodata": 24887,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 768,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc/none-all/fasta": {
    "sections": {
     ".text": 63984,
-    ".rodata": 13572,
+    ".rodata": 14396,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 880,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc/none-all/fibre": {
    "sections": {
     ".text": 120220,
-    ".rodata": 32233,
+    ".rodata": 33001,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 512,
     ".got.plt": 16,
-    ".data": 808,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc/none-all/k-nucleotide": {
@@ -66,13 +66,13 @@
   "rv64gc/none-all/mandelbrot": {
    "sections": {
     ".text": 125224,
-    ".rodata": 28552,
+    ".rodata": 29408,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 680,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-all/n-body": {
@@ -91,14 +91,14 @@
   "rv64gc/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289748,
-    ".rodata": 55896,
+    ".text": 289588,
+    ".rodata": 56814,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 736,
+    ".data.rel.ro": 240,
+    ".got": 720,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-all/regex-redux": {
@@ -116,13 +116,13 @@
   "rv64gc/none-all/reverse-complement": {
    "sections": {
     ".text": 108100,
-    ".rodata": 21466,
+    ".rodata": 22354,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-all/spectral-norm": {
@@ -141,61 +141,61 @@
   "rv64gc/none-all/thread": {
    "sections": {
     ".text": 150328,
-    ".rodata": 40154,
+    ".rodata": 41034,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc/none-auto/binary-trees": {
    "sections": {
     ".text": 122132,
-    ".rodata": 28361,
+    ".rodata": 29241,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-auto/fannkuch-redux": {
    "sections": {
     ".text": 97888,
-    ".rodata": 24159,
+    ".rodata": 24887,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 768,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc/none-auto/fasta": {
    "sections": {
     ".text": 63984,
-    ".rodata": 13572,
+    ".rodata": 14396,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 880,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc/none-auto/fibre": {
    "sections": {
     ".text": 120220,
-    ".rodata": 32233,
+    ".rodata": 33001,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 512,
     ".got.plt": 16,
-    ".data": 808,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc/none-auto/k-nucleotide": {
@@ -214,13 +214,13 @@
   "rv64gc/none-auto/mandelbrot": {
    "sections": {
     ".text": 125224,
-    ".rodata": 28552,
+    ".rodata": 29408,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 680,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-auto/n-body": {
@@ -239,14 +239,14 @@
   "rv64gc/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289748,
-    ".rodata": 55896,
+    ".text": 289588,
+    ".rodata": 56814,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 736,
+    ".data.rel.ro": 240,
+    ".got": 720,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-auto/regex-redux": {
@@ -264,13 +264,13 @@
   "rv64gc/none-auto/reverse-complement": {
    "sections": {
     ".text": 108100,
-    ".rodata": 21466,
+    ".rodata": 22354,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-auto/spectral-norm": {
@@ -289,61 +289,61 @@
   "rv64gc/none-auto/thread": {
    "sections": {
     ".text": 150328,
-    ".rodata": 40154,
+    ".rodata": 41034,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc/none-off/binary-trees": {
    "sections": {
     ".text": 122160,
-    ".rodata": 28361,
+    ".rodata": 29241,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 656,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-off/fannkuch-redux": {
    "sections": {
     ".text": 97904,
-    ".rodata": 24159,
+    ".rodata": 24887,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 400,
     ".got.plt": 16,
-    ".data": 768,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc/none-off/fasta": {
    "sections": {
     ".text": 64008,
-    ".rodata": 13572,
+    ".rodata": 14396,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 880,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc/none-off/fibre": {
    "sections": {
     ".text": 120236,
-    ".rodata": 32233,
+    ".rodata": 33001,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 480,
     ".got.plt": 16,
-    ".data": 808,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc/none-off/k-nucleotide": {
@@ -362,13 +362,13 @@
   "rv64gc/none-off/mandelbrot": {
    "sections": {
     ".text": 125264,
-    ".rodata": 28552,
+    ".rodata": 29408,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 608,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-off/n-body": {
@@ -387,14 +387,14 @@
   "rv64gc/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289788,
-    ".rodata": 55896,
+    ".text": 289624,
+    ".rodata": 56814,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 656,
+    ".data.rel.ro": 240,
+    ".got": 648,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-off/regex-redux": {
@@ -412,13 +412,13 @@
   "rv64gc/none-off/reverse-complement": {
    "sections": {
     ".text": 108140,
-    ".rodata": 21466,
+    ".rodata": 22354,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 656,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc/none-off/spectral-norm": {
@@ -437,60 +437,60 @@
   "rv64gc/none-off/thread": {
    "sections": {
     ".text": 150360,
-    ".rodata": 40154,
+    ".rodata": 41034,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 664,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc/size-all/binary-trees": {
    "sections": {
-    ".text": 66972,
-    ".rodata": 22037,
+    ".text": 67004,
+    ".rodata": 22682,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 51464,
-    ".rodata": 17687,
+    ".text": 51496,
+    ".rodata": 18332,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc/size-all/fasta": {
    "sections": {
-    ".text": 34312,
-    ".rodata": 11346,
+    ".text": 34396,
+    ".rodata": 12138,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc/size-all/fibre": {
    "sections": {
-    ".text": 66276,
-    ".rodata": 24706,
+    ".text": 66340,
+    ".rodata": 25404,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -509,13 +509,13 @@
   },
   "rv64gc/size-all/mandelbrot": {
    "sections": {
-    ".text": 67608,
-    ".rodata": 22216,
+    ".text": 67640,
+    ".rodata": 22861,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -535,13 +535,13 @@
   "rv64gc/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134888,
-    ".rodata": 41971,
+    ".text": 134760,
+    ".rodata": 42601,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -559,13 +559,13 @@
   },
   "rv64gc/size-all/reverse-complement": {
    "sections": {
-    ".text": 59584,
-    ".rodata": 18868,
+    ".text": 59640,
+    ".rodata": 19535,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -584,61 +584,61 @@
   },
   "rv64gc/size-all/thread": {
    "sections": {
-    ".text": 85152,
-    ".rodata": 31106,
+    ".text": 85216,
+    ".rodata": 31828,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc/size-auto/binary-trees": {
    "sections": {
-    ".text": 66972,
-    ".rodata": 22037,
+    ".text": 67004,
+    ".rodata": 22682,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 51464,
-    ".rodata": 17687,
+    ".text": 51496,
+    ".rodata": 18332,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc/size-auto/fasta": {
    "sections": {
-    ".text": 34312,
-    ".rodata": 11346,
+    ".text": 34396,
+    ".rodata": 12138,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc/size-auto/fibre": {
    "sections": {
-    ".text": 66276,
-    ".rodata": 24706,
+    ".text": 66340,
+    ".rodata": 25404,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -657,13 +657,13 @@
   },
   "rv64gc/size-auto/mandelbrot": {
    "sections": {
-    ".text": 67608,
-    ".rodata": 22216,
+    ".text": 67640,
+    ".rodata": 22861,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -683,13 +683,13 @@
   "rv64gc/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134888,
-    ".rodata": 41971,
+    ".text": 134760,
+    ".rodata": 42601,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -707,13 +707,13 @@
   },
   "rv64gc/size-auto/reverse-complement": {
    "sections": {
-    ".text": 59584,
-    ".rodata": 18868,
+    ".text": 59640,
+    ".rodata": 19535,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -732,61 +732,61 @@
   },
   "rv64gc/size-auto/thread": {
    "sections": {
-    ".text": 85152,
-    ".rodata": 31106,
+    ".text": 85216,
+    ".rodata": 31828,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc/size-off/binary-trees": {
    "sections": {
-    ".text": 67064,
-    ".rodata": 22037,
+    ".text": 67096,
+    ".rodata": 22682,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 51504,
-    ".rodata": 17687,
+    ".text": 51536,
+    ".rodata": 18332,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 264,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc/size-off/fasta": {
    "sections": {
-    ".text": 34388,
-    ".rodata": 11346,
+    ".text": 34472,
+    ".rodata": 12138,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 248,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc/size-off/fibre": {
    "sections": {
-    ".text": 66316,
-    ".rodata": 24706,
+    ".text": 66380,
+    ".rodata": 25404,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -805,13 +805,13 @@
   },
   "rv64gc/size-off/mandelbrot": {
    "sections": {
-    ".text": 67740,
-    ".rodata": 22216,
+    ".text": 67772,
+    ".rodata": 22861,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 312,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -831,13 +831,13 @@
   "rv64gc/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134996,
-    ".rodata": 41971,
+    ".text": 134840,
+    ".rodata": 42601,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 328,
+    ".data.rel.ro": 240,
+    ".got": 320,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -855,13 +855,13 @@
   },
   "rv64gc/size-off/reverse-complement": {
    "sections": {
-    ".text": 59696,
-    ".rodata": 18868,
+    ".text": 59752,
+    ".rodata": 19535,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 328,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -880,61 +880,61 @@
   },
   "rv64gc/size-off/thread": {
    "sections": {
-    ".text": 85236,
-    ".rodata": 31106,
+    ".text": 85300,
+    ".rodata": 31828,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 392,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc/speed-all/binary-trees": {
    "sections": {
-    ".text": 64976,
-    ".rodata": 21832,
+    ".text": 65008,
+    ".rodata": 22477,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 50032,
-    ".rodata": 17610,
+    ".text": 50064,
+    ".rodata": 18255,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc/speed-all/fasta": {
    "sections": {
-    ".text": 31272,
-    ".rodata": 11269,
+    ".text": 31356,
+    ".rodata": 12061,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc/speed-all/fibre": {
    "sections": {
-    ".text": 62636,
-    ".rodata": 23227,
+    ".text": 62696,
+    ".rodata": 23925,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -953,13 +953,13 @@
   },
   "rv64gc/speed-all/mandelbrot": {
    "sections": {
-    ".text": 65816,
-    ".rodata": 22014,
+    ".text": 65848,
+    ".rodata": 22659,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -979,13 +979,13 @@
   "rv64gc/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152844,
-    ".rodata": 41731,
+    ".text": 152800,
+    ".rodata": 42312,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1003,13 +1003,13 @@
   },
   "rv64gc/speed-all/reverse-complement": {
    "sections": {
-    ".text": 57864,
-    ".rodata": 18513,
+    ".text": 57920,
+    ".rodata": 19180,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1028,61 +1028,61 @@
   },
   "rv64gc/speed-all/thread": {
    "sections": {
-    ".text": 81288,
-    ".rodata": 28980,
+    ".text": 81348,
+    ".rodata": 29702,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc/speed-auto/binary-trees": {
    "sections": {
-    ".text": 64976,
-    ".rodata": 21832,
+    ".text": 65008,
+    ".rodata": 22477,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 50032,
-    ".rodata": 17610,
+    ".text": 50064,
+    ".rodata": 18255,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc/speed-auto/fasta": {
    "sections": {
-    ".text": 31272,
-    ".rodata": 11269,
+    ".text": 31356,
+    ".rodata": 12061,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc/speed-auto/fibre": {
    "sections": {
-    ".text": 62636,
-    ".rodata": 23227,
+    ".text": 62696,
+    ".rodata": 23925,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -1101,13 +1101,13 @@
   },
   "rv64gc/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 65816,
-    ".rodata": 22014,
+    ".text": 65848,
+    ".rodata": 22659,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1127,13 +1127,13 @@
   "rv64gc/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152844,
-    ".rodata": 41731,
+    ".text": 152800,
+    ".rodata": 42312,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1151,13 +1151,13 @@
   },
   "rv64gc/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 57864,
-    ".rodata": 18513,
+    ".text": 57920,
+    ".rodata": 19180,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1176,61 +1176,61 @@
   },
   "rv64gc/speed-auto/thread": {
    "sections": {
-    ".text": 81288,
-    ".rodata": 28980,
+    ".text": 81348,
+    ".rodata": 29702,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc/speed-off/binary-trees": {
    "sections": {
-    ".text": 65092,
-    ".rodata": 21832,
+    ".text": 65124,
+    ".rodata": 22477,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 50072,
-    ".rodata": 17610,
+    ".text": 50104,
+    ".rodata": 18255,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 264,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc/speed-off/fasta": {
    "sections": {
-    ".text": 31280,
-    ".rodata": 11269,
+    ".text": 31364,
+    ".rodata": 12061,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 248,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc/speed-off/fibre": {
    "sections": {
-    ".text": 62676,
-    ".rodata": 23227,
+    ".text": 62736,
+    ".rodata": 23925,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -1249,13 +1249,13 @@
   },
   "rv64gc/speed-off/mandelbrot": {
    "sections": {
-    ".text": 65804,
-    ".rodata": 22014,
+    ".text": 65836,
+    ".rodata": 22659,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 312,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1275,13 +1275,13 @@
   "rv64gc/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 153212,
-    ".rodata": 41731,
+    ".text": 153132,
+    ".rodata": 42312,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 328,
+    ".data.rel.ro": 240,
+    ".got": 320,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1299,13 +1299,13 @@
   },
   "rv64gc/speed-off/reverse-complement": {
    "sections": {
-    ".text": 58092,
-    ".rodata": 18513,
+    ".text": 58148,
+    ".rodata": 19180,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 328,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1324,62 +1324,62 @@
   },
   "rv64gc/speed-off/thread": {
    "sections": {
-    ".text": 81352,
-    ".rodata": 28980,
+    ".text": 81412,
+    ".rodata": 29702,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 392,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_xtheadba/none-all/binary-trees": {
    "sections": {
     ".text": 122116,
-    ".rodata": 28361,
+    ".rodata": 29241,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-all/fannkuch-redux": {
    "sections": {
     ".text": 97876,
-    ".rodata": 24159,
+    ".rodata": 24887,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 768,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_xtheadba/none-all/fasta": {
    "sections": {
     ".text": 63980,
-    ".rodata": 13572,
+    ".rodata": 14396,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 880,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_xtheadba/none-all/fibre": {
    "sections": {
     ".text": 120216,
-    ".rodata": 32233,
+    ".rodata": 33001,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 512,
     ".got.plt": 16,
-    ".data": 808,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_xtheadba/none-all/k-nucleotide": {
@@ -1398,13 +1398,13 @@
   "rv64gc_xtheadba/none-all/mandelbrot": {
    "sections": {
     ".text": 125208,
-    ".rodata": 28552,
+    ".rodata": 29408,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 680,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-all/n-body": {
@@ -1423,14 +1423,14 @@
   "rv64gc_xtheadba/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289732,
-    ".rodata": 55896,
+    ".text": 289572,
+    ".rodata": 56814,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 736,
+    ".data.rel.ro": 240,
+    ".got": 720,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-all/regex-redux": {
@@ -1448,13 +1448,13 @@
   "rv64gc_xtheadba/none-all/reverse-complement": {
    "sections": {
     ".text": 108084,
-    ".rodata": 21466,
+    ".rodata": 22354,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-all/spectral-norm": {
@@ -1473,61 +1473,61 @@
   "rv64gc_xtheadba/none-all/thread": {
    "sections": {
     ".text": 150324,
-    ".rodata": 40154,
+    ".rodata": 41034,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_xtheadba/none-auto/binary-trees": {
    "sections": {
     ".text": 122116,
-    ".rodata": 28361,
+    ".rodata": 29241,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-auto/fannkuch-redux": {
    "sections": {
     ".text": 97876,
-    ".rodata": 24159,
+    ".rodata": 24887,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 768,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_xtheadba/none-auto/fasta": {
    "sections": {
     ".text": 63980,
-    ".rodata": 13572,
+    ".rodata": 14396,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 880,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_xtheadba/none-auto/fibre": {
    "sections": {
     ".text": 120216,
-    ".rodata": 32233,
+    ".rodata": 33001,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 512,
     ".got.plt": 16,
-    ".data": 808,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_xtheadba/none-auto/k-nucleotide": {
@@ -1546,13 +1546,13 @@
   "rv64gc_xtheadba/none-auto/mandelbrot": {
    "sections": {
     ".text": 125208,
-    ".rodata": 28552,
+    ".rodata": 29408,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 680,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-auto/n-body": {
@@ -1571,14 +1571,14 @@
   "rv64gc_xtheadba/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289732,
-    ".rodata": 55896,
+    ".text": 289572,
+    ".rodata": 56814,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 736,
+    ".data.rel.ro": 240,
+    ".got": 720,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-auto/regex-redux": {
@@ -1596,13 +1596,13 @@
   "rv64gc_xtheadba/none-auto/reverse-complement": {
    "sections": {
     ".text": 108084,
-    ".rodata": 21466,
+    ".rodata": 22354,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-auto/spectral-norm": {
@@ -1621,61 +1621,61 @@
   "rv64gc_xtheadba/none-auto/thread": {
    "sections": {
     ".text": 150324,
-    ".rodata": 40154,
+    ".rodata": 41034,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 728,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_xtheadba/none-off/binary-trees": {
    "sections": {
     ".text": 122144,
-    ".rodata": 28361,
+    ".rodata": 29241,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 656,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-off/fannkuch-redux": {
    "sections": {
     ".text": 97892,
-    ".rodata": 24159,
+    ".rodata": 24887,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 400,
     ".got.plt": 16,
-    ".data": 768,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_xtheadba/none-off/fasta": {
    "sections": {
     ".text": 64004,
-    ".rodata": 13572,
+    ".rodata": 14396,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 880,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_xtheadba/none-off/fibre": {
    "sections": {
     ".text": 120232,
-    ".rodata": 32233,
+    ".rodata": 33001,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 480,
     ".got.plt": 16,
-    ".data": 808,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_xtheadba/none-off/k-nucleotide": {
@@ -1694,13 +1694,13 @@
   "rv64gc_xtheadba/none-off/mandelbrot": {
    "sections": {
     ".text": 125248,
-    ".rodata": 28552,
+    ".rodata": 29408,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 608,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-off/n-body": {
@@ -1719,14 +1719,14 @@
   "rv64gc_xtheadba/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 289772,
-    ".rodata": 55896,
+    ".text": 289608,
+    ".rodata": 56814,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 656,
+    ".data.rel.ro": 240,
+    ".got": 648,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-off/regex-redux": {
@@ -1744,13 +1744,13 @@
   "rv64gc_xtheadba/none-off/reverse-complement": {
    "sections": {
     ".text": 108124,
-    ".rodata": 21466,
+    ".rodata": 22354,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 656,
     ".got.plt": 16,
-    ".data": 928,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/none-off/spectral-norm": {
@@ -1769,60 +1769,60 @@
   "rv64gc_xtheadba/none-off/thread": {
    "sections": {
     ".text": 150356,
-    ".rodata": 40154,
+    ".rodata": 41034,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 664,
     ".got.plt": 16,
-    ".data": 920,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_xtheadba/size-all/binary-trees": {
    "sections": {
-    ".text": 66956,
-    ".rodata": 22037,
+    ".text": 66988,
+    ".rodata": 22682,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_xtheadba/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 51452,
-    ".rodata": 17687,
+    ".text": 51484,
+    ".rodata": 18332,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/size-all/fasta": {
    "sections": {
-    ".text": 34308,
-    ".rodata": 11346,
+    ".text": 34392,
+    ".rodata": 12138,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/size-all/fibre": {
    "sections": {
-    ".text": 66272,
-    ".rodata": 24706,
+    ".text": 66336,
+    ".rodata": 25404,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -1841,13 +1841,13 @@
   },
   "rv64gc_xtheadba/size-all/mandelbrot": {
    "sections": {
-    ".text": 67592,
-    ".rodata": 22216,
+    ".text": 67624,
+    ".rodata": 22861,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1867,13 +1867,13 @@
   "rv64gc_xtheadba/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134872,
-    ".rodata": 41971,
+    ".text": 134744,
+    ".rodata": 42601,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1891,13 +1891,13 @@
   },
   "rv64gc_xtheadba/size-all/reverse-complement": {
    "sections": {
-    ".text": 59568,
-    ".rodata": 18868,
+    ".text": 59624,
+    ".rodata": 19535,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -1916,61 +1916,61 @@
   },
   "rv64gc_xtheadba/size-all/thread": {
    "sections": {
-    ".text": 85148,
-    ".rodata": 31106,
+    ".text": 85212,
+    ".rodata": 31828,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_xtheadba/size-auto/binary-trees": {
    "sections": {
-    ".text": 66956,
-    ".rodata": 22037,
+    ".text": 66988,
+    ".rodata": 22682,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_xtheadba/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 51452,
-    ".rodata": 17687,
+    ".text": 51484,
+    ".rodata": 18332,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/size-auto/fasta": {
    "sections": {
-    ".text": 34308,
-    ".rodata": 11346,
+    ".text": 34392,
+    ".rodata": 12138,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/size-auto/fibre": {
    "sections": {
-    ".text": 66272,
-    ".rodata": 24706,
+    ".text": 66336,
+    ".rodata": 25404,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -1989,13 +1989,13 @@
   },
   "rv64gc_xtheadba/size-auto/mandelbrot": {
    "sections": {
-    ".text": 67592,
-    ".rodata": 22216,
+    ".text": 67624,
+    ".rodata": 22861,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2015,13 +2015,13 @@
   "rv64gc_xtheadba/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134872,
-    ".rodata": 41971,
+    ".text": 134744,
+    ".rodata": 42601,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2039,13 +2039,13 @@
   },
   "rv64gc_xtheadba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 59568,
-    ".rodata": 18868,
+    ".text": 59624,
+    ".rodata": 19535,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2064,61 +2064,61 @@
   },
   "rv64gc_xtheadba/size-auto/thread": {
    "sections": {
-    ".text": 85148,
-    ".rodata": 31106,
+    ".text": 85212,
+    ".rodata": 31828,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_xtheadba/size-off/binary-trees": {
    "sections": {
-    ".text": 67048,
-    ".rodata": 22037,
+    ".text": 67080,
+    ".rodata": 22682,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_xtheadba/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 51492,
-    ".rodata": 17687,
+    ".text": 51524,
+    ".rodata": 18332,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 264,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/size-off/fasta": {
    "sections": {
-    ".text": 34384,
-    ".rodata": 11346,
+    ".text": 34468,
+    ".rodata": 12138,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 248,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/size-off/fibre": {
    "sections": {
-    ".text": 66312,
-    ".rodata": 24706,
+    ".text": 66376,
+    ".rodata": 25404,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -2137,13 +2137,13 @@
   },
   "rv64gc_xtheadba/size-off/mandelbrot": {
    "sections": {
-    ".text": 67724,
-    ".rodata": 22216,
+    ".text": 67756,
+    ".rodata": 22861,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 312,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2163,13 +2163,13 @@
   "rv64gc_xtheadba/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 134980,
-    ".rodata": 41971,
+    ".text": 134824,
+    ".rodata": 42601,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 328,
+    ".data.rel.ro": 240,
+    ".got": 320,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2187,13 +2187,13 @@
   },
   "rv64gc_xtheadba/size-off/reverse-complement": {
    "sections": {
-    ".text": 59680,
-    ".rodata": 18868,
+    ".text": 59736,
+    ".rodata": 19535,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 328,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2212,61 +2212,61 @@
   },
   "rv64gc_xtheadba/size-off/thread": {
    "sections": {
-    ".text": 85232,
-    ".rodata": 31106,
+    ".text": 85296,
+    ".rodata": 31828,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 392,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_xtheadba/speed-all/binary-trees": {
    "sections": {
-    ".text": 64960,
-    ".rodata": 21832,
+    ".text": 64992,
+    ".rodata": 22477,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_xtheadba/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 50020,
-    ".rodata": 17610,
+    ".text": 50052,
+    ".rodata": 18255,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/speed-all/fasta": {
    "sections": {
-    ".text": 31268,
-    ".rodata": 11269,
+    ".text": 31352,
+    ".rodata": 12061,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/speed-all/fibre": {
    "sections": {
-    ".text": 62632,
-    ".rodata": 23227,
+    ".text": 62692,
+    ".rodata": 23925,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -2285,13 +2285,13 @@
   },
   "rv64gc_xtheadba/speed-all/mandelbrot": {
    "sections": {
-    ".text": 65800,
-    ".rodata": 22014,
+    ".text": 65832,
+    ".rodata": 22659,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2311,13 +2311,13 @@
   "rv64gc_xtheadba/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152828,
-    ".rodata": 41731,
+    ".text": 152784,
+    ".rodata": 42312,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2335,13 +2335,13 @@
   },
   "rv64gc_xtheadba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 57844,
-    ".rodata": 18513,
+    ".text": 57900,
+    ".rodata": 19180,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2360,61 +2360,61 @@
   },
   "rv64gc_xtheadba/speed-all/thread": {
    "sections": {
-    ".text": 81280,
-    ".rodata": 28980,
+    ".text": 81340,
+    ".rodata": 29702,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_xtheadba/speed-auto/binary-trees": {
    "sections": {
-    ".text": 64960,
-    ".rodata": 21832,
+    ".text": 64992,
+    ".rodata": 22477,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_xtheadba/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 50020,
-    ".rodata": 17610,
+    ".text": 50052,
+    ".rodata": 18255,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/speed-auto/fasta": {
    "sections": {
-    ".text": 31268,
-    ".rodata": 11269,
+    ".text": 31352,
+    ".rodata": 12061,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 288,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/speed-auto/fibre": {
    "sections": {
-    ".text": 62632,
-    ".rodata": 23227,
+    ".text": 62692,
+    ".rodata": 23925,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -2433,13 +2433,13 @@
   },
   "rv64gc_xtheadba/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 65800,
-    ".rodata": 22014,
+    ".text": 65832,
+    ".rodata": 22659,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 384,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2459,13 +2459,13 @@
   "rv64gc_xtheadba/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 152828,
-    ".rodata": 41731,
+    ".text": 152784,
+    ".rodata": 42312,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 408,
+    ".data.rel.ro": 240,
+    ".got": 392,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2483,13 +2483,13 @@
   },
   "rv64gc_xtheadba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 57844,
-    ".rodata": 18513,
+    ".text": 57900,
+    ".rodata": 19180,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 408,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2508,61 +2508,61 @@
   },
   "rv64gc_xtheadba/speed-auto/thread": {
    "sections": {
-    ".text": 81280,
-    ".rodata": 28980,
+    ".text": 81340,
+    ".rodata": 29702,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_xtheadba/speed-off/binary-trees": {
    "sections": {
-    ".text": 65076,
-    ".rodata": 21832,
+    ".text": 65108,
+    ".rodata": 22477,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_xtheadba/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 50060,
-    ".rodata": 17610,
+    ".text": 50092,
+    ".rodata": 18255,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 264,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/speed-off/fasta": {
    "sections": {
-    ".text": 31276,
-    ".rodata": 11269,
+    ".text": 31360,
+    ".rodata": 12061,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 248,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_xtheadba/speed-off/fibre": {
    "sections": {
-    ".text": 62672,
-    ".rodata": 23227,
+    ".text": 62732,
+    ".rodata": 23925,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -2581,13 +2581,13 @@
   },
   "rv64gc_xtheadba/speed-off/mandelbrot": {
    "sections": {
-    ".text": 65788,
-    ".rodata": 22014,
+    ".text": 65820,
+    ".rodata": 22659,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 312,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2607,13 +2607,13 @@
   "rv64gc_xtheadba/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 153196,
-    ".rodata": 41731,
+    ".text": 153116,
+    ".rodata": 42312,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 328,
+    ".data.rel.ro": 240,
+    ".got": 320,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2631,13 +2631,13 @@
   },
   "rv64gc_xtheadba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 58072,
-    ".rodata": 18513,
+    ".text": 58128,
+    ".rodata": 19180,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 328,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -2656,62 +2656,62 @@
   },
   "rv64gc_xtheadba/speed-off/thread": {
    "sections": {
-    ".text": 81344,
-    ".rodata": 28980,
+    ".text": 81404,
+    ".rodata": 29702,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 392,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba/none-all/binary-trees": {
    "sections": {
     ".text": 124320,
-    ".rodata": 28860,
+    ".rodata": 29756,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-all/fannkuch-redux": {
    "sections": {
     ".text": 100080,
-    ".rodata": 24658,
+    ".rodata": 25402,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 784,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_zba/none-all/fasta": {
    "sections": {
     ".text": 66184,
-    ".rodata": 14072,
+    ".rodata": 14912,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_zba/none-all/fibre": {
    "sections": {
     ".text": 122712,
-    ".rodata": 33014,
+    ".rodata": 33798,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 568,
     ".got.plt": 16,
-    ".data": 824,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_zba/none-all/k-nucleotide": {
@@ -2730,13 +2730,13 @@
   "rv64gc_zba/none-all/mandelbrot": {
    "sections": {
     ".text": 127412,
-    ".rodata": 29051,
+    ".rodata": 29923,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 912,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-all/n-body": {
@@ -2755,14 +2755,14 @@
   "rv64gc_zba/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291936,
-    ".rodata": 56395,
+    ".text": 291776,
+    ".rodata": 57329,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 792,
+    ".data.rel.ro": 240,
+    ".got": 776,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-all/regex-redux": {
@@ -2780,13 +2780,13 @@
   "rv64gc_zba/none-all/reverse-complement": {
    "sections": {
     ".text": 110288,
-    ".rodata": 21964,
+    ".rodata": 22868,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 792,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-all/spectral-norm": {
@@ -2805,61 +2805,61 @@
   "rv64gc_zba/none-all/thread": {
    "sections": {
     ".text": 152820,
-    ".rodata": 40935,
+    ".rodata": 41831,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_zba/none-auto/binary-trees": {
    "sections": {
     ".text": 124320,
-    ".rodata": 28860,
+    ".rodata": 29756,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-auto/fannkuch-redux": {
    "sections": {
     ".text": 100080,
-    ".rodata": 24658,
+    ".rodata": 25402,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 784,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_zba/none-auto/fasta": {
    "sections": {
     ".text": 66184,
-    ".rodata": 14072,
+    ".rodata": 14912,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_zba/none-auto/fibre": {
    "sections": {
     ".text": 122712,
-    ".rodata": 33014,
+    ".rodata": 33798,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 568,
     ".got.plt": 16,
-    ".data": 824,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_zba/none-auto/k-nucleotide": {
@@ -2878,13 +2878,13 @@
   "rv64gc_zba/none-auto/mandelbrot": {
    "sections": {
     ".text": 127412,
-    ".rodata": 29051,
+    ".rodata": 29923,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 912,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-auto/n-body": {
@@ -2903,14 +2903,14 @@
   "rv64gc_zba/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291936,
-    ".rodata": 56395,
+    ".text": 291776,
+    ".rodata": 57329,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 792,
+    ".data.rel.ro": 240,
+    ".got": 776,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-auto/regex-redux": {
@@ -2928,13 +2928,13 @@
   "rv64gc_zba/none-auto/reverse-complement": {
    "sections": {
     ".text": 110288,
-    ".rodata": 21964,
+    ".rodata": 22868,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 792,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-auto/spectral-norm": {
@@ -2953,61 +2953,61 @@
   "rv64gc_zba/none-auto/thread": {
    "sections": {
     ".text": 152820,
-    ".rodata": 40935,
+    ".rodata": 41831,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_zba/none-off/binary-trees": {
    "sections": {
     ".text": 124348,
-    ".rodata": 28860,
+    ".rodata": 29756,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 712,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-off/fannkuch-redux": {
    "sections": {
     ".text": 100096,
-    ".rodata": 24658,
+    ".rodata": 25402,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 784,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_zba/none-off/fasta": {
    "sections": {
     ".text": 66208,
-    ".rodata": 14072,
+    ".rodata": 14912,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_zba/none-off/fibre": {
    "sections": {
     ".text": 122728,
-    ".rodata": 33014,
+    ".rodata": 33798,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 536,
     ".got.plt": 16,
-    ".data": 824,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_zba/none-off/k-nucleotide": {
@@ -3026,13 +3026,13 @@
   "rv64gc_zba/none-off/mandelbrot": {
    "sections": {
     ".text": 127452,
-    ".rodata": 29051,
+    ".rodata": 29923,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 664,
     ".got.plt": 16,
-    ".data": 912,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-off/n-body": {
@@ -3051,14 +3051,14 @@
   "rv64gc_zba/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291976,
-    ".rodata": 56395,
+    ".text": 291812,
+    ".rodata": 57329,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 712,
+    ".data.rel.ro": 240,
+    ".got": 704,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-off/regex-redux": {
@@ -3076,13 +3076,13 @@
   "rv64gc_zba/none-off/reverse-complement": {
    "sections": {
     ".text": 110328,
-    ".rodata": 21964,
+    ".rodata": 22868,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 712,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba/none-off/spectral-norm": {
@@ -3101,60 +3101,60 @@
   "rv64gc_zba/none-off/thread": {
    "sections": {
     ".text": 152852,
-    ".rodata": 40935,
+    ".rodata": 41831,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 720,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_zba/size-all/binary-trees": {
    "sections": {
-    ".text": 68468,
-    ".rodata": 22536,
+    ".text": 68500,
+    ".rodata": 23181,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 52964,
-    ".rodata": 18186,
+    ".text": 52996,
+    ".rodata": 18831,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba/size-all/fasta": {
    "sections": {
-    ".text": 35820,
-    ".rodata": 11846,
+    ".text": 35904,
+    ".rodata": 12638,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba/size-all/fibre": {
    "sections": {
-    ".text": 68016,
-    ".rodata": 25430,
+    ".text": 68080,
+    ".rodata": 26128,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -3173,13 +3173,13 @@
   },
   "rv64gc_zba/size-all/mandelbrot": {
    "sections": {
-    ".text": 69104,
-    ".rodata": 22715,
+    ".text": 69136,
+    ".rodata": 23360,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3199,13 +3199,13 @@
   "rv64gc_zba/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136384,
-    ".rodata": 42470,
+    ".text": 136256,
+    ".rodata": 43100,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3223,13 +3223,13 @@
   },
   "rv64gc_zba/size-all/reverse-complement": {
    "sections": {
-    ".text": 61080,
-    ".rodata": 19366,
+    ".text": 61136,
+    ".rodata": 20033,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3248,61 +3248,61 @@
   },
   "rv64gc_zba/size-all/thread": {
    "sections": {
-    ".text": 86892,
-    ".rodata": 31830,
+    ".text": 86956,
+    ".rodata": 32552,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba/size-auto/binary-trees": {
    "sections": {
-    ".text": 68468,
-    ".rodata": 22536,
+    ".text": 68500,
+    ".rodata": 23181,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 52964,
-    ".rodata": 18186,
+    ".text": 52996,
+    ".rodata": 18831,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba/size-auto/fasta": {
    "sections": {
-    ".text": 35820,
-    ".rodata": 11846,
+    ".text": 35904,
+    ".rodata": 12638,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba/size-auto/fibre": {
    "sections": {
-    ".text": 68016,
-    ".rodata": 25430,
+    ".text": 68080,
+    ".rodata": 26128,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -3321,13 +3321,13 @@
   },
   "rv64gc_zba/size-auto/mandelbrot": {
    "sections": {
-    ".text": 69104,
-    ".rodata": 22715,
+    ".text": 69136,
+    ".rodata": 23360,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3347,13 +3347,13 @@
   "rv64gc_zba/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136384,
-    ".rodata": 42470,
+    ".text": 136256,
+    ".rodata": 43100,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3371,13 +3371,13 @@
   },
   "rv64gc_zba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 61080,
-    ".rodata": 19366,
+    ".text": 61136,
+    ".rodata": 20033,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3396,61 +3396,61 @@
   },
   "rv64gc_zba/size-auto/thread": {
    "sections": {
-    ".text": 86892,
-    ".rodata": 31830,
+    ".text": 86956,
+    ".rodata": 32552,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba/size-off/binary-trees": {
    "sections": {
-    ".text": 68560,
-    ".rodata": 22536,
+    ".text": 68592,
+    ".rodata": 23181,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 53004,
-    ".rodata": 18186,
+    ".text": 53036,
+    ".rodata": 18831,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba/size-off/fasta": {
    "sections": {
-    ".text": 35896,
-    ".rodata": 11846,
+    ".text": 35980,
+    ".rodata": 12638,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba/size-off/fibre": {
    "sections": {
-    ".text": 68056,
-    ".rodata": 25430,
+    ".text": 68120,
+    ".rodata": 26128,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 344,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -3469,13 +3469,13 @@
   },
   "rv64gc_zba/size-off/mandelbrot": {
    "sections": {
-    ".text": 69236,
-    ".rodata": 22715,
+    ".text": 69268,
+    ".rodata": 23360,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 352,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3495,13 +3495,13 @@
   "rv64gc_zba/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136492,
-    ".rodata": 42470,
+    ".text": 136336,
+    ".rodata": 43100,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 368,
+    ".data.rel.ro": 240,
+    ".got": 360,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3519,13 +3519,13 @@
   },
   "rv64gc_zba/size-off/reverse-complement": {
    "sections": {
-    ".text": 61192,
-    ".rodata": 19366,
+    ".text": 61248,
+    ".rodata": 20033,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 368,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3544,61 +3544,61 @@
   },
   "rv64gc_zba/size-off/thread": {
    "sections": {
-    ".text": 86976,
-    ".rodata": 31830,
+    ".text": 87040,
+    ".rodata": 32552,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba/speed-all/binary-trees": {
    "sections": {
-    ".text": 66264,
-    ".rodata": 22275,
+    ".text": 66296,
+    ".rodata": 22920,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 51324,
-    ".rodata": 18053,
+    ".text": 51356,
+    ".rodata": 18698,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba/speed-all/fasta": {
    "sections": {
-    ".text": 32572,
-    ".rodata": 11713,
+    ".text": 32656,
+    ".rodata": 12505,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba/speed-all/fibre": {
    "sections": {
-    ".text": 64056,
-    ".rodata": 23782,
+    ".text": 64116,
+    ".rodata": 24480,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -3617,13 +3617,13 @@
   },
   "rv64gc_zba/speed-all/mandelbrot": {
    "sections": {
-    ".text": 67104,
-    ".rodata": 22457,
+    ".text": 67136,
+    ".rodata": 23102,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3643,13 +3643,13 @@
   "rv64gc_zba/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154132,
-    ".rodata": 42174,
+    ".text": 154088,
+    ".rodata": 42755,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3667,13 +3667,13 @@
   },
   "rv64gc_zba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 59148,
-    ".rodata": 18955,
+    ".text": 59204,
+    ".rodata": 19622,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3692,61 +3692,61 @@
   },
   "rv64gc_zba/speed-all/thread": {
    "sections": {
-    ".text": 82704,
-    ".rodata": 29535,
+    ".text": 82764,
+    ".rodata": 30257,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba/speed-auto/binary-trees": {
    "sections": {
-    ".text": 66264,
-    ".rodata": 22275,
+    ".text": 66296,
+    ".rodata": 22920,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 51324,
-    ".rodata": 18053,
+    ".text": 51356,
+    ".rodata": 18698,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba/speed-auto/fasta": {
    "sections": {
-    ".text": 32572,
-    ".rodata": 11713,
+    ".text": 32656,
+    ".rodata": 12505,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba/speed-auto/fibre": {
    "sections": {
-    ".text": 64056,
-    ".rodata": 23782,
+    ".text": 64116,
+    ".rodata": 24480,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -3765,13 +3765,13 @@
   },
   "rv64gc_zba/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 67104,
-    ".rodata": 22457,
+    ".text": 67136,
+    ".rodata": 23102,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3791,13 +3791,13 @@
   "rv64gc_zba/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154132,
-    ".rodata": 42174,
+    ".text": 154088,
+    ".rodata": 42755,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3815,13 +3815,13 @@
   },
   "rv64gc_zba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 59148,
-    ".rodata": 18955,
+    ".text": 59204,
+    ".rodata": 19622,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3840,61 +3840,61 @@
   },
   "rv64gc_zba/speed-auto/thread": {
    "sections": {
-    ".text": 82704,
-    ".rodata": 29535,
+    ".text": 82764,
+    ".rodata": 30257,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba/speed-off/binary-trees": {
    "sections": {
-    ".text": 66380,
-    ".rodata": 22275,
+    ".text": 66412,
+    ".rodata": 22920,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 51364,
-    ".rodata": 18053,
+    ".text": 51396,
+    ".rodata": 18698,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba/speed-off/fasta": {
    "sections": {
-    ".text": 32580,
-    ".rodata": 11713,
+    ".text": 32664,
+    ".rodata": 12505,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba/speed-off/fibre": {
    "sections": {
-    ".text": 64096,
-    ".rodata": 23782,
+    ".text": 64156,
+    ".rodata": 24480,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 344,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -3913,13 +3913,13 @@
   },
   "rv64gc_zba/speed-off/mandelbrot": {
    "sections": {
-    ".text": 67092,
-    ".rodata": 22457,
+    ".text": 67124,
+    ".rodata": 23102,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 352,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3939,13 +3939,13 @@
   "rv64gc_zba/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154500,
-    ".rodata": 42174,
+    ".text": 154420,
+    ".rodata": 42755,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 368,
+    ".data.rel.ro": 240,
+    ".got": 360,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3963,13 +3963,13 @@
   },
   "rv64gc_zba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 59376,
-    ".rodata": 18955,
+    ".text": 59432,
+    ".rodata": 19622,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 368,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -3988,62 +3988,62 @@
   },
   "rv64gc_zba/speed-off/thread": {
    "sections": {
-    ".text": 82768,
-    ".rodata": 29535,
+    ".text": 82828,
+    ".rodata": 30257,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/none-all/binary-trees": {
    "sections": {
     ".text": 124320,
-    ".rodata": 28869,
+    ".rodata": 29765,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-all/fannkuch-redux": {
    "sections": {
     ".text": 100080,
-    ".rodata": 24667,
+    ".rodata": 25411,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 784,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/none-all/fasta": {
    "sections": {
     ".text": 66184,
-    ".rodata": 14081,
+    ".rodata": 14921,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/none-all/fibre": {
    "sections": {
     ".text": 122712,
-    ".rodata": 33023,
+    ".rodata": 33807,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 568,
     ".got.plt": 16,
-    ".data": 824,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_zba_xtheadba/none-all/k-nucleotide": {
@@ -4062,13 +4062,13 @@
   "rv64gc_zba_xtheadba/none-all/mandelbrot": {
    "sections": {
     ".text": 127412,
-    ".rodata": 29060,
+    ".rodata": 29932,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 912,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-all/n-body": {
@@ -4087,14 +4087,14 @@
   "rv64gc_zba_xtheadba/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291936,
-    ".rodata": 56404,
+    ".text": 291776,
+    ".rodata": 57338,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 792,
+    ".data.rel.ro": 240,
+    ".got": 776,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-all/regex-redux": {
@@ -4112,13 +4112,13 @@
   "rv64gc_zba_xtheadba/none-all/reverse-complement": {
    "sections": {
     ".text": 110288,
-    ".rodata": 21973,
+    ".rodata": 22877,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 792,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-all/spectral-norm": {
@@ -4137,61 +4137,61 @@
   "rv64gc_zba_xtheadba/none-all/thread": {
    "sections": {
     ".text": 152820,
-    ".rodata": 40944,
+    ".rodata": 41840,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/none-auto/binary-trees": {
    "sections": {
     ".text": 124320,
-    ".rodata": 28869,
+    ".rodata": 29765,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-auto/fannkuch-redux": {
    "sections": {
     ".text": 100080,
-    ".rodata": 24667,
+    ".rodata": 25411,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 784,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/none-auto/fasta": {
    "sections": {
     ".text": 66184,
-    ".rodata": 14081,
+    ".rodata": 14921,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 488,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/none-auto/fibre": {
    "sections": {
     ".text": 122712,
-    ".rodata": 33023,
+    ".rodata": 33807,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 568,
     ".got.plt": 16,
-    ".data": 824,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_zba_xtheadba/none-auto/k-nucleotide": {
@@ -4210,13 +4210,13 @@
   "rv64gc_zba_xtheadba/none-auto/mandelbrot": {
    "sections": {
     ".text": 127412,
-    ".rodata": 29060,
+    ".rodata": 29932,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 736,
     ".got.plt": 16,
-    ".data": 912,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-auto/n-body": {
@@ -4235,14 +4235,14 @@
   "rv64gc_zba_xtheadba/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291936,
-    ".rodata": 56404,
+    ".text": 291776,
+    ".rodata": 57338,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 792,
+    ".data.rel.ro": 240,
+    ".got": 776,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-auto/regex-redux": {
@@ -4260,13 +4260,13 @@
   "rv64gc_zba_xtheadba/none-auto/reverse-complement": {
    "sections": {
     ".text": 110288,
-    ".rodata": 21973,
+    ".rodata": 22877,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 792,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-auto/spectral-norm": {
@@ -4285,61 +4285,61 @@
   "rv64gc_zba_xtheadba/none-auto/thread": {
    "sections": {
     ".text": 152820,
-    ".rodata": 40944,
+    ".rodata": 41840,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 784,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/none-off/binary-trees": {
    "sections": {
     ".text": 124348,
-    ".rodata": 28869,
+    ".rodata": 29765,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 712,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-off/fannkuch-redux": {
    "sections": {
     ".text": 100096,
-    ".rodata": 24667,
+    ".rodata": 25411,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 456,
     ".got.plt": 16,
-    ".data": 784,
-    ".bss": 168
+    ".data": 64,
+    ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/none-off/fasta": {
    "sections": {
     ".text": 66208,
-    ".rodata": 14081,
+    ".rodata": 14921,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 896,
-    ".bss": 168
+    ".data": 80,
+    ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/none-off/fibre": {
    "sections": {
     ".text": 122728,
-    ".rodata": 33023,
+    ".rodata": 33807,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 536,
     ".got.plt": 16,
-    ".data": 824,
-    ".bss": 176
+    ".data": 64,
+    ".bss": 160
    }
   },
   "rv64gc_zba_xtheadba/none-off/k-nucleotide": {
@@ -4358,13 +4358,13 @@
   "rv64gc_zba_xtheadba/none-off/mandelbrot": {
    "sections": {
     ".text": 127452,
-    ".rodata": 29060,
+    ".rodata": 29932,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 664,
     ".got.plt": 16,
-    ".data": 912,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-off/n-body": {
@@ -4383,14 +4383,14 @@
   "rv64gc_zba_xtheadba/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 291976,
-    ".rodata": 56404,
+    ".text": 291812,
+    ".rodata": 57338,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 712,
+    ".data.rel.ro": 240,
+    ".got": 704,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-off/regex-redux": {
@@ -4408,13 +4408,13 @@
   "rv64gc_zba_xtheadba/none-off/reverse-complement": {
    "sections": {
     ".text": 110328,
-    ".rodata": 21973,
+    ".rodata": 22877,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 712,
     ".got.plt": 16,
-    ".data": 944,
-    ".bss": 264
+    ".data": 64,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/none-off/spectral-norm": {
@@ -4433,60 +4433,60 @@
   "rv64gc_zba_xtheadba/none-off/thread": {
    "sections": {
     ".text": 152852,
-    ".rodata": 40944,
+    ".rodata": 41840,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 720,
     ".got.plt": 16,
-    ".data": 936,
-    ".bss": 131264
+    ".data": 64,
+    ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/size-all/binary-trees": {
    "sections": {
-    ".text": 68468,
-    ".rodata": 22545,
+    ".text": 68500,
+    ".rodata": 23190,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 52964,
-    ".rodata": 18195,
+    ".text": 52996,
+    ".rodata": 18840,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/size-all/fasta": {
    "sections": {
-    ".text": 35820,
-    ".rodata": 11855,
+    ".text": 35904,
+    ".rodata": 12647,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/size-all/fibre": {
    "sections": {
-    ".text": 68016,
-    ".rodata": 25439,
+    ".text": 68080,
+    ".rodata": 26137,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -4505,13 +4505,13 @@
   },
   "rv64gc_zba_xtheadba/size-all/mandelbrot": {
    "sections": {
-    ".text": 69104,
-    ".rodata": 22724,
+    ".text": 69136,
+    ".rodata": 23369,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4531,13 +4531,13 @@
   "rv64gc_zba_xtheadba/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136384,
-    ".rodata": 42479,
+    ".text": 136256,
+    ".rodata": 43109,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4555,13 +4555,13 @@
   },
   "rv64gc_zba_xtheadba/size-all/reverse-complement": {
    "sections": {
-    ".text": 61080,
-    ".rodata": 19375,
+    ".text": 61136,
+    ".rodata": 20042,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4580,61 +4580,61 @@
   },
   "rv64gc_zba_xtheadba/size-all/thread": {
    "sections": {
-    ".text": 86892,
-    ".rodata": 31839,
+    ".text": 86956,
+    ".rodata": 32561,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/size-auto/binary-trees": {
    "sections": {
-    ".text": 68468,
-    ".rodata": 22545,
+    ".text": 68500,
+    ".rodata": 23190,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 52964,
-    ".rodata": 18195,
+    ".text": 52996,
+    ".rodata": 18840,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/size-auto/fasta": {
    "sections": {
-    ".text": 35820,
-    ".rodata": 11855,
+    ".text": 35904,
+    ".rodata": 12647,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/size-auto/fibre": {
    "sections": {
-    ".text": 68016,
-    ".rodata": 25439,
+    ".text": 68080,
+    ".rodata": 26137,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -4653,13 +4653,13 @@
   },
   "rv64gc_zba_xtheadba/size-auto/mandelbrot": {
    "sections": {
-    ".text": 69104,
-    ".rodata": 22724,
+    ".text": 69136,
+    ".rodata": 23369,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4679,13 +4679,13 @@
   "rv64gc_zba_xtheadba/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136384,
-    ".rodata": 42479,
+    ".text": 136256,
+    ".rodata": 43109,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4703,13 +4703,13 @@
   },
   "rv64gc_zba_xtheadba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 61080,
-    ".rodata": 19375,
+    ".text": 61136,
+    ".rodata": 20042,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4728,61 +4728,61 @@
   },
   "rv64gc_zba_xtheadba/size-auto/thread": {
    "sections": {
-    ".text": 86892,
-    ".rodata": 31839,
+    ".text": 86956,
+    ".rodata": 32561,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/size-off/binary-trees": {
    "sections": {
-    ".text": 68560,
-    ".rodata": 22545,
+    ".text": 68592,
+    ".rodata": 23190,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 53004,
-    ".rodata": 18195,
+    ".text": 53036,
+    ".rodata": 18840,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/size-off/fasta": {
    "sections": {
-    ".text": 35896,
-    ".rodata": 11855,
+    ".text": 35980,
+    ".rodata": 12647,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/size-off/fibre": {
    "sections": {
-    ".text": 68056,
-    ".rodata": 25439,
+    ".text": 68120,
+    ".rodata": 26137,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 344,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -4801,13 +4801,13 @@
   },
   "rv64gc_zba_xtheadba/size-off/mandelbrot": {
    "sections": {
-    ".text": 69236,
-    ".rodata": 22724,
+    ".text": 69268,
+    ".rodata": 23369,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 352,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4827,13 +4827,13 @@
   "rv64gc_zba_xtheadba/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 136492,
-    ".rodata": 42479,
+    ".text": 136336,
+    ".rodata": 43109,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 368,
+    ".data.rel.ro": 240,
+    ".got": 360,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4851,13 +4851,13 @@
   },
   "rv64gc_zba_xtheadba/size-off/reverse-complement": {
    "sections": {
-    ".text": 61192,
-    ".rodata": 19375,
+    ".text": 61248,
+    ".rodata": 20042,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 368,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4876,61 +4876,61 @@
   },
   "rv64gc_zba_xtheadba/size-off/thread": {
    "sections": {
-    ".text": 86976,
-    ".rodata": 31839,
+    ".text": 87040,
+    ".rodata": 32561,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/speed-all/binary-trees": {
    "sections": {
-    ".text": 66264,
-    ".rodata": 22284,
+    ".text": 66296,
+    ".rodata": 22929,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 51324,
-    ".rodata": 18062,
+    ".text": 51356,
+    ".rodata": 18707,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/speed-all/fasta": {
    "sections": {
-    ".text": 32572,
-    ".rodata": 11722,
+    ".text": 32656,
+    ".rodata": 12514,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/speed-all/fibre": {
    "sections": {
-    ".text": 64056,
-    ".rodata": 23791,
+    ".text": 64116,
+    ".rodata": 24489,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -4949,13 +4949,13 @@
   },
   "rv64gc_zba_xtheadba/speed-all/mandelbrot": {
    "sections": {
-    ".text": 67104,
-    ".rodata": 22466,
+    ".text": 67136,
+    ".rodata": 23111,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4975,13 +4975,13 @@
   "rv64gc_zba_xtheadba/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154132,
-    ".rodata": 42183,
+    ".text": 154088,
+    ".rodata": 42764,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -4999,13 +4999,13 @@
   },
   "rv64gc_zba_xtheadba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 59148,
-    ".rodata": 18964,
+    ".text": 59204,
+    ".rodata": 19631,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -5024,61 +5024,61 @@
   },
   "rv64gc_zba_xtheadba/speed-all/thread": {
    "sections": {
-    ".text": 82704,
-    ".rodata": 29544,
+    ".text": 82764,
+    ".rodata": 30266,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/speed-auto/binary-trees": {
    "sections": {
-    ".text": 66264,
-    ".rodata": 22284,
+    ".text": 66296,
+    ".rodata": 22929,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 51324,
-    ".rodata": 18062,
+    ".text": 51356,
+    ".rodata": 18707,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/speed-auto/fasta": {
    "sections": {
-    ".text": 32572,
-    ".rodata": 11722,
+    ".text": 32656,
+    ".rodata": 12514,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 336,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/speed-auto/fibre": {
    "sections": {
-    ".text": 64056,
-    ".rodata": 23791,
+    ".text": 64116,
+    ".rodata": 24489,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -5097,13 +5097,13 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 67104,
-    ".rodata": 22466,
+    ".text": 67136,
+    ".rodata": 23111,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 424,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -5123,13 +5123,13 @@
   "rv64gc_zba_xtheadba/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154132,
-    ".rodata": 42183,
+    ".text": 154088,
+    ".rodata": 42764,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 448,
+    ".data.rel.ro": 240,
+    ".got": 432,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -5147,13 +5147,13 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 59148,
-    ".rodata": 18964,
+    ".text": 59204,
+    ".rodata": 19631,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 448,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -5172,61 +5172,61 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/thread": {
    "sections": {
-    ".text": 82704,
-    ".rodata": 29544,
+    ".text": 82764,
+    ".rodata": 30266,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 496,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   },
   "rv64gc_zba_xtheadba/speed-off/binary-trees": {
    "sections": {
-    ".text": 66380,
-    ".rodata": 22284,
+    ".text": 66412,
+    ".rodata": 22929,
     ".tbss": 4,
     ".data.rel.ro": 288,
     ".got": 376,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 51364,
-    ".rodata": 18062,
+    ".text": 51396,
+    ".rodata": 18707,
     ".tbss": 4,
     ".data.rel.ro": 192,
     ".got": 304,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/speed-off/fasta": {
    "sections": {
-    ".text": 32580,
-    ".rodata": 11722,
+    ".text": 32664,
+    ".rodata": 12514,
     ".tbss": 4,
     ".data.rel.ro": 96,
     ".got": 296,
     ".got.plt": 16,
-    ".data": 776,
+    ".data": 80,
     ".bss": 152
    }
   },
   "rv64gc_zba_xtheadba/speed-off/fibre": {
    "sections": {
-    ".text": 64096,
-    ".rodata": 23791,
+    ".text": 64156,
+    ".rodata": 24489,
     ".tbss": 16,
     ".data.rel.ro": 288,
     ".got": 344,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 160
    }
   },
@@ -5245,13 +5245,13 @@
   },
   "rv64gc_zba_xtheadba/speed-off/mandelbrot": {
    "sections": {
-    ".text": 67092,
-    ".rodata": 22466,
+    ".text": 67124,
+    ".rodata": 23111,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 352,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -5271,13 +5271,13 @@
   "rv64gc_zba_xtheadba/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 154500,
-    ".rodata": 42183,
+    ".text": 154420,
+    ".rodata": 42764,
     ".tbss": 4,
-    ".data.rel.ro": 320,
-    ".got": 368,
+    ".data.rel.ro": 240,
+    ".got": 360,
     ".got.plt": 16,
-    ".data": 664,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -5295,13 +5295,13 @@
   },
   "rv64gc_zba_xtheadba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 59376,
-    ".rodata": 18964,
+    ".text": 59432,
+    ".rodata": 19631,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".got": 368,
     ".got.plt": 16,
-    ".data": 672,
+    ".data": 64,
     ".bss": 240
    }
   },
@@ -5320,13 +5320,13 @@
   },
   "rv64gc_zba_xtheadba/speed-off/thread": {
    "sections": {
-    ".text": 82768,
-    ".rodata": 29544,
+    ".text": 82828,
+    ".rodata": 30266,
     ".tbss": 16,
     ".data.rel.ro": 416,
     ".got": 432,
     ".got.plt": 16,
-    ".data": 688,
+    ".data": 64,
     ".bss": 131232
    }
   }

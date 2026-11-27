@@ -166,7 +166,7 @@ shortest: (mantissa: u64, exponent: u32, mantissa_bits: u32, bias: i32)
     mut e2: i32 = 0
     mut m2: u64 = 0
     if exponent == 0 then
-        e2 = 1 - (bias + i32(mantissa_bits) + 2)
+        e2 = 1 - bias - i32(mantissa_bits) - 2
         m2 = mantissa
     else
         e2 = i32(exponent) - (bias + i32(mantissa_bits) + 2)

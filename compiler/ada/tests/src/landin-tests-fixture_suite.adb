@@ -1385,6 +1385,8 @@ package body Landin.Tests.Fixture_Suite is
             return Image (Status (Fixture));
          elsif Key = "traps" then
             return (if Traps (Fixture) then "yes" else "no");
+         elsif Key = "protected" then
+            return (if Protected_Write (Fixture) then "yes" else "");
          elsif Key = "stream" then
             return (if Stream (Fixture) = Output then "output" else "merged");
          elsif Key = "profile-count" then

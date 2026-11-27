@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: D3014 an immutable module array is in the read-only section on every hosted target, so a write through a pointer made from its address ends the program instead of changing the value
+program: main.ldn
+traps: yes
+protected: yes
+constructs: 0430, 0470, 1460
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

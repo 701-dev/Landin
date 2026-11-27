@@ -1,5 +1,6 @@
 with Ada.Characters.Handling;
 
+with Landin.Diagnostics.Fixes;
 with Landin.Tokens.Lexer;
 
 package body Landin.Diagnostics.Lexical is
@@ -151,12 +152,28 @@ package body Landin.Diagnostics.Lexical is
                      & " and end the digit run with a digit [1770]");
 
                when Landin.Tokens.Malformed_Float_Literal_Run =>
-                  Add_Note
-                    (Report,
-                     "a float has digits on both sides of its dot and a"
-                     & " complete exponent when one is required, and no"
-                     & " name runs straight into it"
-                     & " [0210] [0220] [0230] [1770]");
+                  if Landin.Tokens.Lacks_Point (Fault) then
+                     --  D2995: the one thing missing is the point, and
+                     --  `.0` before the exponent keeps the value.
+                     Add_Note
+                       (Report,
+                        "[0210] [0220]: a float literal needs a point with"
+                        & " digits on both sides even when it has an"
+                        & " exponent, as in `1.0e10` and `0x1.0p-20`");
+                     Add_Fix
+                       (Report,
+                        Landin.Diagnostics.Fixes.Insert_Token
+                          (Source, Landin.Tokens.Point_At (Fault), ".0",
+                           ".0", Exact, Neighbour => "the exponent",
+                           After => False));
+                  else
+                     Add_Note
+                       (Report,
+                        "a float has digits on both sides of its dot and a"
+                        & " complete exponent when one is required, and no"
+                        & " name runs straight into it"
+                        & " [0210] [0220] [0230] [1770]");
+                  end if;
 
                when Landin.Tokens.Malformed_Character_Literal_Run =>
                   Add_Note

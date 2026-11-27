@@ -1,0 +1,9 @@
+full: atom
+append: (negative: bool) -> none ! full =
+    if negative then
+        fail full
+    end if
+end append
+write: (negative: bool) -> none =
+    if negative then append(negative) else begin return end end if
+end write

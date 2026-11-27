@@ -180,9 +180,7 @@ package Landin.Syntax is
       Call,
       --  [0960]'s explicit propagation expression.
       Try_Expression,
-      --  Expressions [1820].  [1010]'s anonymous function carries the same
-      --  signature/body slots as a declaration but declares no module name.
-      Anonymous_Function,
+      --  Expressions [1820].
       Error_Expression,
       Name_Reference,
       --  [0420]'s ordinary member selection.  It carries what it selects
@@ -600,13 +598,13 @@ package Landin.Syntax is
    function Uses_C_ABI (Of_Tree : Tree; Id : Node_Id) return Boolean
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id)
-                   in Function_Declaration | Anonymous_Function
+                   in Function_Declaration
                       | Function_Type | Concept_Entry;
 
    function Is_Variadic (Of_Tree : Tree; Id : Node_Id) return Boolean
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id)
-                   in Function_Declaration | Anonymous_Function
+                   in Function_Declaration
                       | Function_Type | Concept_Entry;
 
    function Layout_Of (Of_Tree : Tree; Id : Node_Id)
@@ -1090,7 +1088,7 @@ package Landin.Syntax is
    function Body_Of (Of_Tree : Tree; Id : Node_Id) return Node_Id
      with Pre  => Contains (Of_Tree, Id)
                   and then Kind (Of_Tree, Id)
-                           in Function_Declaration | Anonymous_Function
+                           in Function_Declaration
                               | If_Arm | Match_Arm | Bare_Block,
           Post => Contains (Of_Tree, Body_Of'Result);
 
@@ -1101,27 +1099,27 @@ package Landin.Syntax is
    function Returns_Of (Of_Tree : Tree; Id : Node_Id) return Node_Id
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id)
-                            in Function_Declaration | Anonymous_Function
+                            in Function_Declaration
                                | Function_Type | Concept_Entry;
 
    --  An empty present Return_List denotes noreturn, never none.
    function Never_Returns (Of_Tree : Tree; Id : Node_Id) return Boolean
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id)
-                   in Function_Declaration | Anonymous_Function
+                   in Function_Declaration
                       | Function_Type | Concept_Entry;
 
    function Return_Count (Of_Tree : Tree; Id : Node_Id) return Natural
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id)
-                            in Function_Declaration | Anonymous_Function
+                            in Function_Declaration
                                | Function_Type | Concept_Entry;
 
    function Nth_Return
      (Of_Tree : Tree; Id : Node_Id; Index : Positive) return Node_Id
      with Pre  => Contains (Of_Tree, Id)
                   and then Kind (Of_Tree, Id)
-                             in Function_Declaration | Anonymous_Function
+                             in Function_Declaration
                                 | Function_Type | Concept_Entry
                   and then Index <= Return_Count (Of_Tree, Id),
           Post => Contains (Of_Tree, Nth_Return'Result)
@@ -1147,7 +1145,7 @@ package Landin.Syntax is
    function Error_Set_Of (Of_Tree : Tree; Id : Node_Id) return Node_Id
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id)
-                            in Function_Declaration | Anonymous_Function
+                            in Function_Declaration
                                | Function_Type | Concept_Entry;
 
    --  An application's optional [1030] clause; No_Node when none was written.
@@ -1212,14 +1210,14 @@ package Landin.Syntax is
    function Parameter_Count (Of_Tree : Tree; Id : Node_Id) return Natural
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id)
-                            in Function_Declaration | Anonymous_Function
+                            in Function_Declaration
                                | Function_Type | Concept_Entry;
 
    function Nth_Parameter
      (Of_Tree : Tree; Id : Node_Id; Index : Positive) return Node_Id
      with Pre  => Contains (Of_Tree, Id)
                   and then Kind (Of_Tree, Id)
-                             in Function_Declaration | Anonymous_Function
+                             in Function_Declaration
                                 | Function_Type | Concept_Entry
                   and then Index <= Parameter_Count (Of_Tree, Id),
           Post => Contains (Of_Tree, Nth_Parameter'Result)

@@ -456,10 +456,10 @@ parameters and locals in their scopes with the same locations, struct and
 atom set types, a variant as a union of its tag and its cases, and module
 bindings. CodeView names no base type of a program's own, so `i32` shows as
 `int` and `u8` as `unsigned char`. A line is the line of the code at its
-address (D2288). Two limits stand: an inlined copy is no frame of its own,
-its lines belonging to the routine it was copied into and its variables not
-shown (D2290); and the stack switch's routines carry no unwind tables, so a
-backtrace below them is not claimed.
+address (D2288). An inlined copy is an inline site: LLDB shows it as a frame
+of the routine it copies, above the routine it was copied into, with its
+own parameters and locals (D2964). One limit stands: the stack switch's
+routines carry no unwind tables, so a backtrace below them is not claimed.
 
 `compiler/tests/windows/debug.py` runs the gate's sessions, and under Wine
 on Linux, as [its README](../compiler/tests/windows/README.md#debugger-sessions)

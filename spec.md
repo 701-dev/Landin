@@ -3467,6 +3467,27 @@ declined.
 `negative/malformed-hex-float-exponent`, the lexer cases, and the `float.ieee`
 and `source.lexical` guarantee rows.
 
+
+### D2995 — A float that lacks only its point is told where it goes
+
+**The discrepancy:** C's hexadecimal float without a point, `0x1p-20`, was
+L0011, "this is not an integer any base spells", whose note spoke of digits
+and underscores; nothing said that [0220]'s hexadecimal float has a point,
+`0x1.0p-20`. `1e10` was L0321 with the general note.
+
+**Chosen:** a digit run, decimal or after `0x`, followed directly by its
+exponent, `e` or `p` with an optional sign and a digit, is L0321 over the
+whole literal. When the run before the exponent is well formed the note
+says that a float literal needs a point with digits on both sides even when
+it has an exponent, and an exact fix inserts `.0` before the exponent, which keeps the
+value; `refine fix` applies it.
+
+**The alternatives:** accepting C's form, a second spelling of one value;
+and keeping `0x1p-20` an integer error, whose words point at the wrong rule.
+
+**Pinned by** `negative/hexadecimal-float-without-point-is-fixed`, whose
+fixed program compiles with no report.
+
 ### D167 — IEEE special values are inherent type-qualified constants
 
 **The tour said** that [0240] writes infinity and NaN as members of a float
@@ -15672,7 +15693,7 @@ classified failure boundary before the repository gate can pass.
 | `functions.caller` | static | 0670, 0790, 1000, 1040, 1800, 1920 | caller positions have immutable three-u32 struct values (file_id, line, column) and structural signature identity, are compiler-filled without source strings, and accept an explicit argument only as a named forwarding of another caller parameter; L0339 rejects an invalid site type, L0301 a different signature, L0327 an extra positional argument or invalid forwarding source and L0303 rejects mutation, and `caller` decided on two tokens leaves the spelling an ordinary name | `negative/caller-parameter-extra-field`, `negative/caller-parameter-field-order`, `negative/caller-parameter-field-width`, `negative/caller-parameter-read-only`, `negative/caller-parameter-forward-copy`, `negative/caller-parameter-forward-needs-caller`, `negative/caller-parameter-needs-site`, `negative/caller-parameter-positional`, `negative/caller-parameter-signature-mismatch`, `runtime/caller-parameters`, `runtime/caller-is-an-ordinary-name` |
 | `extern.c-boundary` | static | 0430, 0570, 0750, 0920, 1000, 1570, 1580, 1600, 1975 | C convention and variadicness remain recursively distinct from the Landin convention; fixed positions at the selected boundary admit integers, bool, pointers, f32/f64, fixed C callbacks and compatible nonempty `layout(c)` structs, while L0346 refuses an ordinary Landin struct, a slice, a Landin error channel or a native-convention callback even when its machine shape matches | `positive/external-scalar-c-boundary`, `positive/r440-external-float`, `positive/r440-c-signatures`, `negative/external-aggregate-boundary`, `negative/r440-c-slice-parameter`, `negative/r440-c-error-channel`, `negative/r440-c-native-callback` |
 | `functions.linkage` | static | 1000, 1570, 1580, 1600, 1610, 1615, 1800, 1975, 1996 | `link(symbol: text)` changes only the linker spelling: standalone use retains the native convention and body requirement, C imports may have compatible repeated declarations, L0347 refuses an assembly expression, incompatible declarations or multiple definitions, and L0301 refuses treating a native linked function as a C callback; `link(thread)` gives a module `mut` binding a zeroed instance in every thread, and L0347 refuses it with a value, without `mut`, on a routine or beside a symbol or section, L0328 for a type with no zero image | `positive/r440-c-signatures`, `positive/r440-compatible-link-declarations`, `negative/r440-link-assembly-expression`, `negative/r440-link-does-not-change-convention`, `negative/r440-link-duplicate-definitions`, `negative/r440-link-incompatible-declarations`, `positive/thread-storage-declarations`, `runtime/thread-storage-holds-its-instance`, `abi/thread-storage-per-thread`, `negative/thread-storage-takes-no-value`, `negative/thread-storage-needs-a-zero-image` |
-| `host.arguments-startup` | trap | 1580, 1600, 1650, 1660, 1960, 1975 | the no-argument Landin entry calls `hosted/system`'s initializer, when the program defines it, to establish the actual argument root before its body; C-owned startup must initialize it explicitly before `system.new()` or `blocking.new()`; use before initialization, a negative `argc`, null `argv`, or replacement of either established root carrier traps, while an identical repeated initialization is a no-op and file, stream and heap work needs no root | `abi/r440-native-startup-initialized`, `abi/r440-native-startup-empty`, `abi/r440-native-startup-uninitialized`, `abi/r440-native-startup-replaced` |
+| `host.arguments-startup` | trap | 1580, 1600, 1650, 1660, 1960, 1975 | the no-argument Landin entry calls `hosted/system`'s initializer, when the program defines it, to establish the actual argument root before its body; C-owned startup must initialize it explicitly before `system.new()` or `blocking.new()`; use before initialization, a negative `argc`, null `argv`, or replacement of either established root carrier traps, while an identical repeated initialization is a no-op and file, stream and heap work needs no root | `abi/r440-native-startup-initialized`, `abi/r440-native-startup-empty`, `abi/r440-native-startup-uninitialized`, `abi/r440-native-startup-replaced`, `abi/r440-native-startup-invalid` |
 | `host.io` | outside | 0430, 1580, 1650, 1660, 1680, 1975 | non-guarantee: files, descriptors, arguments and streams reflect mutable host state | `runtime/hosted-io-reads-parser-input`, `runtime/core-io-erased-system`, `runtime/derived-parser` |
 | `capabilities.host-root-exclusion` | outside | 1660, 1680, 1975 | non-guarantee: an ordinary hosted routine without an I/O or allocator parameter may call a public host constructor and use that authority; passing a replacement provider does not exclude this path | `runtime/derived-hosted-memory` |
 | `host.io-failure` | static | 0940, 0960, 1030, 1975 | `hosted/system` and `hosted/blocking` report foreseeable host failure as declared atoms which callers handle or declare | `runtime/hosted-io-reads-parser-input`, `runtime/core-io-erased-system`, `runtime/diagnostic-loggers-dispatch`, `runtime/derived-parser` |
@@ -19288,10 +19309,99 @@ type argument and a failure set, and
 `negative/library-module-concept-prefix-names-its-import`, a prefix the
 resolver reads; each fixed program compiles with no report.
 
+### D3014 — An immutable module value is read-only on every target
+
+**The discrepancy:** [1460] says an immutable value can stay in flash, and
+D161 puts a text literal in `.rodata` so that a write through a reference
+the checker should have refused faults. Only the firmware backends put an
+immutable module value there; Linux x86-64, arm64 and RV64, and with them
+FreeBSD, Darwin and Windows, emitted it in a writable `.data`, and a wholly
+zero one in `.bss`, so a write through a pointer made from its address
+changed it silently for every reader. RV32 and Xtensa reserved a wholly
+zero immutable value beside the mutable ones, in RAM.
+
+**Chosen:** every backend places an immutable module value in its
+target's read-only section, `.rodata`, Mach-O's `__TEXT,__const` or PE's
+`.rdata`, unless it is in thread storage or, on a hosted target, its image
+names another symbol: a function, an address, a slice's source or a
+field's target. A wholly zero one is written there, its zeros with it. One
+predicate, `Landin.Backend.In_Read_Only_Section`, decides for every
+backend and for the image measurement, whose writable count it also
+corrects. A firmware image is linked where it runs and has no loader, so
+its relocated constants stay in flash as before.
+
+**The alternatives:** a relocated immutable value in `.data.rel.ro` or
+`__DATA_CONST`, which a loader makes read-only after writing it; whether
+each hosted link mode has a loader that does so was not established here,
+so a relocated value keeps its writable section until an item that
+changes how hosted images are relocated settles it. A wholly zero
+immutable value reserved in a read-only `NOBITS` section, which costs no
+file bytes but leaves its placement to each linker's rules for an
+allocated section without contents. Both were declined.
+
+**Pinned by** `runtime/immutable-module-value-write-faults` and
+`runtime/immutable-zero-module-value-write-faults` on every hosted target,
+whose write through a pointer made from the value's address ends the
+program by SIGSEGV or SIGBUS, and on Windows by `STATUS_ACCESS_VIOLATION`.
+Their metadata says `protected: yes`, so that the lanes which name a
+trap's signal expect the refused write's instead, and the firmware
+corpora, whose targets have no memory protection to refuse it, read the
+oracle as one firmware cannot give.
+
+
 ## DECISIONS: THE TOOLCHAIN, C AND THE MACHINE
 
 The C boundary, the machine directives, the entry point, and the
 contract an optimization has to keep.
+
+
+### D2994 — A prefix naming a library module no import reaches is told its import
+
+**The discrepancy:** D2174 named the import for a prefix whose library
+module the program reached, and left one it did not reach to [1860]'s
+spelling note, because the stages ask the host nothing and the module table
+held only what imports reached. `text.bytes(value)` in a program that
+imports `core/text` nowhere, a newcomer's first use of a module, was told
+to check its spelling.
+
+**Chosen:** the driver lists the library's modules when it loads a program
+with a library: every directory under `core`, `hosted` and `platform` that
+holds a source and whose namespace this target admits (D267), by logical
+path, handed to the compilation. When no module the program reaches has the
+prefix as its last segment and exactly one listed module has, L0201's note
+and its exact fix name that module as D2174's do. The listing is no
+dependency of the build, since it changes only a refusal's note, and a
+request with no library lists nothing.
+
+**The alternatives:** the loader resolving the prefix as an import on a
+refusal and checking again, which would load a module the program does not
+name to word one report; and reading the directories from a stage, which
+D2174 declined.
+
+**Pinned by** `negative/unreached-library-module-prefix-names-its-import`,
+whose program imports nothing and whose fixed program compiles with no
+report.
+
+### D2999 — An undeclared call number of `platform/linux` names its generator
+
+**The discrepancy:** a wrapper added to `platform/linux` for a call the
+library did not make before is L0201 on its `*_number`, with [1860]'s
+spelling note and near guesses; only `wrapped.ldn`'s header said that
+`scripts/linux_syscalls.py` writes those numbers from the names the
+module's other files use.
+
+**Chosen:** a name ending in `_number` that resolves to nothing in a file of
+`platform/linux` is L0201 whose note says the numbers are `wrapped.ldn`'s
+and to run `python3 scripts/linux_syscalls.py` after adding a wrapper, and
+offers no near spelling. Every other module keeps [1860]'s note.
+
+**The alternatives:** `check.py` refusing a stale `wrapped.ldn`, which the
+script controls already hold and which a developer meets only after the
+compiler refused; and a generic note for any `_number`, which would
+misdirect a program's own names.
+
+**Pinned by** the driver case `an unwritten call number names its
+generator`, on a fake library.
 
 ### D267 — Library source namespaces declare target availability
 
@@ -23629,6 +23739,28 @@ statement on a line of its own.
 
 **Pinned by** `negative/recovery-exit-is-held-in-a-block`, whose fix the
 `fixes` suite compiles clean.
+
+
+### D3000 — In an `if` arm, L0329 writes the leaving recovery in parentheses
+
+**The discrepancy:** L0102's fix for `f() else return` writes `else begin
+return end`, and the same call written that way as an `if` arm's statement
+is L0329, because the bare `else` divides the `if` [1820]; L0329's note
+offered `(call(...) else value)` and the bound block, so a recovery that
+returns was left only the binding of an error it does not read.
+
+**Chosen:** the grammar is unchanged. L0329's note in an `if` arm, and the
+notes beside it, say to wrap the call and its recovery in parentheses,
+`(call(...) else value)` or `(call(...) else begin return end)`, or to bind
+the error, and `docs/diagnostics.md`'s L0102 says the parenthesised form is
+the one an `if` arm takes.
+
+**The alternatives:** reading `else begin` after a call in an `if` arm as
+the call's recovery, which makes `if c then f() else begin ... end end if`
+mean two things; and an exact fix wrapping the call, which needs the arm's
+extent the checker does not keep.
+
+**Pinned by** `negative/leaving-recovery-in-an-if-arm-is-parenthesised`.
 
 ### D871 — A failing call that ends a body with returns is refused for its failure alone
 
@@ -33110,6 +33242,25 @@ and `environments/cortex-m/descriptions.py`'s contract case, which links
 RP2040 constants into its stack and an STM32H753 ITCM datum at zero and
 refuses each.
 
+
+### D2997 — A startup routine at address zero breaks D546's fifth clause
+
+**The discrepancy:** the fifth clause skipped every `_landin_firmware_*`
+symbol, so a developer's script that moved the STM32H753's RAM-layout text
+into the ITCM without the derived script's eight bytes linked with
+`_landin_firmware_reset` at address zero and refine exited 0.
+
+**Chosen:** the fifth clause holds the startup routines and data too; only
+`_landin_firmware_vectors` and `_landin_firmware_entry`, which begin their
+region by D546's first clause and D662, may be at zero. The derived scripts
+keep the clause, so their images are unchanged.
+
+**The alternatives:** refusing any allocated section that begins below 8,
+which would refuse the vector table at zero on every Cortex-M flash.
+
+**Pinned by** `environments/cortex-m/descriptions.py`'s contract case,
+whose `reset.ld` is the derived RAM script with `.text` in the ITCM.
+
 ### D900 — A RAM firmware layout is derived from the same device description
 
 **The tour said** at [1650] that compiler startup initializes RAM; D545
@@ -34744,9 +34895,11 @@ where they are on PATH, and the publication native control
 
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
-**Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
+**Amended by D2387, D2388 and D2969.** The policy covers windows-arm64 too, under
 `aarch64-pc-windows-msvc`, and refine names `link.exe` with
-`-fuse-ld=link` rather than leaving the linker to Clang's default.
+`-fuse-ld=link` rather than leaving the linker to Clang's default; the
+gate's Microsoft link is llvm-mingw's pinned Clang with the MSVC toolset
+and Windows SDK `environments/pins.sh` names.
 
 **From** [1550], D2189.
 
@@ -34871,6 +35024,70 @@ whose link commands end in `-fuse-ld=link`, and the gate's
 `windows-microsoft` and `windows-arm64-microsoft` jobs, which require
 `link.exe`; probe run 45399587160 on the `windows-11-arm` runner showed
 the default reaching `lld-link`.
+
+### D2969 — The gate's Microsoft link names its Clang, MSVC toolset and Windows SDK
+
+**From** D2327, D2387 and D2388.
+
+**The discrepancy:** D2327 had the gate's `windows-microsoft` job run each
+link with the runner's Clang, which found the Visual Studio and Windows
+SDK the image carries, so nothing said which tools a verdict was about:
+GitHub's image update could change the Clang, the toolset whose `link.exe`
+ran and the SDK between two runs of one tree. The `windows-2025` image of
+2026-11-16 carried Clang 20.1.8 and the `windows-11-arm` image of
+2026-11-15 Clang 22.1.8, each with Visual Studio 18.12 and its toolsets
+14.29.30133, 14.44.35207 and 14.52.37025 side by side, the last the
+default, and the Windows SDK 10.0.26100.0, the arm64 image also
+10.0.22621.0.
+
+**Chosen:** the job's Clang is the one in llvm-mingw's release
+`environments/pins.sh` already pins by checksum for the debugger and the C
+peers, LLVM 23, for both architectures. The MSVC toolset and the Windows
+SDK cannot be fetched by checksum, since Microsoft's licence keeps them on
+the image, so `pins.sh` names them by version, `14.44.35207` and
+`10.0.26100.0`, and the lane selects them among what the image installs:
+the toolset among the Visual Studio installations `vswhere` lists, holding
+a `link.exe` for the target's machine, and the SDK by its `um` import
+libraries for that machine. It passes them to Clang as
+`-Xmicrosoft-visualc-tools-root` and `-Xmicrosoft-windows-sdk-root` and
+`-version`, which llvm-mingw's Clang needs, as it has no way to ask Visual
+Studio's setup interface where Visual Studio is. Every link must then run that
+toolset's `link.exe` and read that SDK's import libraries, since Clang
+takes another SDK silently when the named one is missing.
+`summary.json` records the Clang's version, the Visual Studio
+installation, the toolset, the SDK and the linker's own version.
+
+The toolset is 14.44.35207, Visual Studio 2022's last, which Visual Studio
+2026 installs as a separate component and does not update, where its own
+default toolset, 14.52, moves with Visual Studio's updates. When an image
+no longer carries a pinned version the job refuses before it links,
+naming the toolsets or SDKs the image does carry and the two files that
+name the pin; moving it is a change of `pins.sh` and
+`compiler/ada/TOOLCHAIN.md`, which `check.py` holds to agree, gated like
+any other tool's. A frozen toolset makes such a refusal rare, and when it
+comes it stops the Microsoft jobs of every item's gate until the pin moves:
+the price of a verdict that names its tools.
+
+**The alternatives:** the image's tools as they are, which was the gap;
+the image's default toolset pinned by version, which an update to
+Visual Studio 2026 replaces in place, stopping every gate each time; a
+fallback to whatever the image carries when the pin is gone, which is the
+unpinned verdict again on exactly the runs where the tools changed; LLVM's
+own Windows release pinned by checksum beside llvm-mingw's, a second Clang
+download where one already serves both targets; and Visual Studio's newest
+toolset left as the evidence, the one a user installing Visual Studio
+today gets, which would surface a change in `link.exe` sooner, but at a
+moment no change to Landin caused and in a gate run that names no tool
+the change was in. A newer toolset reaches the gate as a deliberate pin
+change.
+
+**Pinned by** `scripts/tests/test_windows_lane.py`'s `MicrosoftTools`,
+`check.py`'s pinned-toolchain check, and the gate's `windows-microsoft` and
+`windows-arm64-microsoft` jobs; probe run 45964811589 linked and ran the whole
+corpus with these tools on both runners, 4,144 and 4,136 outcomes, and
+refused a toolset the images do not carry. Between it and probe run
+45963302773 the images had moved Visual Studio from 18.12.12405.243 to
+18.12.12412.261, toolsets unchanged.
 
 ### D2427 — A FreeBSD x86-64 compiler builds for its own host and links with the base system's `cc`
 
@@ -35333,6 +35550,117 @@ path before it runs and changes the user's settings.
 
 **Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
 
+### D2960 — A Windows peer starts itself again where a POSIX peer forks
+
+**From** D2473 and D2474.
+
+**The discrepancy:** D2473 left off the Windows targets every ABI fixture
+whose peer includes a POSIX header. Four of them hold what no other
+Windows fixture holds: copies bounded by a page Windows refuses to read,
+every raw image of an encoding with its holes trapping, a reserved
+pattern trapping before the store that would change shared memory, and a
+`noreturn` path ending the process or trapping at a C callee that returns.
+Three fork a child for each case that traps or ends, and read its signal or
+status from `waitpid`; Windows has no `fork`.
+
+**Chosen:** under `_WIN32` a peer starts its own image again with
+`CreateProcess`, naming the case on the command line, waits for it and
+reads its exit code: a trap is `STATUS_ILLEGAL_INSTRUCTION`, `ud2`'s on
+x86-64 and `brk`'s on arm64, and an ending is the code the program gave.
+The copy inherits the lane's error mode and job (D2474), so a trap reaches
+no error report. Memory both see is a page of an anonymous file mapping
+whose handle the copy inherits and is named on its command line. The
+guard pages are `VirtualAlloc`'s, the second made `PAGE_NOACCESS` by
+`VirtualProtect`. Each fixture keeps one peer, its POSIX arm unchanged,
+and names both Windows targets.
+
+**The alternatives:** a Windows twin of each fixture, which would let the
+two copies of one oracle drift apart; threads with a vectored exception
+handler in place of a second process, which observes a trap the program
+handles rather than one that ends it, as the POSIX children's do; and
+leaving the fixtures off Windows, with these observations met by no
+Windows C code.
+
+**Pinned by** `abi/r440-native-bounds`, `abi/r640-exhaustive-encodings`,
+`abi/r640-reserved-trap` and `abi/r670-noreturn` on both Windows targets.
+
+### D2961 — On Windows the variadic probe holds a float in both banks
+
+**From** D2473 and [1580].
+
+**The discrepancy:** `abi/r440-native-varargs` observes, besides the
+variadic values C reads by `va_arg`, the count of vector registers a SysV
+caller leaves in `al`, through a probe in assembly. Neither Windows
+convention has that count: Win64 puts a variadic float in the first four
+slots in both its integer register and its XMM register, and arm64
+Windows passes every variadic in the integer registers and the stack.
+
+**Chosen:** on Windows the probe answers what `al`'s would, the floats'
+count with eight at most, from the floats C reads by `va_arg`; on x86-64
+an assembly entry first compares each float in the register slots with
+its copy in the slot's XMM register and answers -1 when they differ,
+which a callee that reads either bank needs. The fixture names both
+Windows targets.
+
+**The alternatives:** leaving the fixture off Windows, since
+`windows-variadic-floats` holds the values past the register slots, which
+leaves the second bank unobserved; and a probe answering the floats'
+count alone, which observes nothing the C oracle does not.
+
+**Pinned by** `abi/r440-native-varargs` on both Windows targets.
+
+### D2962 — Win64's hidden result address comes back in rax; arm64 has none to return
+
+**From** D2473 and [1600].
+
+**The discrepancy:** `abi/r440-sret-pointer-observation` holds a callee
+to returning the hidden result address in `rax`, which SysV requires, and
+`abi/r450-x86-callee-probes` holds SysV's and AAPCS64's callee saves
+across a Landin routine C enters, through assembly in each peer that
+carries ELF's `.type` and `.size`.
+
+**Chosen:** Win64 requires the hidden address back in `rax` too, so the
+sret peer has a Win64 arm: the address arrives in `rcx`, the explicit
+arguments move one slot along, and each probe takes the 32-byte shadow
+area. The fixture names windows-x86-64 alone: arm64 Windows, as AAPCS64
+does, passes the address in `x8` and asks nothing of what comes back, as
+Darwin's and Linux arm64's lanes already record. The callee probe's Win64
+arm sets and checks every register Win64 makes a callee save but the XMM
+ones, which `windows-c-entry-saves` holds: `rbx`, `rbp`, `rdi`, `rsi` and
+`r12` to `r15`. Its arm64 assembly is arm64 Windows' as it is, with `x18`,
+which Windows keeps, untouched, and the fixture names both Windows
+targets.
+
+**The alternatives:** a returned-address probe for arm64 Windows, which
+would hold refine to a rule the convention does not make.
+
+**Pinned by** `abi/r440-sret-pointer-observation` on windows-x86-64 and
+`abi/r450-x86-callee-probes` on both Windows targets.
+
+### D2963 — A renamed `main` called from C has no Windows form yet
+
+**From** D2269 and D2473.
+
+**The discrepancy:** `abi/r440-native-renamed-main` holds that a C
+callback a Landin program names `main` neither establishes nor replaces
+the argument root, which its C peer establishes through
+`_landin_host_initialize_arguments`, and that a foreign symbol spelled
+`.Llandin_host_argv` stays the foreign one.
+
+**Chosen:** the fixture names no Windows target. Windows has no C-callable
+initializer: `_landin_start` keeps the root itself (D2269), so a C program
+on Windows has no root to establish and the fixture's observation no form
+there. Its foreign `.L` name, which COFF's assembler takes as private, a
+Windows image now binds as D2954 says; the initializer is what is left.
+
+**The alternatives:** a Windows twin that drops the root and the `.L`
+name, which would hold only that a renamed callback is callable, as
+every Windows ABI fixture's callbacks already are; and a C-callable
+initializer in `hosted/system` for Windows, which changes what D2269 chose
+and is a decision of its own.
+
+**Pinned by** the fixture's `targets:`, which name no Windows target.
+
 ### D2487 — A Windows image carries no time of its link
 
 **From** D2189, D2327 and D2486.
@@ -35365,7 +35693,38 @@ cases `test_two_builds_are_the_same_bytes` and
 `test_two_debug_builds_are_the_same_bytes`, which link twice more than a
 second apart without `SOURCE_DATE_EPOCH`.
 
+### D2954 — A COFF object names a `.L` link name through a substitute
+
+**The tour said** nothing; [1610]'s `link(symbol: text)` takes any
+spelling, and D417 keeps a foreign name from capturing a native one.
+
+**Chosen:** on Windows an import or export whose link name begins with
+`.L` is spelled in the assembly as `__landin_dot` followed by the name,
+and the object's `.drectve` section binds the two with
+`/alternatename`: an import's substitute, which the object leaves
+undefined, resolves to the name, and an export's name, wherever another
+object leaves it undefined, resolves to the substitute the object
+defines. LLVM's COFF assembler takes every `.L` name as its own label,
+so it refuses one undefined ("can not be undefined") and leaves one
+defined out of the symbol table; `/alternatename` is read by LLD and by
+Microsoft's linker alike. Every other name, and every native local
+label, is spelled as before. A C object holds such a name only where its
+assembler was told to keep its labels, Clang's `-Wa,-L`, since Clang's
+own C code generation meets the same assembler.
+
+**The alternatives:** assembling refine's objects with `-Wa,-L`, which
+puts every one of its own `.L` labels in the symbol table, where a
+debugger then names code by label; renaming the symbol after assembly,
+a step of its own in every link; and leaving such names to ELF and
+Mach-O, which is what the targets did before.
+
+**Pinned by** `abi/r440-native-link-namespace`, which binds `.L1_1` and
+`.L_1_1` to C functions of a companion compiled with `-Wa,-L`, on both
+Windows targets in the gate's ABI lanes.
+
 ### D2290 — CodeView describes no inlined copy yet
+
+**Superseded by D2964.** A Windows routine's CodeView describes each inlined copy as an inline site with its own variables; what follows is history.
 
 **The tour said** nothing; D339 describes each inlined copy to DWARF.
 
@@ -35374,6 +35733,16 @@ second apart without `SOURCE_DATE_EPOCH`.
 **The alternatives:** writing `S_INLINESITE` records now, whose line directives the backend would name by copy, for a Windows session that does not yet stop in a copy.
 
 **Pinned by** the sessions of `compiler/tests/windows/debug.py`, which call through function values so that no stop is in a copy.
+
+### D2964 — CodeView describes each inlined copy as an inline site
+
+**The tour said** nothing; D339 describes each inlined copy to DWARF, and D2290 left CodeView's copies undescribed.
+
+**Chosen:** with `--debug=full` each of D339's copies in a Windows routine is an `S_INLINESITE`, closed by `S_INLINESITE_END`, inside the lexical block its call stood in. It names the copied routine's `LF_FUNC_ID`, the one that routine's own procedure names, and holds the copy's parameters, locals, source aliases and lexical blocks, each described as the routine's own are, from the same availability. The copy's code has a function identity of its own, numbered after every item's, which `.cv_inline_site_id` declares inlined at the call's line inside the routine's, and its lines are `.cv_loc` directives under that identity, its traps' among them; the assembler's `.cv_inline_linetable` writes them as the site's annotations, and in the routine's own line table they become the call's line. A `DEBUG_S_INLINEELINES` subsection names where each copied routine begins, which LLDB reads a site's routine from. A lexical block covers the copies called inside it. A copy whose call has no known site, or none of whose code is left, has no inline site.
+
+**The alternatives:** describing a copy's variables as the routine's own in a lexical block, which LLDB shows in the caller's frame, under the caller's name; and keeping D2290, under which a stop in a copy showed the caller's frame and none of the copy's variables.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s copy session over `compiler/tests/debugging/registers.ldn` at `speed`, which stops inside `inline_leaf`'s copy in `inline_outer` and requires the frames `inline_leaf`, `inline_outer` and `main` and the copy's own values, run by the gate's `windows-debugger` and `windows-arm64-debugger` jobs.
 
 ### D2291 — A Windows image carries its build's digest in a `.landin` section
 
@@ -35599,6 +35968,55 @@ to kernel32's own handler, and traps there; and `stack report/a switch
 costs its frame`. Before the change the fixture ended with 1 on both
 architectures' Windows hosts, on x86-64 with its two checks of the bounds
 on the prepared stack failing.
+
+### D2970 — The Windows arm64 switch session runs again when LLDB loses a step
+
+**From** D469, D2348 and D2481.
+
+**The discrepancy:** the `windows-arm64-debugger` job's switch sessions
+failed now and then, in four gate runs of trees whose arm64 code did not
+differ from passing ones, with "the session did not step from
+landin.stack_switch's first instruction through its return". Each
+transcript shows one `thread step-inst` from an ordinary load or store of
+the routine, at +60, +120, +132 or +160, after which the thread ran on to
+the next switch's breakpoint. Run on fresh `windows-11-arm` runners, the
+four sessions failed 14 of 800 times the same way, the lost step at
+offsets from +56 to +160, in either switch, sometimes running on to the
+program's exit; with LLDB's `windows` log on, which slows it, 0 of 400
+failed. The loss is in LLDB's timing on that runner, as the arm64 KVM
+guest's LLDB loses steps far more often, and not in the routine or its
+unwind data: every stop LLDB did make held the record.
+
+**Chosen:** a lost step is recognised exactly and the session runs again.
+Every step a switch session makes stays in the routine or returns from it,
+where no breakpoint is, so a `thread step-inst` that ends at a breakpoint
+or at the program's exit is one LLDB did not make. On a target
+`switch_frames.LOST_STEP_ATTEMPTS` names, windows-arm64 with three
+attempts, the Windows lane runs such a session again, keeps each lost
+attempt's transcript and names its lost step in `switch-frames.json`, and
+holds the last attempt's stops to the record as before; any other
+mismatch fails at once. At the measured rate, 26 lost of 1,212 attempts
+or about one in fifty, a session fails only when all three attempts lose
+a step, about once in 100,000. The entry goes when a runner's sessions
+lose no step.
+
+**The alternatives:** a breakpoint on each of the routine's instructions,
+so that a lost step stops at the next one anyway, which on Windows LLDB
+reports a step onto a breakpoint as a second stop at the same instruction,
+doubling every stop (probe run 45984035570 failed all 400 such sessions);
+holding the stops a session made and skipping those after a lost step,
+which leaves a switch's instructions unheld in exactly the run where they
+were not seen; and a change to LLDB's Windows process plugin, in whose
+handling of the step no cause was found and which this repository does
+not build.
+
+**Pinned by** `compiler/tests/debugging/test_check.py`'s
+`test_a_lost_step_is_told_from_a_step`, which also told all 18 lost
+sessions met in the gate and the probes from their transcripts, and the
+`windows-arm64-debugger` job; probe runs 45963663891 and 45984035570
+measured the loss, and probe run 45987118367 ran the lane's sessions 100
+times on four fresh runners with the retry: 400 switch sessions passed, 12
+of them after an attempt that lost a step.
 
 ### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
 
@@ -38410,6 +38828,30 @@ does after emission.
 `an assembly operand links`, `end-to-end/link-static-dry-run` and its
 siblings' `remove` line, and `compiler/tests/test_native_report_identity.py`,
 which finds no assembly after a failed link.
+
+
+### D2996 — A firmware target's assembly operand is refused saying how it links
+
+**The discrepancy:** `refine compile p.s --target=cortex-m0
+--firmware-layout=ram -o p.elf` ended in an internal compiler defect, a
+failed precondition deriving the linker script from a profile no source
+gave, where the help said "a .s operand is linked as a compiled program
+is"; with `--root` or `--firmware-entry` it was L0002 for another
+reason.
+
+**Chosen:** an assembly operand is linked only for a hosted target. With a
+firmware target it is L0002 before anything runs, saying that a firmware
+image is laid out by its description, which assembly does not carry, and
+that its source is compiled with `--root` and `--firmware-entry`, or the
+kept assembly assembled and linked with the toolchain and the `OUT.ld`
+written beside the image. The help says a hosted target's operand.
+
+**The alternatives:** linking with a description named by `--root`, which
+needs the description checked without the program it describes; and
+linking with `--linker-script` alone, which leaves D546's clauses, read
+against the profile, nothing to read.
+
+**Pinned by** the driver case `an assembly operand links`.
 
 ### D364 — Linux links through the GCC a distribution installs
 
@@ -41554,6 +41996,26 @@ would handle for a mistake only a C `main` can make. All were declined.
 omits the call and whose output must hold that line before it traps.
 Darwin's and FreeBSD's arm was written by reading and is run by their
 lanes.
+
+
+### D2998 — Each misuse of the argument root says what was misused
+
+**The discrepancy:** D1281 gave words to one trap of the root, a read
+before it exists, and left a second triple and a negative count or null
+table as bare traps.
+
+**Chosen:** before each of those traps `platform/posix` writes one line to
+standard error: `landin: _landin_host_initialize_arguments was called a second time with
+a different argc, argv or envp; a repeated call must pass the same values
+as the first`, and `landin: _landin_host_initialize_arguments was called
+with a negative argc or a null argv`. As in D1281 the writes ask nothing of the root and the trap
+follows unchanged.
+
+**The alternatives:** a failure the call returns, which a C `main` has no
+way to read; and one line for every misuse, which would not say which.
+
+**Pinned by** `abi/r440-native-startup-replaced` and
+`abi/r440-native-startup-invalid`, whose `trap_report` holds each line.
 
 ### D323 — `platform/posix` gives sockets in the system's own records
 

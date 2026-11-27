@@ -13,6 +13,7 @@ with Landin.IR.Shape_Measurement;
 with Landin.Packed;
 with Landin.Memory;
 with Landin.Targets.Packed;
+with Landin.Backend.COFF;
 with Landin.Backend.Codeview;
 with Landin.Backend.Debug_Locations;
 with Landin.Backend.Dwarf;
@@ -1517,6 +1518,20 @@ package body Landin.Backend.Arm64 is
       is (if COFF
           then Landin.Backend.Codeview.Source_Line (Debug.all, Item, Site)
           else Dwarf.Source_Line (Debug.all, Site));
+
+      --  The line Site begins inside Item's copy Copy, Item's own when
+      --  zero: CodeView names it under the copy's identity (D339),
+      --  DWARF's line program by its address alone.
+      function Line_Of
+        (Item : Landin.IR.Item_Id; Site : Landin.Provenance.Origin;
+         Copy : Natural) return String
+      is (if COFF
+          then Landin.Backend.Codeview.Source_Line
+            (Debug.all, Item, Site,
+             (if Copy = 0 then 0
+              else Landin.Backend.Codeview.Copy_Identity
+                (Of_Unit, Item, Copy)))
+          else Dwarf.Source_Line (Debug.all, Site));
       type Line_Entry is record
          Text : Unbounded.Unbounded_String;
          Offset : Long_Long_Integer;
@@ -1683,6 +1698,8 @@ package body Landin.Backend.Arm64 is
            or else Ada.Strings.Fixed.Index (Instruction, ".loc ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".cv_loc ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".cv_func_id ") = 1
+           or else Ada.Strings.Fixed.Index
+             (Instruction, ".cv_inline_site_id ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".seh_") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".file ") = 1
            or else Ada.Strings.Fixed.Index (Instruction, ".globl ") = 1
@@ -2170,8 +2187,6 @@ package body Landin.Backend.Arm64 is
       --  source names: an explicit C name can hold a qualified spelling too.
       function Symbol (Item : Landin.IR.Item_Id) return String;
       function Evidence_Symbol (Id : Landin.IR.Evidence_Id) return String;
-      function Is_Exported_Item (Item : Landin.IR.Item_Id) return Boolean;
-
       --  The library's argument initializer the hosted entry calls with
       --  C's argc, argv and envp, when the program defines one.
       Initializer : constant Landin.IR.Item_Id :=
@@ -2789,13 +2804,24 @@ package body Landin.Backend.Arm64 is
          end loop;
       end Allocate_Symbols;
 
+      function Is_Exported_Item (Item : Landin.IR.Item_Id) return Boolean;
+
       --  Apply Darwin's external-symbol prefix only at the rendering seam.
       --  Namespace comparisons retain the source identity.
       function Symbol (Item : Landin.IR.Item_Id) return String is
-         Spelling : constant String :=
+         Linked : constant String :=
            Landin.Targets.Capabilities.Link_Symbol
              (Facts, Unbounded.To_String
                 (Allocated_Symbols (Positive (Item))));
+         --  D2954: an import or export the COFF assembler would take as
+         --  its own label is spelled by its substitute.
+         Spelling : constant String :=
+           (if COFF
+              and then Landin.Targets.Capabilities.Is_COFF_Private (Linked)
+              and then (Landin.IR.Is_External (Of_Unit, Item)
+                        or else Is_Exported_Item (Item))
+            then Landin.Targets.Capabilities.COFF_Substitute_Prefix & Linked
+            else Linked);
       begin
          if Spelling'Length = 0 then
             raise Landin.Compiler_Defect with
@@ -2963,6 +2989,8 @@ package body Landin.Backend.Arm64 is
             Site : Landin.Panics.Site_Number;
             Origin : Landin.Provenance.Origin;
             Label : Unbounded.Unbounded_String;
+            --  The inlined copy whose code reached it, zero for Item's.
+            Copy : Natural := 0;
          end record;
          package Edge_Vectors is new Ada.Containers.Vectors
            (Positive, Panic_Edge);
@@ -3024,7 +3052,11 @@ package body Landin.Backend.Arm64 is
                Name : constant String := Fresh;
             begin
                Edges.Append (Panic_Edge'
-                 (Reason, Site, Origin, Unbounded.To_Unbounded_String (Name)));
+                 (Reason, Site, Origin, Unbounded.To_Unbounded_String (Name),
+                  (if Current_Value = Landin.IR.No_Value then 0
+                   else Landin.IR.Inlined_At
+                     (Of_Unit, Item, Landin.IR.Block_Of
+                        (Of_Unit, Item, Current_Value)))));
                return Name;
             end;
          end Trap;
@@ -7039,6 +7071,11 @@ package body Landin.Backend.Arm64 is
          if Debug /= null then
             if COFF then
                Put (Landin.Backend.Codeview.Function_Id (Item));
+               for Copy in 1 .. Landin.IR.Inline_Site_Count (Of_Unit, Item)
+               loop
+                  Put (Landin.Backend.Codeview.Inline_Site_Id
+                    (Debug.all, Of_Unit, Item, Copy));
+               end loop;
             end if;
             Put (Dwarf.Label_Name (Local_Prefix, "begin", Item) & ":");
             Put (Line_Of (Item, Landin.IR.Origin_Of (Of_Unit, Item)));
@@ -7286,7 +7323,9 @@ package body Landin.Backend.Arm64 is
                   Put (Dwarf.Label_Name (Local_Prefix, "value", Item,
                     Natural (Current_Value)) & ":");
                   Put (Line_Of (Item,
-                    Landin.IR.Origin_Of (Of_Unit, Item, Current_Value)));
+                    Landin.IR.Origin_Of (Of_Unit, Item, Current_Value),
+                    Landin.IR.Inlined_At
+                      (Of_Unit, Item, Landin.IR.Block_Id (Block))));
                   Row := Lines.Last_Index;
                end if;
                Instruction (Current_Value);
@@ -7355,7 +7394,7 @@ package body Landin.Backend.Arm64 is
          for Edge of Edges loop
             Put (Unbounded.To_String (Edge.Label) & ":");
             if Debug /= null then
-               Put (Line_Of (Item, Edge.Origin));
+               Put (Line_Of (Item, Edge.Origin, Edge.Copy));
             end if;
             if Landin.Panics.Handler (Panic.all) /= Landin.IR.No_Item then
                Immediate ("x0", Pattern (Landin.Panics.Code
@@ -8579,6 +8618,21 @@ package body Landin.Backend.Arm64 is
          if Is_Exported_Item (Item) then
             Emit (".globl " & Symbol (Item));
          end if;
+         --  D3014: an immutable value's zeros are written where its caller
+         --  put it, the read-only section, so that a write faults.
+         if Landin.Backend.In_Read_Only_Section (Of_Unit, Facts, Item) then
+            Emit (".balign "
+              & Trimmed (Landin.Targets.Byte_Alignment'Image (Alignment)));
+            Platform_Directive
+              (Platform.Begin_Object (Format, Symbol (Item)));
+            Put (Symbol (Item) & ":");
+            Emit (".zero "
+              & Trimmed (Landin.Targets.Byte_Count'Image (Size)));
+            Platform_Directive (Platform.End_Object
+              (Format, Symbol (Item),
+               Trimmed (Landin.Targets.Byte_Count'Image (Size))));
+            return;
+         end if;
          case Format is
             when Landin.Targets.Capabilities.Mach_O =>
                if Landin.Backend.In_Thread_Storage (Of_Unit, Facts, Item)
@@ -8882,10 +8936,23 @@ package body Landin.Backend.Arm64 is
                         else Platform.Read_Only_Section (Format));
                   Emit_Array_Image_Datum (Item);
                else
-                  Emit (if Format /= Landin.Targets.Capabilities.Mach_O
-                        then Platform.Sectioned (Format,
-                          ELF_Spelling.Item_Section ("data", "datum", Index))
-                        else ".data");
+                  --  D3014: an immutable module value the loader need not
+                  --  write is read-only, as D161's images are.
+                  if Landin.Backend.In_Read_Only_Section
+                    (Of_Unit, Facts, Item)
+                  then
+                     Emit (if Format /= Landin.Targets.Capabilities.Mach_O
+                           then Platform.Sectioned (Format,
+                             ELF_Spelling.Item_Section
+                               ("rodata", "datum", Index))
+                           else Platform.Read_Only_Section (Format));
+                  else
+                     Emit (if Format /= Landin.Targets.Capabilities.Mach_O
+                           then Platform.Sectioned (Format,
+                             ELF_Spelling.Item_Section
+                               ("data", "datum", Index))
+                           else ".data");
+                  end if;
                   if Is_All_Zero (Item) then
                      if Landin.IR.Result_Of (Of_Unit, Item) =
                        Landin.Types.Aggregate
@@ -9367,6 +9434,37 @@ package body Landin.Backend.Arm64 is
                        (if Stack_Used then Stack_Switcher else ""),
                      Stack_Start =>
                        (if Stack_Used then Stack_Start else ""))));
+      end if;
+      --  D2954: every import or export whose link name the assembler would
+      --  take as its own label is spelled by its substitute, and the
+      --  object's directives bind each substitute to its name.
+      if COFF then
+         declare
+            Opened : Boolean := False;
+         begin
+            for Index in 1 .. Landin.IR.Item_Count (Of_Unit) loop
+               declare
+                  Item : constant Landin.IR.Item_Id :=
+                    Landin.IR.Item_Id (Index);
+                  Name : constant String :=
+                    Unbounded.To_String (Allocated_Symbols (Index));
+               begin
+                  if Landin.Targets.Capabilities.Is_COFF_Private (Name)
+                    and then (Landin.IR.Is_External (Of_Unit, Item)
+                              or else Is_Exported_Item (Item))
+                  then
+                     if not Opened then
+                        Emit (Landin.Backend.COFF.Directives_Section);
+                        Opened := True;
+                     end if;
+                     Emit (Landin.Backend.COFF.Alternate_Name
+                             (Name,
+                              Defined => not Landin.IR.Is_External
+                                (Of_Unit, Item)));
+                  end if;
+               end;
+            end loop;
+         end;
       end if;
       --  Windows' TLS directory, which no C runtime brings (D2188), as
       --  x86-64's: the template's bounds, the `.tls` section's first byte
