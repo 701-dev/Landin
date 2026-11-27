@@ -4295,7 +4295,7 @@ resolver's row, and its dates row pointing at no missing record, SR-2112.
 
 ### R22.44 — Command-line arguments parsed
 
-Status: planned
+Status: active
 Depends on: R20
 
 A parser over the program's arguments, `io.argument`'s OS strings, with
