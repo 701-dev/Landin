@@ -4508,6 +4508,8 @@ launching user service, while `evidence-unscoped` beside it died with
 it, and `evidence-hog`, killed past a 200 MiB cap (`oom_kills` 1) while
 `evidence-beside` passed. Found and fixed: `SR-2072`,
 a detached run ended with the agents' service.
+Landed in batch-2b, with R22.46, on gate 46095134976 and boards
+46095150639.
 
 ### R22.40 — Character encodings
 
@@ -4896,6 +4898,8 @@ the Darwin LLDB archive step failing after an earlier failure, and
 `SR-2217` again the Windows arm64 LLDB step whose row had been deleted.
 `item.py gate --watch` starts a watch again when the one it names ended
 at its limit before its run, which retires `SR-2134` and `SR-2164`.
+Landed in batch-2b, with R22.39, on gate 46095134976 and boards
+46095150639.
 
 
 ### R22.50 — Locale formatting
