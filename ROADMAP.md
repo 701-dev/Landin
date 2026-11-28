@@ -1541,6 +1541,25 @@ lane's `events-network-limits` under QEMU) and `SR-2224`
 (`assemble_targets.py` without a fixture's `--firmware-entry`), both met
 at the base as well, are filed.
 
+### R16.46 — A square root is its instruction
+
+Status: planned
+Depends on: R16.10
+
+SR-2092: `math.sqrt` of an `f64` is a call to `sqrt_f64`, whose
+`assembler.block` around one `sqrtsd` or `fsqrt` is never copied into
+its caller. n-body's `advance` takes one for each of its pairs a step:
+at speed on x86-64 `sqrt_f64` is 22.4% of the program's 1.53 G
+instructions for 1,000,000 steps by `perf record`, and the call's
+set-up in `advance` a few more each pair, where the frame-routed float
+stores of SR-2093 are about 8%. D2551 left a builtin open for when a
+measurement shows the block's cost. Scheduled by R16.45's close at the
+roadmap manager's request, as the largest measured cost among the open
+rows on the benchmark ports. Exit evidence: a square root in a hot loop
+costing its one instruction on every target with a float unit, n-body
+measured in instructions and cycles against the item's base on x86-64
+and arm64, and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
