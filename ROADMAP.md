@@ -1523,6 +1523,26 @@ call's succeeding way testing its status once, in a register, on every
 target, binary-trees measured against the item's base, and no other
 combination over its own.
 
+### R16.47 — The inliner's weights from measurement
+
+Status: planned
+Depends on: R16.10
+
+Two rows wait on `Landin.IR.Inlining`'s weights. SR-1654: D2100 never
+copies a routine with a loop, which avoids fannkuch-redux's 3% to 7%
+more cycles from `reverse_prefix` and gives up fasta's 12% fewer from
+`select_symbol` and `make_cumulative`; k-nucleotide's loop over
+`core/map`'s `at` and spectral-norm's looping products meet the same
+rule. SR-1739: the size profile keeps a routine that only forwards to
+another as a call, which cost every hosted Linux image about 200 bytes
+after R21.20 and about 300 more above x86-64-v1 after R21.70. Scheduled
+by Q-471's answer. Exit evidence: the size profile copying a forwarding
+routine into its callers and the declared growth given back; a loop
+rule that tells fannkuch-redux's case from fasta's by trip count or
+nesting, fasta, fannkuch-redux, k-nucleotide and spectral-norm measured
+in cycles on x86-64 and arm64 against the item's base; and no other
+combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
