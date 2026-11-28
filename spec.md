@@ -47478,7 +47478,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** comparing `append_folded`'s results, which needs a buffer as long as each folding; simple folding, which leaves "ß" apart from "ss"; a caseless `find`, which full folding makes a search over a text that is not the source's bytes, and which no measured caller needs beside `(?i)`; and the ASCII form as the only one, which Jan declined on 2026-11-27, since Landin's text is Unicode.
 
-**Pinned by** `runtime/unicode-caseless`, `runtime/unicode-caseless-scalars`, which holds every scalar's comparisons with its mappings and its neighbour to the database's folding by digest, and `runtime/unicode-caseless-sequences`, which holds the canonical match among every NormalizationTest line's forms to D145 over the database.
+**Pinned by** `runtime/unicode-caseless`, `runtime/unicode-caseless-scalars-1` to `runtime/unicode-caseless-scalars-4`, which between them hold every scalar's comparisons with its mappings and its neighbour to the database's folding by digest, and `runtime/unicode-caseless-sequences`, which holds the canonical match among every NormalizationTest line's forms to D145 over the database.
 
 ### D2634 — `core/complex` is one generic struct and one routine per function over `math.floating`
 

@@ -4,10 +4,10 @@ Each fixture's program is its oracle's, computed here from the Unicode
 Character Database and its conformance files, never from core/unicode's
 tables, and exits 42 only when core/unicode agrees with every value.
 
-A walk fixture goes through the scalars from zero to U+10FFFF and feeds
-what core/unicode answers for each into FNV-1a, 32 bits, which must end at
-the digest written here from the database's own files.  A hosted target
-walks every scalar.  Firmware walks every STRIDE-th one, under
+A walk fixture goes through the scalars from zero to U+10FFFF, or one
+part of that range, and feeds what core/unicode answers for each into
+FNV-1a, 32 bits, which must end at the digest written here from the
+database's own files.  A hosted target walks every scalar of its range.  Firmware walks every STRIDE-th one, under
 `fixed if compiler.os == freestanding`, to its own digest: the Cortex-M
 corpus gives each run 20 seconds of an emulator, which a walk of every
 scalar outlasts, and every target reads the same tables, so what a
@@ -18,6 +18,9 @@ firmware target checks is its own code over them.
 - `unicode-case-scalars`: each scalar's simple and full case mappings, the
   full ones of the scalar as a text of its own; `unicode-case-title` its
   title case as such a text, which needs the word tables too.
+- `unicode-caseless-scalars-N`: each scalar's comparisons without case
+  with its own mappings and its neighbour, the walk split into parts
+  that each run well inside an emulated lane's time limit.
 - `unicode-normalization-canonical` and `-compatible`: each scalar's forms,
   as NormalizationTest.txt's part 1 and its rule for an unlisted scalar
   say, and each form of each form as the file's invariants require.
@@ -42,10 +45,10 @@ def fnv(state, data):
     return state
 
 
-def walk(stride, skip_surrogates):
+def walk(stride, skip_surrogates, first=0, last=0x10FFFF):
     """The scalars a walk fixture's loop visits, in its order."""
-    scalar = 0
-    while scalar <= 0x10FFFF:
+    scalar = first
+    while scalar <= last:
         if skip_surrogates and 0xD800 <= scalar <= 0xDFFF:
             scalar = 0xE000
         yield scalar
@@ -112,21 +115,22 @@ def ordinal(number):
 
 
 def walk_fixture(summary, imports, helpers, body, digest, stride,
-                 skip_surrogates, buffers=()):
+                 skip_surrogates, buffers=(), first=0, last=0x10FFFF):
     """A walk fixture: DIGEST(scalars) is the oracle's digest.
 
     BODY is the loop body's lines at two levels of indentation, which
     feeds `state` for `scalar` or leaves `main` with its code of one.
     STRIDE is firmware's, or None for a fixture firmware does not run.
-    BUFFERS are `main`'s locals the body writes into.
+    BUFFERS are `main`'s locals the body writes into.  FIRST and LAST
+    bound the walk, for a fixture that is one part of a longer one.
     """
-    every = digest(walk(1, skip_surrogates))
+    every = digest(walk(1, skip_surrogates, first, last))
     lines = header(summary) + [""] + ["import %s" % name for name in imports]
     lines.append("")
     if stride is None:
         lines += ["stride: u32 = 1", "expected: u32 = 0x%08x" % every]
     else:
-        sampled = digest(walk(stride, skip_surrogates))
+        sampled = digest(walk(stride, skip_surrogates, first, last))
         lines += [
             "--  Firmware walks every %s scalar, within the emulator's"
             % ordinal(stride),
@@ -146,8 +150,9 @@ def walk_fixture(summary, imports, helpers, body, digest, stride,
               "    code = 1",
               "    mut state: u32 = 0x811c9dc5"]
     lines += ["    mut %s: [%d]u8 = zeroed" % buffer for buffer in buffers]
-    lines += ["    mut scalar: u32 = 0",
-              "    while scalar <= 0x10ffff do"]
+    lines += ["    mut scalar: u32 = %s" % ("0" if first == 0 else
+                                             "0x%x" % first),
+              "    while scalar <= 0x%x do" % last]
     if skip_surrogates:
         lines += ["        if scalar >= 0xd800 and scalar <= 0xdfff then",
                   "            scalar = 0xe000",
@@ -698,7 +703,22 @@ def neighbour(scalar):
     return scalar + 1
 
 
-def caseless_scalars_fixture(database):
+def caseless_parts(parts):
+    """The first and last scalar of each of PARTS parts of every scalar,
+    nearly equal in count, each but the last ending before a multiple of
+    0x1000 and none ending among the surrogates."""
+    count = 0x110000 - 0x800
+    starts = []
+    for part in range(parts):
+        index = part * count // parts
+        scalar = index if index < 0xD800 else index + 0x800
+        starts.append(scalar & ~0xFFF)
+    assert not any(0xD800 < start <= 0xE000 for start in starts)
+    return [(start, end - 1)
+            for start, end in zip(starts, starts[1:] + [0x110000])]
+
+
+def caseless_scalars_fixture(database, part, parts, first, last):
     def bits(scalar):
         source = [scalar]
         upper = database.full("upper", scalar)
@@ -765,20 +785,29 @@ end bit
                     | bit(unicode.starts_with_caseless(source, partner), 7))
 """)
     return walk_fixture(
-        ["Every scalar, as a", "text of its own, compares without case as"
-         " the database's full case", "folding says: the digest of whether"
-         " it equals its full upper, lower", "and folded mappings, whether"
-         " those equal each other and the next", "scalar, whether its upper"
-         " mapping begins and its lower mapping ends", "with it, and"
-         " whether it begins with the next scalar, is the", "database's."],
+        ["Each scalar from", "U+%04X to U+%04X, part %d of %d of every"
+         " scalar, as a text of its own," % (first, last, part, parts),
+         "compares without case as the database's full case folding says:",
+         "the digest of whether it equals its full upper, lower and folded",
+         "mappings, whether those equal each other and the next scalar,",
+         "whether its upper mapping begins and its lower mapping ends with",
+         "it, and whether it begins with the next scalar, is the"
+         " database's."],
         ["core/text", "core/unicode"], [ENCODE] + helpers, body, digest,
         CASELESS_STRIDE, True,
         (("encoded", 4), ("beside", 4), ("upper_storage", 64),
-         ("lower_storage", 64), ("fold_storage", 64)))
+         ("lower_storage", 64), ("fold_storage", 64)), first, last)
 
 
 #  Every how many scalars firmware compares without case.
 CASELESS_STRIDE = 61
+#  How many fixtures share the walk of every scalar without case, each
+#  part about as long as the others.  At none/off one walk of them all
+#  took 9 seconds natively on x86-64, 51 under user emulation of RV64 and
+#  62 in a FreeBSD arm64 guest under system emulation on the same host,
+#  and timed out on the gate's lanes, whose limits are 120 and 60
+#  seconds a program; a quarter holds each lane to under half its limit.
+CASELESS_PARTS = 4
 
 
 def caseless_sequences_fixture(database):
@@ -921,9 +950,12 @@ def render_all(database):
         "unicode-normalization-compatible":
             scalar_normalization_fixture(database, "compatible", 181),
         "unicode-normalization-sequences": sequences_fixture(database),
-        "unicode-caseless-scalars": caseless_scalars_fixture(database),
         "unicode-caseless-sequences": caseless_sequences_fixture(database),
     }
+    for number, (first, last) in enumerate(caseless_parts(CASELESS_PARTS), 1):
+        made["unicode-caseless-scalars-%d" % number] = (
+            caseless_scalars_fixture(database, number, CASELESS_PARTS,
+                                     first, last))
     for member, unit, plural in BREAKS:
         parts = break_parts(break_cases(database.members[member]))
         for number, cases in enumerate(parts, 1):
