@@ -1567,6 +1567,26 @@ costing its one instruction on every target with a float unit, n-body
 measured in instructions and cycles against the item's base on x86-64
 and arm64, and no other combination over its own.
 
+### R16.47 — The inliner's weights from measurement
+
+Status: planned
+Depends on: R16.10
+
+Two rows wait on `Landin.IR.Inlining`'s weights. SR-1654: D2100 never
+copies a routine with a loop, which avoids fannkuch-redux's 3% to 7%
+more cycles from `reverse_prefix` and gives up fasta's 12% fewer from
+`select_symbol` and `make_cumulative`; k-nucleotide's loop over
+`core/map`'s `at` and spectral-norm's looping products meet the same
+rule. SR-1739: the size profile keeps a routine that only forwards to
+another as a call, which cost every hosted Linux image about 200 bytes
+after R21.20 and about 300 more above x86-64-v1 after R21.70. Scheduled
+by Q-471's answer. Exit evidence: the size profile copying a forwarding
+routine into its callers and the declared growth given back; a loop
+rule that tells fannkuch-redux's case from fasta's by trip count or
+nesting, fasta, fannkuch-redux, k-nucleotide and spectral-norm measured
+in cycles on x86-64 and arm64 against the item's base; and no other
+combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
@@ -4453,11 +4473,16 @@ Mechanics' completion rule, "the complete gate passed on the completing
 commit", becomes the selected gate on the landed tree and the first
 complete gate that covers it; R16's and R22's standing baselines hold on
 every push that changes the emitted code and on every complete gate.
+Before the selection is applied, SR-2032's emission keys, which select
+nothing today because the determinism manifests digest only the
+positive fixtures, are covered by a manifest of the corpora the lanes
+run, with those lanes declaring their targets, or recorded as not worth
+their time.
 Placed here so that no phase gate waits for it; it depends on R22.36
 alone.
 
-Exit evidence: controls that a selected pass is enough for a branch and
-for main's push, and that a phase-gate claim refuses a commit no
+Exit evidence: SR-2032 settled either way; controls that a selected
+pass is enough for a branch and for main's push, and that a phase-gate claim refuses a commit no
 complete gate covered; the search command's tests; the first
 scheduled complete gate; a week of landings on the selected gate with
 the complete gates that covered them named; AGENTS.md's "The mechanical
@@ -5254,10 +5279,15 @@ largest costs against its reference, from which R22.90 takes its scope.
 Status: planned
 Depends on: R22.80
 
-The costs at the head of R22.80's ranked list.
+The costs at the head of R22.80's ranked list, and, wherever they rank,
+the two that keep library programs off Cortex-M0's 32 KiB reference:
+SR-1929's `core/big` programs that both multiply and divide, and
+SR-1968's lean `core/regex` program of one pattern and one search.
 
 Exit evidence: each cost taken measured lower than its R22.80 baseline,
-and no other workload over its own.
+and no other workload over its own; SR-1929's fixtures fitting the
+reference at `size/auto` with their profile limits removed, and
+SR-1968's program measured again with its sizes recorded.
 
 ### The library's continuous items
 
