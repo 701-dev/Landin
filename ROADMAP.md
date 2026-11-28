@@ -1502,10 +1502,10 @@ and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R16.45 — A call's failure tested once
 
-Status: active
+Status: complete
 Depends on: R16.10
 
-SR-1861: every call that can fail costs x86-64 about eleven instructions
+`SR-1861`: every call that can fail costs x86-64 about eleven instructions
 on its succeeding way where two would do, its status stored, loaded back,
 validated against its atom set and tested through a byte. R16.39
 measured sealing the call's failure slot and fusing the test into its
@@ -1515,6 +1515,31 @@ it. Scheduled by the register sweep of 2026-11-26. Exit evidence: a
 call's succeeding way testing its status once, in a register, on every
 target, binary-trees measured against the item's base, and no other
 combination over its own.
+
+Done: lowering seals every call's failure slot, so no backend checks the
+status it loads against the callee's errors, which the verifier already
+holds it to (D3176); and at `size` and `speed` the failure test after a
+call is the branch after it on every backend, reading the status in the
+register the call left it in, with no load, when only the store of the
+call's result lies between (D3175): `call; movl %r10d, slot; testl
+%r10d, %r10d; je` on x86-64, `cbz w8` on arm64, `beq x31, zero` on
+RISC-V, `cmp r12, #0` on Thumb-2 and `beqz` on Xtensa, the store kept
+for the failed way. Against the item's base under QEMU at speed
+binary-trees executes 4.7% fewer x86-64 instructions, 4.6% arm64 and
+2.4% RV64 (5.0%, 4.9% and 3.1% at size), reverse-complement about 1%,
+fasta about 0.2%, the others the same, every output the same and no
+configuration over its own; every hosted benchmark's `.text` is 2.8 to
+5.6 KB smaller. In user cycles binary-trees takes 3.0% fewer on an EPYC
+7302 and 1.0% fewer on a Cortex-X925 core, no workload 5% or more on
+x86-64. The shorter calls moved reverse-complement's foot-tested loop on
+arm64 and it took 16% more cycles, which `SR-2042` had seen at 1.6%, so
+the item took that row: at `speed` arm64 starts a loop head nothing
+falls into on a 32-byte line (D3177), and reverse-complement takes 17.0%
+fewer cycles than at the base and fannkuch-redux 1.9% fewer. `SR-1861`
+and `SR-2042` are completed and deleted; `SR-2223` (the arm64 cross
+lane's `events-network-limits` under QEMU) and `SR-2224`
+(`assemble_targets.py` without a fixture's `--firmware-entry`), both met
+at the base as well, are filed.
 
 ### The continuous items
 
