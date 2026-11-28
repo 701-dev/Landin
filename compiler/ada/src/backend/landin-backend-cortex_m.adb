@@ -3580,6 +3580,13 @@ package body Landin.Backend.Cortex_M is
          --  emitted now in it.
          Current_Block : Natural := 0;
          Next_Value : Landin.IR.Value_Id := Landin.IR.No_Value;
+         --  D3175: the position emitted now in its block, and the load of
+         --  a call's status that is not made, its failure test reading
+         --  r12, where the call left the status.  Selection writes r12
+         --  only to carry a failure or set an assembly output aside, so
+         --  only a location held there can change it in between.
+         Current_Position : Natural := 0;
+         Status_Load : Landin.IR.Value_Id := Landin.IR.No_Value;
          --  D1567: the layout position of the value emitted now.
          Tick : Natural := 0;
 
@@ -6147,6 +6154,33 @@ package body Landin.Backend.Cortex_M is
                end if;
             end Index_Address;
          begin
+            if Options.Optimize
+                 in Landin.Optimization.Size | Landin.Optimization.Speed
+              and then Op = Landin.IR.Load
+            then
+               declare
+                  Call : constant Landin.IR.Value_Id := Status_Carrier
+                    (Of_Unit, Item, Landin.IR.Block_Id (Current_Block),
+                     Current_Position);
+                  Before : constant Landin.IR.Value_Id :=
+                    (if Current_Position > 1
+                     then Landin.IR.Nth_Value
+                       (Of_Unit, Item, Landin.IR.Block_Id (Current_Block),
+                        Current_Position - 1)
+                     else Landin.IR.No_Value);
+               begin
+                  if Call /= Landin.IR.No_Value
+                    and then Value_Register (Call) /= 12
+                    and then (Before = Call
+                              or else Slot_Register
+                                (Landin.IR.Slot_Of (Of_Unit, Item, Before))
+                                /= 12)
+                  then
+                     Status_Load := Value;
+                     return;
+                  end if;
+               end;
+            end if;
             if Hard then
                declare
                   Handled : Boolean;
@@ -7945,10 +7979,38 @@ package body Landin.Backend.Cortex_M is
                   Emit ("ldr r0, [r0]");
                   Store_Value (Value);
                when Landin.IR.Failure_Test =>
+                  --  A test only the branch after it reads, as lowering
+                  --  makes every call's, is that branch's (D1566).
+                  if Next_Value /= Landin.IR.No_Value
+                    and then Landin.IR.Op_Of (Of_Unit, Item, Next_Value)
+                      = Landin.IR.Branch
+                    and then Landin.IR.Nth_Operand
+                      (Of_Unit, Item, Next_Value, 1) = Value
+                    and then Readers.Data (Positive (Value)) = 1
+                  then
+                     if Operand (1) = Status_Load and then not Thumb2 then
+                        --  ARMv6-M compares only a low register with an
+                        --  immediate.
+                        Emit ("mov r0, r12");
+                     end if;
+                     Fused := Next_Value;
+                     Zero_Transfer
+                       ((if Operand (1) /= Status_Load
+                         then Operand_In (Operand (1), "r0", Landin.Types.U32)
+                         elsif Thumb2 then "r12" else "r0"),
+                        "ne",
+                        Landin.IR.Target_Of (Of_Unit, Item, Next_Value),
+                        Landin.IR.Alternative_Of (Of_Unit, Item, Next_Value));
+                     return;
+                  end if;
                   declare
                      Done : constant String := Fresh;
                   begin
-                     Load_Value (Operand (1));
+                     if Operand (1) = Status_Load then
+                        Emit ("mov r0, r12");
+                     else
+                        Load_Value (Operand (1));
+                     end if;
                      Emit ("cmp r0, #0");
                      Emit ("beq " & Done);
                      Emit ("movs r0, #1");
@@ -8862,6 +8924,7 @@ package body Landin.Backend.Cortex_M is
             loop
                Current_Value := Landin.IR.Nth_Value
                  (Of_Unit, Item, Landin.IR.Block_Id (Block), Position);
+               Current_Position := Position;
                Tick := Tick + 1;
                if Record_At >= 0 then
                   Record_At := Tick;

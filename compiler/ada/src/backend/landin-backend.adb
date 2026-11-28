@@ -1513,6 +1513,80 @@ package body Landin.Backend is
       Through, Carried : Landin.IR.Value_Id;
       Uses : Use_Counts) return Boolean;
 
+   function Status_Carrier
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Block : Landin.IR.Block_Id;
+      Position : Positive) return Landin.IR.Value_Id
+   is
+      use type Landin.IR.Opcode;
+      use type Landin.IR.Slot_Id;
+      use type Landin.IR.Value_Id;
+      Length : constant Natural := Landin.IR.Length (Of_Unit, Item, Block);
+
+      function At_Place (Place : Natural) return Landin.IR.Value_Id is
+        (if Place in 1 .. Length
+         then Landin.IR.Nth_Value (Of_Unit, Item, Block, Place)
+         else Landin.IR.No_Value);
+
+      function Op (Value : Landin.IR.Value_Id) return Landin.IR.Opcode is
+        (Landin.IR.Op_Of (Of_Unit, Item, Value));
+
+      Load : constant Landin.IR.Value_Id := At_Place (Position);
+      Test : constant Landin.IR.Value_Id := At_Place (Position + 1);
+      Branch : constant Landin.IR.Value_Id := At_Place (Position + 2);
+      Before : constant Landin.IR.Value_Id := At_Place (Position - 1);
+      Call : Landin.IR.Value_Id := Before;
+   begin
+      if Op (Load) /= Landin.IR.Load
+        or else Test = Landin.IR.No_Value
+        or else Op (Test) /= Landin.IR.Failure_Test
+        or else Landin.IR.Nth_Operand (Of_Unit, Item, Test, 1) /= Load
+        or else Branch = Landin.IR.No_Value
+        or else Op (Branch) /= Landin.IR.Branch
+        or else Landin.IR.Nth_Operand (Of_Unit, Item, Branch, 1) /= Test
+        or else Before = Landin.IR.No_Value
+      then
+         return Landin.IR.No_Value;
+      end if;
+      if Op (Before) = Landin.IR.Store then
+         Call := At_Place (Position - 2);
+         if Call = Landin.IR.No_Value
+           or else Landin.IR.Nth_Operand (Of_Unit, Item, Before, 1) /= Call
+         then
+            return Landin.IR.No_Value;
+         end if;
+      end if;
+      if Op (Call) not in Landin.IR.Call | Landin.IR.Indirect_Call
+        or else Landin.IR.Failure_Slot_Of (Of_Unit, Item, Call)
+          /= Landin.IR.Slot_Of (Of_Unit, Item, Load)
+      then
+         return Landin.IR.No_Value;
+      end if;
+      --  Operands are block-local, so the readers of both are in this
+      --  block; the branch ends it.
+      for Place in Position + 1 .. Length loop
+         declare
+            Value : constant Landin.IR.Value_Id := At_Place (Place);
+         begin
+            for Which in 1 .. Landin.IR.Operand_Count (Of_Unit, Item, Value)
+            loop
+               declare
+                  Operand : constant Landin.IR.Value_Id :=
+                    Landin.IR.Nth_Operand (Of_Unit, Item, Value, Which);
+               begin
+                  if (Operand = Load and then Value /= Test)
+                    or else (Operand = Test and then Value /= Branch)
+                  then
+                     return Landin.IR.No_Value;
+                  end if;
+               end;
+            end loop;
+         end;
+      end loop;
+      return Call;
+   end Status_Carrier;
+
    function Fold_Of
      (Of_Unit : Landin.IR.Unit;
       Item : Landin.IR.Item_Id;

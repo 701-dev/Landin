@@ -1738,6 +1738,12 @@ package body Landin.Backend.Xtensa is
          Fused : Landin.IR.Value_Id := Landin.IR.No_Value;
          --  D2113: the block emitted now.
          Current_Block : Natural := 0;
+         --  D3175: the position emitted now in its block, and the load of
+         --  a call's status that is not made, its failure test reading
+         --  the word x31, where the call left the status: selection
+         --  writes x31 only to carry a failure.
+         Current_Position : Natural := 0;
+         Status_Load : Landin.IR.Value_Id := Landin.IR.No_Value;
 
          --  D2113: a jump to the block laid out next is no instruction.
          procedure Jump_To_Block (Block : Landin.IR.Block_Id);
@@ -3709,6 +3715,15 @@ package body Landin.Backend.Xtensa is
                end case;
             end Pair_Instruction;
          begin
+            if Options.Optimize /= Landin.Optimization.None
+              and then Op = Landin.IR.Load
+              and then Status_Carrier
+                (Of_Unit, Item, Landin.IR.Block_Id (Current_Block),
+                 Current_Position) /= Landin.IR.No_Value
+            then
+               Status_Load := Value;
+               return;
+            end if;
             if Pairs then
                declare
                   Handled : Boolean;
@@ -4774,10 +4789,49 @@ package body Landin.Backend.Xtensa is
                   Emit (Load_Word & " x5, 0(x5)");
                   Store_Value (Value);
                when Landin.IR.Failure_Test =>
-                  Load_Value (Operand (1));
-                  Compare ("x5", "0", Literal => True);
-                  Predicate ("x5", "ne");
-                  Store_Value (Value);
+                  declare
+                     Status : constant String :=
+                       (if Operand (1) = Status_Load then "x31" else "x5");
+                  begin
+                     if Operand (1) /= Status_Load then
+                        Load_Value (Operand (1));
+                     end if;
+                     --  A test only the branch after it reads, as lowering
+                     --  makes every call's, is that branch's bnez on the
+                     --  status (D1628).
+                     if Next_Value /= Landin.IR.No_Value
+                       and then Landin.IR.Op_Of (Of_Unit, Item, Next_Value)
+                         = Landin.IR.Branch
+                       and then Landin.IR.Nth_Operand
+                         (Of_Unit, Item, Next_Value, 1) = Value
+                       and then Read_Once (Value)
+                     then
+                        declare
+                           use type Landin.IR.Block_Id;
+                           Yes : constant Landin.IR.Block_Id :=
+                             Landin.IR.Target_Of (Of_Unit, Item, Next_Value);
+                           No : constant Landin.IR.Block_Id :=
+                             Landin.IR.Alternative_Of
+                               (Of_Unit, Item, Next_Value);
+                        begin
+                           Fused := Next_Value;
+                           if Natural (Yes) = Current_Block + 1
+                             and then Yes /= No
+                           then
+                              Emit ("beqz " & Status & ", "
+                                    & Label (Item, No));
+                           else
+                              Emit ("bnez " & Status & ", "
+                                    & Label (Item, Yes));
+                              Jump_To_Block (No);
+                           end if;
+                        end;
+                        return;
+                     end if;
+                     Compare (Status, "0", Literal => True);
+                     Predicate ("x5", "ne");
+                     Store_Value (Value);
+                  end;
                when Landin.IR.Call | Landin.IR.Indirect_Call =>
                   declare
                      Indirect : constant Boolean := Op =
@@ -5390,6 +5444,7 @@ package body Landin.Backend.Xtensa is
               Landin.IR.Block_Id (Block)) loop
                Current_Value := Landin.IR.Nth_Value (Of_Unit, Item,
                  Landin.IR.Block_Id (Block), Position);
+               Current_Position := Position;
                Next_Value :=
                  (if Position < Landin.IR.Length
                     (Of_Unit, Item, Landin.IR.Block_Id (Block))

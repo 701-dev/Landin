@@ -3791,6 +3791,70 @@ package body Landin.Tests.Verifier_Suite is
             "a failing call cannot write an ordinary bool slot");
       end;
 
+      --  D3176: lowering seals a call's failure slot, which the call
+      --  whose failure it carries may name beside its loads and stores.
+      declare
+         Work : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+         Site : Landin.Provenance.Origin;
+         Unit : IR.Unit;
+         Errors : IR.Atom_Set_Id;
+         Callee_Signature, Caller_Signature : IR.Signature_Id;
+         Callee, Caller : IR.Item_Id;
+         Callee_Result, Caller_Result, Status : IR.Slot_Id;
+         Callee_Block, Caller_Block : IR.Block_Id;
+         Value : IR.Value_Id;
+      begin
+         Ready (Work, Site);
+         IR.Prepare (Unit, Landin.Stages.Meanings (Work).all);
+         Errors := IR.Add_Atom_Set (Unit, [1 => 5]);
+         Callee_Signature := IR.Add_Signature
+           (Unit, IR.No_Signature_Parts,
+            (Kind => Landin.Types.U32, others => <>), Errors);
+         Caller_Signature := IR.Add_Signature
+           (Unit, IR.No_Signature_Parts,
+            (Kind => Landin.Types.U32, others => <>));
+         Callee := IR.Add_Item
+           (Unit, IR.Routine, 1, Landin.Types.U32, Site);
+         Caller := IR.Add_Item
+           (Unit, IR.Routine, 3, Landin.Types.U32, Site);
+         IR.Set_Signature (Unit, Callee, Callee_Signature);
+         IR.Set_Signature (Unit, Caller, Caller_Signature);
+         Callee_Result := IR.Add_Slot
+           (Unit, Callee, Landin.Types.U32, 2, Site);
+         Caller_Result := IR.Add_Slot
+           (Unit, Caller, Landin.Types.U32, 4, Site);
+         Status := IR.Add_Slot
+           (Unit, Caller, Landin.Types.U32, IR.No_Declaration, Site,
+            Atoms => Errors, Sealed => True);
+         IR.Set_Result_Slot (Unit, Callee, Callee_Result);
+         IR.Set_Result_Slot (Unit, Caller, Caller_Result);
+
+         Callee_Block := IR.Add_Block
+           (Unit, Callee, Landin.Resolution.Program_Scope, Site);
+         IR.Enter (Unit, Callee, Callee_Block);
+         Value := IR.Emit_Number
+           (Unit, Callee, Landin.Types.U32, 1, False, Site);
+         IR.Emit_Store (Unit, Callee, Callee_Result, Value, Site);
+         Value := IR.Emit_Load (Unit, Callee, Callee_Result, Site);
+         IR.Emit_Leave (Unit, Callee, Value, Site);
+         IR.Leave_Block (Unit, Callee);
+
+         Caller_Block := IR.Add_Block
+           (Unit, Caller, Landin.Resolution.Program_Scope, Site);
+         IR.Enter (Unit, Caller, Caller_Block);
+         Value := IR.Emit_Call
+           (Unit, Caller, Callee, Landin.Types.U32, Site,
+            Failure => Status);
+         IR.Emit_Store (Unit, Caller, Caller_Result, Value, Site);
+         Value := IR.Emit_Load (Unit, Caller, Caller_Result, Site);
+         IR.Emit_Leave (Unit, Caller, Value, Site);
+         IR.Leave_Block (Unit, Caller);
+         Expect
+           (Item, V.Check (Unit), V.Nothing_Wrong,
+            "a failing call may write its sealed failure slot");
+      end;
+
       declare
          Work : Landin.Stages.Compilation :=
            Landin.Stages.Create (Landin.Targets.Linux_X86_64);

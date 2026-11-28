@@ -29105,6 +29105,87 @@ reverse-complement's loop, so they need no such rule.
 
 **Pinned by** x86-64's `counted-down slices` at size.
 
+### D3177 — arm64 starts a loop's head on a 32-byte line where nothing falls into it
+
+**The tour said** nothing. arm64 aligned no loop. reverse-complement's
+byte loop is tested at its foot (D2096), its body first and its test
+after the cold path that writes a line, so code earlier in its routine
+moves both. On a Cortex-X925 core of kithinkstation02 one instruction
+fewer before the loop took 1.57% more cycles (D2816, D2817), and D3175's
+shorter calls before it 16% more, 194 M to 224 M, with 1% fewer
+instructions.
+
+**Chosen:** at `speed` a block that begins a loop, as x86-64 and the
+32-bit targets find it (D2096, D2308), starts on a 32-byte line when the
+instruction before it is a `b`, `br`, `brk` or `ret`, so its padding is
+never executed. Branch shortening counts the padding as seven
+instructions. A head entered by falling into it stays where it is, as
+on Thumb-2 and RV32. reverse-complement's loop so aligned took 162 M
+cycles, against 191 M with its foot's test aligned instead.
+
+**The alternatives:** placing the test beside the body, which would
+reorder blocks every backend lays out in lowering's order; aligning the
+test block, which recovered only the shift; and padding a head that is
+fallen into, whose `nop`s run on every entry to the loop.
+
+**Pinned by** the arm64 selection suite's `a loop head starts a line at
+speed`.
+
+### D3176 — A call's failure slot is sealed
+
+**The tour said** nothing. A call that can fail writes its status to a
+slot of the callee's error set, and lowering loads it back to test it.
+Every load of an atom set's slot checked that its bits were one of the
+set's codes, admitting zero only for a status: on x86-64 two comparisons
+and branches after every such call, before the test itself, on a value
+the verifier already holds to the callee's errors.
+
+**Chosen:** lowering seals every call's failure slot, as it seals the
+copy an atom `match` keeps of its subject, and the verifier lets a
+sealed slot be named by the call whose failure it carries as well as by
+a load and a store. What a load of it reads is then a zero the callee's
+success wrote or one of the errors the verifier holds the callee's
+signature to, so no backend checks it.
+
+**The alternatives:** keeping the check and admitting it only for an
+indirect call, which the verifier holds to its signature the same way;
+and making the status a value of the call rather than a slot, which
+every pass that moves or copies a call would have had to carry.
+
+**Pinned by** the lowering corpus, whose every failure slot reads
+`sealed`, and the verifier's sealed slot cases.
+
+### D3175 — The branch after a call tests the status where the call left it
+
+**The tour said** nothing. Lowering follows every call that can fail
+with a load of its failure slot, a failure test and a branch on it. The
+backends stored the status the call left in its register, loaded it
+back, made a truth value of it and tested that: on x86-64 binary-trees
+spent about eleven instructions on each call's succeeding way where two
+would do.
+
+**Chosen:** at `size` and `speed`, a failure test whose one reader is
+the branch after it is that branch, as a comparison is: `testl` and a
+jump on x86-64, `cbz` on arm64, `beq` against zero on RISC-V, `cmp` and
+`beq` on Cortex-M and `beqz` on Xtensa. When the load before it reads
+the failure slot of the call just before it, or of the call before the
+store of that call's result, and nothing between writes the register
+the call left the status in (`%r10`, `x8`, `x31`, `r12`, or Xtensa's
+word for `x31`), the load is not made and the test reads that register.
+The status is still stored for the failed way, which loads it again.
+`Landin.Backend.Status_Carrier` finds the shape; each backend asks
+whether its own allocation put anything in that register between, which
+x86-64 and Cortex-M allow and arm64, RISC-V and Xtensa never do.
+
+**The alternatives:** keeping the failure slot in a register across the
+call, which every allocator excluded because its loads and stores are
+its only accesses; and moving the store into the failed way, which would
+need a block of its own wherever that way has another predecessor.
+
+**Pinned by** the backend suite's `a call's status is tested in its
+register` on x86-64, arm64, RV64, RV32 and Cortex-M at ARMv6-M and
+ARMv8-M Mainline, and the Xtensa backend suite's case of that name.
+
 ### D2573 — An element address reaches every access carried from it
 
 **The tour said** nothing. Lowering carries an element's address to its

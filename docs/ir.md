@@ -255,10 +255,11 @@ other opcodes. A range check keeps both bounds, but every backend tests
 only an edge inside its type: `ptr(n)`'s check is `1` up to the largest
 `usize`, and only the nonnull edge is emitted. A load of an atom-typed value
 tests that its bits are one of its set's codes. A sealed slot is the
-exception: a compiler temporary that nothing but loads and stores names,
-which the verifier enforces, so it can only read back a value of its set. An atom
+exception: a compiler temporary that nothing but loads, stores and the call
+whose failure it carries names, which the verifier enforces, so it can only
+read back a value of its set or a call's zero status. An atom
 `match` keeps its subject in one, so the subject is tested once where it is
-read and each arm only compares. A signed right shift describes
+read and each arm only compares; every call's failure slot is one (D3176). A signed right shift describes
 the language's shift semantics; the x86 emitter is responsible for handling
 counts that the hardware would otherwise mask.
 
@@ -451,7 +452,10 @@ converted from has the cells, and the verifier holds each to an erased
 table of the same represented type.
 
 Declared failure is separate from ordinary results. A call can have a
-failure slot, and a failure test selects the subsequent control flow. A
+failure slot, and a failure test selects the subsequent control flow; at
+`size` and `speed` every backend makes that test the branch after it and,
+when only the store of the call's result lies between, reads the status
+from the register the call left it in rather than loading it (D3175). A
 failure exit carries an atom belonging to the declared error set. The
 backend chooses the physical success and failure carriers. These explicit
 edges represent recoverable language-level outcomes; they are distinct from
@@ -1071,10 +1075,12 @@ traps. Whole aggregate copies preserve the carrier without extracting fields.
 
 Ordinary atom loads also validate their software codes. The private call-status
 slot has a different domain: zero means success, otherwise the code identifies
-a declared error. `Is_Failure_Status_Load` recognizes only a slot designated by
-a direct or indirect call's failure edge. Every implemented backend asks
-`Admits_Reserved_Zero`, which names that load, and permits zero only for it
-before `Failure_Test`; ordinary source atom storage does not gain a zero value.
+a declared error. Lowering seals it (D3176), so no backend validates its loads.
+`Is_Failure_Status_Load` recognizes only a slot designated by a direct or
+indirect call's failure edge, and every implemented backend still asks
+`Admits_Reserved_Zero`, which names that load, permitting zero only for it
+before `Failure_Test` should an unsealed one reach it; ordinary source atom
+storage does not gain a zero value.
 Recovery still observes a named error on the failing branch. A pointer union
 holds one atom (D1659) and is a pointer whose empty case is the zero address,
 so it adds no atom cell for this rule to admit.

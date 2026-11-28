@@ -1315,7 +1315,10 @@ process ignores SIGPIPE and gives its children the default back.
   product by a power of two is a shift (D1624, D2251). SHA-256's majority
   and choice take gcc's shorter forms on every target, the second with an
   instruction the source never computed, and rotations of one value
-  joined by a bitwise operation turn one chain (D2447, D2448).
+  joined by a bitwise operation turn one chain (D2447, D2448). A call
+  that can fail is followed by one test of its status, in the register
+  the call left it in, branching on it directly on every target (D3175,
+  D3176).
 - **Register allocation.** The x86-64 and arm64 allocators give slots
   registers over their live intervals, small routines' among them in
   caller-saved registers, floating-point values included, at size as at

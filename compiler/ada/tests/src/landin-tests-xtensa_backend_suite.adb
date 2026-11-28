@@ -706,6 +706,32 @@ package body Landin.Tests.Xtensa_Backend_Suite is
    --  D1628, D2113: a comparison only its branch reads is the branch, and
    --  an edge to the block laid out next falls through rather than
    --  jumping.
+   --  D3175: the branch after a call that can fail tests the status
+   --  where the call left it, with no load of its failure slot between.
+   procedure Status_In_Register (Item : in out Landin.Testing.Context);
+   procedure Status_In_Register (Item : in out Landin.Testing.Context) is
+      HT : constant Character := ASCII.HT;
+      Text : constant String := Emitted
+        (Item,
+         "bad: atom" & LF
+         & "problem: type = bad" & LF
+         & "operation: type = (fails: bool) -> (value: i32) ! problem" & LF
+         & "public run: (op: operation, fails: bool) -> (code: i32)"
+         & " ! problem =" & LF
+         & "    code = try op(fails)" & LF
+         & "end run" & LF,
+         (Landin.Optimization.Size, Landin.Optimization.Auto));
+      Called : constant Natural :=
+        Ada.Strings.Fixed.Index (Text, HT & "callx8 ");
+   begin
+      Landin.Testing.Check
+        (Item, Called > 0
+           and then Ada.Strings.Fixed.Index
+             (Text, HT & "s32i a14, a7, 12" & LF & HT & "beqz a14, ", Called)
+             > 0,
+         "the branch after the call tests its status in the register");
+   end Status_In_Register;
+
    procedure Branches_Fall_Through (Item : in out Landin.Testing.Context);
    procedure Branches_Fall_Through (Item : in out Landin.Testing.Context) is
       HT : constant Character := ASCII.HT;
@@ -781,6 +807,9 @@ package body Landin.Tests.Xtensa_Backend_Suite is
       Landin.Testing.Register
         (Into, "xtensa backend", "a branch falls through to the next block",
          Branches_Fall_Through'Access);
+      Landin.Testing.Register
+        (Into, "xtensa backend", "a call's status is tested in its register",
+         Status_In_Register'Access);
       Landin.Testing.Register
         (Into, "xtensa backend", "an outgoing area is part of the frame",
          Outgoing_Area_In_Frame'Access);
