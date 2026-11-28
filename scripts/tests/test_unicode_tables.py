@@ -203,7 +203,9 @@ class CheckedIn(unittest.TestCase):
         for name in ("category", "properties", "case-scalars", "case-title",
                      "normalization-canonical", "normalization-compatible",
                      "normalization-sequences", "graphemes", "words-1",
-                     "words-2", "sentences", "caseless-scalars",
+                     "words-2", "sentences", "caseless-scalars-1",
+                     "caseless-scalars-2", "caseless-scalars-3",
+                     "caseless-scalars-4",
                      "caseless-sequences"):
             path = unicode_tables.FIXTURES / ("unicode-" + name) / "main.ldn"
             self.assertIn("Database %s;" % unicode_tables.VERSION,

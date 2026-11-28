@@ -6444,10 +6444,25 @@
       "profile_limit": "selected-image",
       "reason": "At none/off the image is 39,371 bytes, over Cortex-M0's 32 KiB of flash by 6,603: the canonical caseless match reads the canonical decompositions beside the case tables, with two readers' code unoptimized. size/off, size/auto and speed/auto fit, 30,555 bytes at size/auto, and execute the whole fixture; this image limit is not runtime evidence."
     },
-    "runtime/unicode-caseless-scalars": {
+    "runtime/unicode-caseless-scalars-1": {
       "mode": "execute",
       "profile_limit": "selected-image",
       "reason": "At none/off the image is 34,800 bytes, over Cortex-M0's 32 KiB of flash by 2,032: the walk reads the case tables for its upper, lower and folded mappings beside the caseless comparisons, and at none every IR slot has a frame home of its own. size/off, size/auto and speed/auto fit, 23,656 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-caseless-scalars-2": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 34,800 bytes, over Cortex-M0's 32 KiB of flash by 2,032: the walk reads the case tables for its upper, lower and folded mappings beside the caseless comparisons, and at none every IR slot has a frame home of its own. size/off, size/auto and speed/auto fit, 23,664 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-caseless-scalars-3": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 34,800 bytes, over Cortex-M0's 32 KiB of flash by 2,032: the walk reads the case tables for its upper, lower and folded mappings beside the caseless comparisons, and at none every IR slot has a frame home of its own. size/off, size/auto and speed/auto fit, 23,664 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-caseless-scalars-4": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 34,800 bytes, over Cortex-M0's 32 KiB of flash by 2,032: the walk reads the case tables for its upper, lower and folded mappings beside the caseless comparisons, and at none every IR slot has a frame home of its own. size/off, size/auto and speed/auto fit, 23,664 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
     },
     "runtime/unicode-caseless-sequences": {
       "mode": "execute",
