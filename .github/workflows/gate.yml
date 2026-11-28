@@ -790,12 +790,17 @@ jobs:
   #  twice the time the same part took on a fast one; a third of the work
   #  took about ten minutes on a fast runner and twenty on the slowest, so
   #  a shard is a quarter.
+  #
+  #  A quarter takes 17 to 24 minutes on a normal runner and up to 1.7
+  #  times that on a slow one, so 30 minutes cancelled build-modes-1 in
+  #  three batch gates running (46067889013, 46090199366, 46110029730);
+  #  45 is the slowest shard seen times that ratio, with a margin.
   build-modes:
     name: build-modes-${{ matrix.shard }}
     needs: [inputs, linux-debug-build, linux-release-build]
     if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
