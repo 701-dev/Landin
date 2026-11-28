@@ -1,12 +1,12 @@
 {
   "status": "passed",
-  "image_sha256": "8cefaafa16d8d18b242dcb32d8c97d0f5b864cd7f4e4dbcdfc8201494aafceb4",
+  "image_sha256": "d06df5920fc55e7ae13733d8fbbb65e0d7034123fc6bd319e9775ef1f57b153a",
   "image_name": "board.elf",
   "image": {
     "copied_text": {
-      "end": 17984,
+      "end": 17312,
       "load": 134218640,
-      "sha256": "008c699c428a2e66809923c7950255110105fb44db46d968c76aa5c07d107488",
+      "sha256": "62f2beab81ba420aaa9c87ee42585b8c89d72e530c24ee0f273db642c2708c5a",
       "start": 0
     },
     "float_unit": "passed",
@@ -121,16 +121,16 @@
     "handled": 12014,
     "recoveries": 3,
     "dma_entries": 47,
-    "usart_entries": 149,
+    "usart_entries": 150,
     "s0ndtr": 229,
     "s0cr": 1049617,
     "itcm": {
       "start": 0,
-      "bytes": 17984,
-      "sha256": "008c699c428a2e66809923c7950255110105fb44db46d968c76aa5c07d107488"
+      "bytes": 17312,
+      "sha256": "62f2beab81ba420aaa9c87ee42585b8c89d72e530c24ee0f273db642c2708c5a"
     }
   },
-  "uart_sha256": "ed85857428d47fa42050125aad7ec0a71e9a24bfad03905fe8f71cbde1b7297e",
+  "uart_sha256": "0b0db4d610eca80700e85ef068b9713deb9869b8a719bbe94598461f6209d401",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -142,49 +142,49 @@
       "elf_sha256": "413ac4b4224bcd5083b2bcd10dc429d34623bbfa9222eae4419ae4ae4fb8271d"
     }
   },
-  "seconds": 35.131,
+  "seconds": 35.539,
   "kernel_usb": {
-    "since": 1795813622.7015297,
-    "until": 1795813657.806624,
+    "since": 1795853916.2042565,
+    "until": 1795853951.7216291,
     "lines": [
       {
-        "time": 1795813628.540747,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 50"
+        "time": 1795853921.972692,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 96"
       },
       {
-        "time": 1795813630.452674,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 67 using xhci_hcd"
+        "time": 1795853923.884679,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 113 using xhci_hcd"
       },
       {
-        "time": 1795813630.602583,
+        "time": 1795853924.034577,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795813630.606705,
+        "time": 1795853924.038431,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795813630.609294,
+        "time": 1795853924.052698,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       },
       {
-        "time": 1795813654.824945,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 67"
+        "time": 1795853948.120766,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 113"
       },
       {
-        "time": 1795813656.744666,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 68 using xhci_hcd"
+        "time": 1795853950.068681,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 114 using xhci_hcd"
       },
       {
-        "time": 1795813656.894464,
+        "time": 1795853950.218171,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795813656.8986,
+        "time": 1795853950.222655,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795813656.904722,
+        "time": 1795853950.236963,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       }
     ],
@@ -209,8 +209,8 @@
       "d": "00000002",
       "w": "0000002f",
       "k": "0000002f",
-      "m": "00003fdf",
-      "u": "00000095",
+      "m": "00003fad",
+      "u": "00000096",
       "p": "00000037",
       "n": "000000e5",
       "e": "0000001b",
@@ -237,6 +237,7 @@
     "flash-readback",
     "hub-status",
     "power-cycle",
+    "hub-wait",
     "hub-wait",
     "resident-ready"
   ]

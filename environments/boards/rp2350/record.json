@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "image_sha256": "ab3b9f24a2f7afc02ed5c4554f66416883ea9b8e6f92e5e34b0b459c7ca37d1e",
+  "image_sha256": "a985233e23ced82361d61e4fb472951293ebd876cb420a550f72949fa5623ef1",
   "image_name": "board.elf",
   "flash_readback": "matches",
   "verdicts": {
@@ -28,7 +28,7 @@
       "held_by_fifo": 32,
       "restarts": 3,
       "dma_completions": 2,
-      "timer_events": 1636,
+      "timer_events": 1623,
       "echoed": 11202,
       "sent": 11572
     },
@@ -43,7 +43,7 @@
     "usb_events": 1,
     "trans_count": 1094
   },
-  "uart_sha256": "2266d9567729089c0715aec3d4890be975ed6add8184f7cbcd746f2782dac75e",
+  "uart_sha256": "578ae7c0317536fa2407513111470f909853311c0c66d3b550ecc92848f26d49",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -55,10 +55,10 @@
       "elf_sha256": "498a9c6ce9a469eb8536f6b4b0413cbc8da1ee5b437d9a0b1fd4d14fe2a78998"
     }
   },
-  "seconds": 42.126,
+  "seconds": 42.18,
   "kernel_usb": {
-    "since": 1795813463.8795624,
-    "until": 1795813505.989131,
+    "since": 1795853726.0962884,
+    "until": 1795853768.257552,
     "lines": [],
     "status": "captured"
   },
@@ -75,7 +75,7 @@
       "h": "00002bc2",
       "c": "00000003",
       "d": "00000002",
-      "m": "00000664",
+      "m": "00000657",
       "u": "00000001",
       "p": "0000001e",
       "n": "00000446",

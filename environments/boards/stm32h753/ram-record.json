@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "image_sha256": "2ac831a68d6ab0e148fe47df7b2a100966b47f09eb0708c67dfa76a36d924418",
+  "image_sha256": "2e2287952bc9ea891dd43c30278a31f22329fc2a89898c4178509e291f0146e1",
   "image_name": "board.elf",
   "image": {
     "float_unit": "passed",
@@ -15,7 +15,7 @@
   },
   "verdicts": {
     "boot": {
-      "rcc_rsr": 16646144,
+      "rcc_rsr": 0,
       "vtor": 603979776,
       "cpacr": 15728640,
       "ccr": 262656,
@@ -113,12 +113,12 @@
   "swd": {
     "handled": 12014,
     "recoveries": 3,
-    "dma_entries": 47,
-    "usart_entries": 143,
+    "dma_entries": 48,
+    "usart_entries": 141,
     "s0ndtr": 229,
     "s0cr": 1049617
   },
-  "uart_sha256": "badd18bb08e38a576e62fea9cc9e3fc334d3f1bad1752762865a1f128b78bc5e",
+  "uart_sha256": "ad9b7fd69e5580116df04839e308a8166db7fa24e06745401c958d7b96496dfd",
   "mode": "ram",
   "warm_load": {
     "board": "stm32h753",
@@ -128,28 +128,28 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "2ac831a68d6ab0e148fe47df7b2a100966b47f09eb0708c67dfa76a36d924418",
-    "entry": 603986429,
+    "elf_sha256": "2e2287952bc9ea891dd43c30278a31f22329fc2a89898c4178509e291f0146e1",
+    "entry": 603986133,
     "flash_written": false,
     "format_version": 1,
     "helper_source_sha256": "fc2f5b5081e7f4778195e621b04081bd05ac04dee304934a44bab3475aff0880",
     "mode": "warm",
-    "previous_pc": 22,
+    "previous_pc": 603987800,
     "segments": [
       {
         "address": 603979776,
-        "bytes": 19032,
-        "sha256": "1a1660be4db27a3021f71c5757e0b295d895bf39b7e524f126c324b1779b8609"
+        "bytes": 18360,
+        "sha256": "c78353072e11f5a2f4278f68efb1d39b77951b3d1665f3a01806e1733a07002a"
       }
     ],
     "stack": 604504064,
     "status": "passed",
     "vector": 603979776
   },
-  "seconds": 21.549,
+  "seconds": 21.018,
   "kernel_usb": {
-    "since": 1795813580.187888,
-    "until": 1795813601.7192264,
+    "since": 1795853874.9914465,
+    "until": 1795853895.9916127,
     "lines": [],
     "status": "captured"
   },
@@ -157,7 +157,7 @@
   "frames": [
     {
       "tag": "b",
-      "r": "00fe0000",
+      "r": "00000000",
       "v": "24000000",
       "a": "00f00000",
       "c": "00040200",
@@ -171,9 +171,9 @@
       "c": "00000003",
       "d": "00000002",
       "w": "0000002f",
-      "k": "0000002f",
-      "m": "00003fa1",
-      "u": "0000008f",
+      "k": "00000030",
+      "m": "00003ebd",
+      "u": "0000008d",
       "p": "00000037",
       "n": "000000e5",
       "e": "0000001b",

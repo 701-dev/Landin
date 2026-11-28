@@ -2465,8 +2465,16 @@
     },
     "runtime/core-text-builder": {
       "mode": "execute",
-      "profile_limit": "selected-image",
-      "reason": "Every builder append at each width's extremes, the alignments, the bounded refusals and the growing path over an arena need about 46 KiB of flash at size/auto, of which the fixture's own four routines are 16 KiB: the Cortex-M0 backend gives every IR slot a frame home of its own and keeps no value in a register, so most of their code moves values between homes. Each profile still attempts execution; runtime/core-text-format-firmware runs a bounded builder with a decimal, an aligned hexadecimal and a format within the image and requires execution; this image limit is not runtime evidence."
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: since D3175 every Cortex-M0 profile fits the reference's 32 KiB, the largest at none/off with about 31 KiB; on RV32 none/off still needs about 46 KiB of flash, every builder append at each width's extremes kept in its own frame homes, while size and speed fit at about 26 KiB and execute. runtime/core-text-format-firmware runs a bounded builder within the image and requires execution."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: since D3175 every Cortex-M0 profile fits the reference's 32 KiB, the largest at none/off with about 31 KiB; on RV32 none/off still needs about 46 KiB of flash, every builder append at each width's extremes kept in its own frame homes, while size and speed fit at about 26 KiB and execute. runtime/core-text-format-firmware runs a bounded builder within the image and requires execution."
+        }
+      }
     },
     "runtime/core-text-byte-positions": {
       "mode": "execute"
@@ -5007,8 +5015,16 @@
     "runtime/r420-map-arena": {
       "counterpart": "r420-map-arena",
       "mode": "execute",
-      "profile_limit": "selected-image",
-      "reason": "Selected Cortex-M0 profile: 32 KiB flash, 16 KiB RAM with 4 KiB stack. Every profile is attempted; only actual flash/RAM overflow or a measured minimum frame/static extent outside this map is a retained limit. Larger profiles and general large-image placement remain open work."
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: since D3175 every Cortex-M0 profile fits the reference's 32 KiB, the largest at none/off with about 31 KiB; on RV32 none/off still needs about 47 KiB of flash, while size and speed fit at 27 to 30 KiB and execute."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: since D3175 every Cortex-M0 profile fits the reference's 32 KiB, the largest at none/off with about 31 KiB; on RV32 none/off still needs about 47 KiB of flash, while size and speed fit at 27 to 30 KiB and execute."
+        }
+      }
     },
     "runtime/r420-map-failure-rollback": {
       "mode": "execute",
@@ -6643,7 +6659,17 @@
     "runtime/volume-links-as-systems-follow": {
       "mode": "execute",
       "profile_limit": "selected-image",
-      "reason": "core/io's memory volume links every entry of reader, writer, files, directories and file_system through its conformance tables, as runtime/volume-memory's limit records, so a program that follows its links overflows the 32 KiB profile. Each profile still attempts execution; this image limit is not runtime evidence."
+      "reason": "core/io's memory volume links every entry of reader, writer, files, directories and file_system through its conformance tables, as runtime/volume-memory's limit records, so a program that follows its links overflows the 32 KiB profile. Each profile still attempts execution; this image limit is not runtime evidence.",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: D3175's shorter calls bring this lane's speed/auto image under its 32 KiB, about 31 KiB of text where it had been 35 KiB, and its stack then overruns the 4 KiB reservation, in volume_find called from volume_walk with 4128 bytes in use when the guard was written: the stack report gives main a 1760-byte frame and a 4688-byte depth, the same before D3175. The size profiles still overflow the 32 KiB."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: D3175's shorter calls bring this lane's speed/auto image under its 32 KiB, about 31 KiB of text where it had been 35 KiB, and its stack then overruns the 4 KiB reservation, in volume_find called from volume_walk with 4128 bytes in use when the guard was written: the stack report gives main a 1760-byte frame and a 4688-byte depth, the same before D3175. The size profiles still overflow the 32 KiB."
+        }
+      }
     },
     "runtime/volume-memory": {
       "mode": "execute",
