@@ -4,8 +4,8 @@
  "entries": {
   "x86-64-v1/none-all/binary-trees": {
    "sections": {
-    ".text": 148612,
-    ".rdata": 30920,
+    ".text": 144276,
+    ".rdata": 30232,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -15,8 +15,8 @@
   },
   "x86-64-v1/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 113822,
-    ".rdata": 26028,
+    ".text": 110706,
+    ".rdata": 25548,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -26,8 +26,8 @@
   },
   "x86-64-v1/none-all/fasta": {
    "sections": {
-    ".text": 68866,
-    ".rdata": 15428,
+    ".text": 66553,
+    ".rdata": 15028,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -37,8 +37,8 @@
   },
   "x86-64-v1/none-all/fibre": {
    "sections": {
-    ".text": 141049,
-    ".rdata": 34392,
+    ".text": 136364,
+    ".rdata": 33760,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -48,8 +48,8 @@
   },
   "x86-64-v1/none-all/k-nucleotide": {
    "sections": {
-    ".text": 335129,
-    ".rdata": 64492,
+    ".text": 323650,
+    ".rdata": 62364,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -60,8 +60,8 @@
   },
   "x86-64-v1/none-all/mandelbrot": {
    "sections": {
-    ".text": 149760,
-    ".rdata": 30872,
+    ".text": 145551,
+    ".rdata": 29960,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -71,8 +71,8 @@
   },
   "x86-64-v1/none-all/n-body": {
    "sections": {
-    ".text": 209345,
-    ".rdata": 46748,
+    ".text": 203525,
+    ".rdata": 45956,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -83,8 +83,8 @@
   },
   "x86-64-v1/none-all/pidigits": {
    "sections": {
-    ".text": 296033,
-    ".rdata": 56624,
+    ".text": 287902,
+    ".rdata": 56064,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -95,8 +95,8 @@
   },
   "x86-64-v1/none-all/regex-redux": {
    "sections": {
-    ".text": 871962,
-    ".rdata": 149908,
+    ".text": 826191,
+    ".rdata": 146988,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -106,8 +106,8 @@
   },
   "x86-64-v1/none-all/reverse-complement": {
    "sections": {
-    ".text": 109442,
-    ".rdata": 21372,
+    ".text": 106597,
+    ".rdata": 20612,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -117,8 +117,8 @@
   },
   "x86-64-v1/none-all/spectral-norm": {
    "sections": {
-    ".text": 243765,
-    ".rdata": 53008,
+    ".text": 236429,
+    ".rdata": 51864,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -129,8 +129,8 @@
   },
   "x86-64-v1/none-all/thread": {
    "sections": {
-    ".text": 165349,
-    ".rdata": 39664,
+    ".text": 159171,
+    ".rdata": 39032,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -140,8 +140,8 @@
   },
   "x86-64-v1/none-auto/binary-trees": {
    "sections": {
-    ".text": 148612,
-    ".rdata": 30920,
+    ".text": 144276,
+    ".rdata": 30232,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -151,8 +151,8 @@
   },
   "x86-64-v1/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 113822,
-    ".rdata": 26028,
+    ".text": 110706,
+    ".rdata": 25548,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -162,8 +162,8 @@
   },
   "x86-64-v1/none-auto/fasta": {
    "sections": {
-    ".text": 68866,
-    ".rdata": 15428,
+    ".text": 66553,
+    ".rdata": 15028,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -173,8 +173,8 @@
   },
   "x86-64-v1/none-auto/fibre": {
    "sections": {
-    ".text": 141049,
-    ".rdata": 34392,
+    ".text": 136364,
+    ".rdata": 33760,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -184,8 +184,8 @@
   },
   "x86-64-v1/none-auto/k-nucleotide": {
    "sections": {
-    ".text": 335144,
-    ".rdata": 64492,
+    ".text": 323665,
+    ".rdata": 62364,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -196,8 +196,8 @@
   },
   "x86-64-v1/none-auto/mandelbrot": {
    "sections": {
-    ".text": 149760,
-    ".rdata": 30872,
+    ".text": 145551,
+    ".rdata": 29960,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -207,8 +207,8 @@
   },
   "x86-64-v1/none-auto/n-body": {
    "sections": {
-    ".text": 209345,
-    ".rdata": 46748,
+    ".text": 203525,
+    ".rdata": 45956,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -219,8 +219,8 @@
   },
   "x86-64-v1/none-auto/pidigits": {
    "sections": {
-    ".text": 296033,
-    ".rdata": 56624,
+    ".text": 287902,
+    ".rdata": 56064,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -231,8 +231,8 @@
   },
   "x86-64-v1/none-auto/regex-redux": {
    "sections": {
-    ".text": 872142,
-    ".rdata": 149908,
+    ".text": 826371,
+    ".rdata": 146988,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -242,8 +242,8 @@
   },
   "x86-64-v1/none-auto/reverse-complement": {
    "sections": {
-    ".text": 109442,
-    ".rdata": 21372,
+    ".text": 106597,
+    ".rdata": 20612,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -253,8 +253,8 @@
   },
   "x86-64-v1/none-auto/spectral-norm": {
    "sections": {
-    ".text": 243765,
-    ".rdata": 53008,
+    ".text": 236429,
+    ".rdata": 51864,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -265,8 +265,8 @@
   },
   "x86-64-v1/none-auto/thread": {
    "sections": {
-    ".text": 165349,
-    ".rdata": 39664,
+    ".text": 159171,
+    ".rdata": 39032,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -276,8 +276,8 @@
   },
   "x86-64-v1/none-off/binary-trees": {
    "sections": {
-    ".text": 148628,
-    ".rdata": 30920,
+    ".text": 144292,
+    ".rdata": 30232,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -287,8 +287,8 @@
   },
   "x86-64-v1/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 113824,
-    ".rdata": 26028,
+    ".text": 110708,
+    ".rdata": 25548,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -298,8 +298,8 @@
   },
   "x86-64-v1/none-off/fasta": {
    "sections": {
-    ".text": 68878,
-    ".rdata": 15428,
+    ".text": 66565,
+    ".rdata": 15028,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -309,8 +309,8 @@
   },
   "x86-64-v1/none-off/fibre": {
    "sections": {
-    ".text": 141051,
-    ".rdata": 34392,
+    ".text": 136366,
+    ".rdata": 33760,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -320,8 +320,8 @@
   },
   "x86-64-v1/none-off/k-nucleotide": {
    "sections": {
-    ".text": 335206,
-    ".rdata": 64492,
+    ".text": 323727,
+    ".rdata": 62364,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -332,8 +332,8 @@
   },
   "x86-64-v1/none-off/mandelbrot": {
    "sections": {
-    ".text": 149798,
-    ".rdata": 30872,
+    ".text": 145589,
+    ".rdata": 29960,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -343,8 +343,8 @@
   },
   "x86-64-v1/none-off/n-body": {
    "sections": {
-    ".text": 209354,
-    ".rdata": 46748,
+    ".text": 203534,
+    ".rdata": 45956,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -355,8 +355,8 @@
   },
   "x86-64-v1/none-off/pidigits": {
    "sections": {
-    ".text": 296060,
-    ".rdata": 56624,
+    ".text": 287929,
+    ".rdata": 56064,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -367,8 +367,8 @@
   },
   "x86-64-v1/none-off/regex-redux": {
    "sections": {
-    ".text": 872164,
-    ".rdata": 149908,
+    ".text": 826393,
+    ".rdata": 146988,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -378,8 +378,8 @@
   },
   "x86-64-v1/none-off/reverse-complement": {
    "sections": {
-    ".text": 109464,
-    ".rdata": 21372,
+    ".text": 106619,
+    ".rdata": 20612,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -389,8 +389,8 @@
   },
   "x86-64-v1/none-off/spectral-norm": {
    "sections": {
-    ".text": 243800,
-    ".rdata": 53008,
+    ".text": 236464,
+    ".rdata": 51864,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -401,8 +401,8 @@
   },
   "x86-64-v1/none-off/thread": {
    "sections": {
-    ".text": 165350,
-    ".rdata": 39664,
+    ".text": 159172,
+    ".rdata": 39032,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -412,8 +412,8 @@
   },
   "x86-64-v1/size-all/binary-trees": {
    "sections": {
-    ".text": 49509,
-    ".rdata": 23152,
+    ".text": 45340,
+    ".rdata": 22456,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -423,8 +423,8 @@
   },
   "x86-64-v1/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 36126,
-    ".rdata": 18700,
+    ".text": 33046,
+    ".rdata": 18228,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -434,8 +434,8 @@
   },
   "x86-64-v1/size-all/fasta": {
    "sections": {
-    ".text": 23812,
-    ".rdata": 12796,
+    ".text": 21563,
+    ".rdata": 12396,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -445,8 +445,8 @@
   },
   "x86-64-v1/size-all/fibre": {
    "sections": {
-    ".text": 49948,
-    ".rdata": 25648,
+    ".text": 45695,
+    ".rdata": 25008,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -456,8 +456,8 @@
   },
   "x86-64-v1/size-all/k-nucleotide": {
    "sections": {
-    ".text": 116256,
-    ".rdata": 48076,
+    ".text": 104972,
+    ".rdata": 45948,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -468,8 +468,8 @@
   },
   "x86-64-v1/size-all/mandelbrot": {
    "sections": {
-    ".text": 49212,
-    ".rdata": 23144,
+    ".text": 45123,
+    ".rdata": 22224,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -479,8 +479,8 @@
   },
   "x86-64-v1/size-all/n-body": {
    "sections": {
-    ".text": 67114,
-    ".rdata": 33492,
+    ".text": 61390,
+    ".rdata": 32700,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -491,8 +491,8 @@
   },
   "x86-64-v1/size-all/pidigits": {
    "sections": {
-    ".text": 96142,
-    ".rdata": 41568,
+    ".text": 88201,
+    ".rdata": 41016,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -503,8 +503,8 @@
   },
   "x86-64-v1/size-all/regex-redux": {
    "sections": {
-    ".text": 300783,
-    ".rdata": 110788,
+    ".text": 256409,
+    ".rdata": 107868,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7344,
@@ -514,8 +514,8 @@
   },
   "x86-64-v1/size-all/reverse-complement": {
    "sections": {
-    ".text": 38361,
-    ".rdata": 17892,
+    ".text": 35626,
+    ".rdata": 17132,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -525,8 +525,8 @@
   },
   "x86-64-v1/size-all/spectral-norm": {
    "sections": {
-    ".text": 80358,
-    ".rdata": 39056,
+    ".text": 73151,
+    ".rdata": 37912,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -537,8 +537,8 @@
   },
   "x86-64-v1/size-all/thread": {
    "sections": {
-    ".text": 59562,
-    ".rdata": 29608,
+    ".text": 54207,
+    ".rdata": 28968,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -548,8 +548,8 @@
   },
   "x86-64-v1/size-auto/binary-trees": {
    "sections": {
-    ".text": 49509,
-    ".rdata": 23152,
+    ".text": 45340,
+    ".rdata": 22456,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -559,8 +559,8 @@
   },
   "x86-64-v1/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 36126,
-    ".rdata": 18700,
+    ".text": 33046,
+    ".rdata": 18228,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -570,8 +570,8 @@
   },
   "x86-64-v1/size-auto/fasta": {
    "sections": {
-    ".text": 23812,
-    ".rdata": 12796,
+    ".text": 21563,
+    ".rdata": 12396,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -581,8 +581,8 @@
   },
   "x86-64-v1/size-auto/fibre": {
    "sections": {
-    ".text": 49948,
-    ".rdata": 25648,
+    ".text": 45695,
+    ".rdata": 25008,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -592,8 +592,8 @@
   },
   "x86-64-v1/size-auto/k-nucleotide": {
    "sections": {
-    ".text": 116298,
-    ".rdata": 48076,
+    ".text": 104990,
+    ".rdata": 45948,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -604,8 +604,8 @@
   },
   "x86-64-v1/size-auto/mandelbrot": {
    "sections": {
-    ".text": 49212,
-    ".rdata": 23144,
+    ".text": 45123,
+    ".rdata": 22224,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -615,8 +615,8 @@
   },
   "x86-64-v1/size-auto/n-body": {
    "sections": {
-    ".text": 67114,
-    ".rdata": 33492,
+    ".text": 61390,
+    ".rdata": 32700,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -627,8 +627,8 @@
   },
   "x86-64-v1/size-auto/pidigits": {
    "sections": {
-    ".text": 96142,
-    ".rdata": 41568,
+    ".text": 88201,
+    ".rdata": 41016,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -639,8 +639,8 @@
   },
   "x86-64-v1/size-auto/regex-redux": {
    "sections": {
-    ".text": 301103,
-    ".rdata": 110788,
+    ".text": 256637,
+    ".rdata": 107868,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7344,
@@ -650,8 +650,8 @@
   },
   "x86-64-v1/size-auto/reverse-complement": {
    "sections": {
-    ".text": 38361,
-    ".rdata": 17892,
+    ".text": 35626,
+    ".rdata": 17132,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -661,8 +661,8 @@
   },
   "x86-64-v1/size-auto/spectral-norm": {
    "sections": {
-    ".text": 80358,
-    ".rdata": 39056,
+    ".text": 73151,
+    ".rdata": 37912,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -673,8 +673,8 @@
   },
   "x86-64-v1/size-auto/thread": {
    "sections": {
-    ".text": 59562,
-    ".rdata": 29608,
+    ".text": 54207,
+    ".rdata": 28968,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -684,8 +684,8 @@
   },
   "x86-64-v1/size-off/binary-trees": {
    "sections": {
-    ".text": 49585,
-    ".rdata": 23152,
+    ".text": 45416,
+    ".rdata": 22456,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -695,8 +695,8 @@
   },
   "x86-64-v1/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 36128,
-    ".rdata": 18700,
+    ".text": 33048,
+    ".rdata": 18228,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -706,8 +706,8 @@
   },
   "x86-64-v1/size-off/fasta": {
    "sections": {
-    ".text": 23838,
-    ".rdata": 12796,
+    ".text": 21589,
+    ".rdata": 12396,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -717,8 +717,8 @@
   },
   "x86-64-v1/size-off/fibre": {
    "sections": {
-    ".text": 49950,
-    ".rdata": 25648,
+    ".text": 45697,
+    ".rdata": 25008,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -728,8 +728,8 @@
   },
   "x86-64-v1/size-off/k-nucleotide": {
    "sections": {
-    ".text": 116506,
-    ".rdata": 48076,
+    ".text": 105205,
+    ".rdata": 45948,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -740,8 +740,8 @@
   },
   "x86-64-v1/size-off/mandelbrot": {
    "sections": {
-    ".text": 49297,
-    ".rdata": 23144,
+    ".text": 45210,
+    ".rdata": 22224,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -751,8 +751,8 @@
   },
   "x86-64-v1/size-off/n-body": {
    "sections": {
-    ".text": 67129,
-    ".rdata": 33492,
+    ".text": 61405,
+    ".rdata": 32700,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -763,8 +763,8 @@
   },
   "x86-64-v1/size-off/pidigits": {
    "sections": {
-    ".text": 96162,
-    ".rdata": 41568,
+    ".text": 88221,
+    ".rdata": 41016,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -775,8 +775,8 @@
   },
   "x86-64-v1/size-off/regex-redux": {
    "sections": {
-    ".text": 301168,
-    ".rdata": 110788,
+    ".text": 256702,
+    ".rdata": 107868,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7344,
@@ -786,8 +786,8 @@
   },
   "x86-64-v1/size-off/reverse-complement": {
    "sections": {
-    ".text": 38426,
-    ".rdata": 17892,
+    ".text": 35691,
+    ".rdata": 17132,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -797,8 +797,8 @@
   },
   "x86-64-v1/size-off/spectral-norm": {
    "sections": {
-    ".text": 80445,
-    ".rdata": 39056,
+    ".text": 73230,
+    ".rdata": 37912,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -809,8 +809,8 @@
   },
   "x86-64-v1/size-off/thread": {
    "sections": {
-    ".text": 59606,
-    ".rdata": 29608,
+    ".text": 54251,
+    ".rdata": 28968,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -820,8 +820,8 @@
   },
   "x86-64-v1/speed-all/binary-trees": {
    "sections": {
-    ".text": 68810,
-    ".rdata": 22888,
+    ".text": 63690,
+    ".rdata": 22312,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -831,8 +831,8 @@
   },
   "x86-64-v1/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 47396,
-    ".rdata": 18564,
+    ".text": 44004,
+    ".rdata": 18172,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -842,8 +842,8 @@
   },
   "x86-64-v1/speed-all/fasta": {
    "sections": {
-    ".text": 31518,
-    ".rdata": 12660,
+    ".text": 28958,
+    ".rdata": 12340,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -853,8 +853,8 @@
   },
   "x86-64-v1/speed-all/fibre": {
    "sections": {
-    ".text": 62797,
-    ".rdata": 25344,
+    ".text": 58253,
+    ".rdata": 24784,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -864,8 +864,8 @@
   },
   "x86-64-v1/speed-all/k-nucleotide": {
    "sections": {
-    ".text": 156775,
-    ".rdata": 47620,
+    ".text": 143207,
+    ".rdata": 45572,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -876,8 +876,8 @@
   },
   "x86-64-v1/speed-all/mandelbrot": {
    "sections": {
-    ".text": 67589,
-    ".rdata": 22880,
+    ".text": 63109,
+    ".rdata": 22080,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -887,8 +887,8 @@
   },
   "x86-64-v1/speed-all/n-body": {
    "sections": {
-    ".text": 89047,
-    ".rdata": 33388,
+    ".text": 82391,
+    ".rdata": 32676,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -899,8 +899,8 @@
   },
   "x86-64-v1/speed-all/pidigits": {
    "sections": {
-    ".text": 133803,
-    ".rdata": 41328,
+    ".text": 124651,
+    ".rdata": 40888,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -911,8 +911,8 @@
   },
   "x86-64-v1/speed-all/regex-redux": {
    "sections": {
-    ".text": 413512,
-    ".rdata": 110036,
+    ".text": 361224,
+    ".rdata": 107364,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7344,
@@ -922,8 +922,8 @@
   },
   "x86-64-v1/speed-all/reverse-complement": {
    "sections": {
-    ".text": 51646,
-    ".rdata": 17596,
+    ".text": 48574,
+    ".rdata": 16988,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -933,8 +933,8 @@
   },
   "x86-64-v1/speed-all/spectral-norm": {
    "sections": {
-    ".text": 110352,
-    ".rdata": 38520,
+    ".text": 102021,
+    ".rdata": 37496,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -945,8 +945,8 @@
   },
   "x86-64-v1/speed-all/thread": {
    "sections": {
-    ".text": 74821,
-    ".rdata": 29256,
+    ".text": 69317,
+    ".rdata": 28688,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -956,8 +956,8 @@
   },
   "x86-64-v1/speed-auto/binary-trees": {
    "sections": {
-    ".text": 68810,
-    ".rdata": 22888,
+    ".text": 63690,
+    ".rdata": 22312,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -967,8 +967,8 @@
   },
   "x86-64-v1/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 47396,
-    ".rdata": 18564,
+    ".text": 44004,
+    ".rdata": 18172,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -978,8 +978,8 @@
   },
   "x86-64-v1/speed-auto/fasta": {
    "sections": {
-    ".text": 31518,
-    ".rdata": 12660,
+    ".text": 28958,
+    ".rdata": 12340,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -989,8 +989,8 @@
   },
   "x86-64-v1/speed-auto/fibre": {
    "sections": {
-    ".text": 62797,
-    ".rdata": 25344,
+    ".text": 58253,
+    ".rdata": 24784,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -1000,8 +1000,8 @@
   },
   "x86-64-v1/speed-auto/k-nucleotide": {
    "sections": {
-    ".text": 156775,
-    ".rdata": 47620,
+    ".text": 143207,
+    ".rdata": 45572,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -1012,8 +1012,8 @@
   },
   "x86-64-v1/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 67589,
-    ".rdata": 22880,
+    ".text": 63109,
+    ".rdata": 22080,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -1023,8 +1023,8 @@
   },
   "x86-64-v1/speed-auto/n-body": {
    "sections": {
-    ".text": 89047,
-    ".rdata": 33388,
+    ".text": 82391,
+    ".rdata": 32676,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -1035,8 +1035,8 @@
   },
   "x86-64-v1/speed-auto/pidigits": {
    "sections": {
-    ".text": 133803,
-    ".rdata": 41328,
+    ".text": 124651,
+    ".rdata": 40888,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -1047,8 +1047,8 @@
   },
   "x86-64-v1/speed-auto/regex-redux": {
    "sections": {
-    ".text": 413512,
-    ".rdata": 110036,
+    ".text": 361224,
+    ".rdata": 107364,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7344,
@@ -1058,8 +1058,8 @@
   },
   "x86-64-v1/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 51646,
-    ".rdata": 17596,
+    ".text": 48574,
+    ".rdata": 16988,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -1069,8 +1069,8 @@
   },
   "x86-64-v1/speed-auto/spectral-norm": {
    "sections": {
-    ".text": 110352,
-    ".rdata": 38520,
+    ".text": 102021,
+    ".rdata": 37496,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -1081,8 +1081,8 @@
   },
   "x86-64-v1/speed-auto/thread": {
    "sections": {
-    ".text": 74821,
-    ".rdata": 29256,
+    ".text": 69317,
+    ".rdata": 28688,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -1092,8 +1092,8 @@
   },
   "x86-64-v1/speed-off/binary-trees": {
    "sections": {
-    ".text": 68810,
-    ".rdata": 22888,
+    ".text": 63562,
+    ".rdata": 22312,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1740,
@@ -1103,8 +1103,8 @@
   },
   "x86-64-v1/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 47588,
-    ".rdata": 18564,
+    ".text": 44068,
+    ".rdata": 18172,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1104,
@@ -1114,8 +1114,8 @@
   },
   "x86-64-v1/speed-off/fasta": {
    "sections": {
-    ".text": 31580,
-    ".rdata": 12660,
+    ".text": 29020,
+    ".rdata": 12340,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 816,
@@ -1125,8 +1125,8 @@
   },
   "x86-64-v1/speed-off/fibre": {
    "sections": {
-    ".text": 62925,
-    ".rdata": 25344,
+    ".text": 58317,
+    ".rdata": 24784,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1380,
@@ -1136,8 +1136,8 @@
   },
   "x86-64-v1/speed-off/k-nucleotide": {
    "sections": {
-    ".text": 156647,
-    ".rdata": 47620,
+    ".text": 143143,
+    ".rdata": 45572,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3060,
@@ -1148,8 +1148,8 @@
   },
   "x86-64-v1/speed-off/mandelbrot": {
    "sections": {
-    ".text": 67589,
-    ".rdata": 22880,
+    ".text": 62981,
+    ".rdata": 22080,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1752,
@@ -1159,8 +1159,8 @@
   },
   "x86-64-v1/speed-off/n-body": {
    "sections": {
-    ".text": 89175,
-    ".rdata": 33388,
+    ".text": 82455,
+    ".rdata": 32676,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1596,
@@ -1171,8 +1171,8 @@
   },
   "x86-64-v1/speed-off/pidigits": {
    "sections": {
-    ".text": 133739,
-    ".rdata": 41328,
+    ".text": 124587,
+    ".rdata": 40888,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2328,
@@ -1183,8 +1183,8 @@
   },
   "x86-64-v1/speed-off/regex-redux": {
    "sections": {
-    ".text": 413896,
-    ".rdata": 110036,
+    ".text": 361160,
+    ".rdata": 107364,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7344,
@@ -1194,8 +1194,8 @@
   },
   "x86-64-v1/speed-off/reverse-complement": {
    "sections": {
-    ".text": 51454,
-    ".rdata": 17596,
+    ".text": 48446,
+    ".rdata": 16988,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1344,
@@ -1205,8 +1205,8 @@
   },
   "x86-64-v1/speed-off/spectral-norm": {
    "sections": {
-    ".text": 110288,
-    ".rdata": 38520,
+    ".text": 101829,
+    ".rdata": 37496,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2364,
@@ -1217,8 +1217,8 @@
   },
   "x86-64-v1/speed-off/thread": {
    "sections": {
-    ".text": 75013,
-    ".rdata": 29256,
+    ".text": 69509,
+    ".rdata": 28688,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1728,
@@ -1228,8 +1228,8 @@
   },
   "x86-64-v2/none-all/binary-trees": {
    "sections": {
-    ".text": 153535,
-    ".rdata": 31504,
+    ".text": 149199,
+    ".rdata": 30816,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -1239,8 +1239,8 @@
   },
   "x86-64-v2/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 118745,
-    ".rdata": 26604,
+    ".text": 115629,
+    ".rdata": 26132,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -1250,8 +1250,8 @@
   },
   "x86-64-v2/none-all/fasta": {
    "sections": {
-    ".text": 73789,
-    ".rdata": 16020,
+    ".text": 71476,
+    ".rdata": 15620,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -1261,8 +1261,8 @@
   },
   "x86-64-v2/none-all/fibre": {
    "sections": {
-    ".text": 146544,
-    ".rdata": 35440,
+    ".text": 141859,
+    ".rdata": 34800,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -1272,8 +1272,8 @@
   },
   "x86-64-v2/none-all/k-nucleotide": {
    "sections": {
-    ".text": 340052,
-    ".rdata": 65076,
+    ".text": 328573,
+    ".rdata": 62956,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -1284,8 +1284,8 @@
   },
   "x86-64-v2/none-all/mandelbrot": {
    "sections": {
-    ".text": 154683,
-    ".rdata": 31456,
+    ".text": 150474,
+    ".rdata": 30544,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -1295,8 +1295,8 @@
   },
   "x86-64-v2/none-all/n-body": {
    "sections": {
-    ".text": 214268,
-    ".rdata": 47340,
+    ".text": 208448,
+    ".rdata": 46548,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -1307,8 +1307,8 @@
   },
   "x86-64-v2/none-all/pidigits": {
    "sections": {
-    ".text": 300956,
-    ".rdata": 57216,
+    ".text": 292825,
+    ".rdata": 56656,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -1319,8 +1319,8 @@
   },
   "x86-64-v2/none-all/regex-redux": {
    "sections": {
-    ".text": 876885,
-    ".rdata": 150492,
+    ".text": 831114,
+    ".rdata": 147564,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7572,
@@ -1330,8 +1330,8 @@
   },
   "x86-64-v2/none-all/reverse-complement": {
    "sections": {
-    ".text": 114365,
-    ".rdata": 21956,
+    ".text": 111520,
+    ".rdata": 21196,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -1341,8 +1341,8 @@
   },
   "x86-64-v2/none-all/spectral-norm": {
    "sections": {
-    ".text": 248688,
-    ".rdata": 53600,
+    ".text": 241352,
+    ".rdata": 52464,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -1353,8 +1353,8 @@
   },
   "x86-64-v2/none-all/thread": {
    "sections": {
-    ".text": 170844,
-    ".rdata": 40696,
+    ".text": 164666,
+    ".rdata": 40056,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -1364,8 +1364,8 @@
   },
   "x86-64-v2/none-auto/binary-trees": {
    "sections": {
-    ".text": 153535,
-    ".rdata": 31504,
+    ".text": 149199,
+    ".rdata": 30816,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -1375,8 +1375,8 @@
   },
   "x86-64-v2/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 118745,
-    ".rdata": 26604,
+    ".text": 115629,
+    ".rdata": 26132,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -1386,8 +1386,8 @@
   },
   "x86-64-v2/none-auto/fasta": {
    "sections": {
-    ".text": 73789,
-    ".rdata": 16020,
+    ".text": 71476,
+    ".rdata": 15620,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -1397,8 +1397,8 @@
   },
   "x86-64-v2/none-auto/fibre": {
    "sections": {
-    ".text": 146544,
-    ".rdata": 35440,
+    ".text": 141859,
+    ".rdata": 34800,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -1408,8 +1408,8 @@
   },
   "x86-64-v2/none-auto/k-nucleotide": {
    "sections": {
-    ".text": 340067,
-    ".rdata": 65076,
+    ".text": 328588,
+    ".rdata": 62956,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -1420,8 +1420,8 @@
   },
   "x86-64-v2/none-auto/mandelbrot": {
    "sections": {
-    ".text": 154683,
-    ".rdata": 31456,
+    ".text": 150474,
+    ".rdata": 30544,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -1431,8 +1431,8 @@
   },
   "x86-64-v2/none-auto/n-body": {
    "sections": {
-    ".text": 214268,
-    ".rdata": 47340,
+    ".text": 208448,
+    ".rdata": 46548,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -1443,8 +1443,8 @@
   },
   "x86-64-v2/none-auto/pidigits": {
    "sections": {
-    ".text": 300956,
-    ".rdata": 57216,
+    ".text": 292825,
+    ".rdata": 56656,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -1455,8 +1455,8 @@
   },
   "x86-64-v2/none-auto/regex-redux": {
    "sections": {
-    ".text": 877065,
-    ".rdata": 150492,
+    ".text": 831294,
+    ".rdata": 147564,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7572,
@@ -1466,8 +1466,8 @@
   },
   "x86-64-v2/none-auto/reverse-complement": {
    "sections": {
-    ".text": 114365,
-    ".rdata": 21956,
+    ".text": 111520,
+    ".rdata": 21196,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -1477,8 +1477,8 @@
   },
   "x86-64-v2/none-auto/spectral-norm": {
    "sections": {
-    ".text": 248688,
-    ".rdata": 53600,
+    ".text": 241352,
+    ".rdata": 52464,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -1489,8 +1489,8 @@
   },
   "x86-64-v2/none-auto/thread": {
    "sections": {
-    ".text": 170844,
-    ".rdata": 40696,
+    ".text": 164666,
+    ".rdata": 40056,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -1500,8 +1500,8 @@
   },
   "x86-64-v2/none-off/binary-trees": {
    "sections": {
-    ".text": 153551,
-    ".rdata": 31504,
+    ".text": 149215,
+    ".rdata": 30816,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -1511,8 +1511,8 @@
   },
   "x86-64-v2/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 118747,
-    ".rdata": 26604,
+    ".text": 115631,
+    ".rdata": 26132,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -1522,8 +1522,8 @@
   },
   "x86-64-v2/none-off/fasta": {
    "sections": {
-    ".text": 73801,
-    ".rdata": 16020,
+    ".text": 71488,
+    ".rdata": 15620,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -1533,8 +1533,8 @@
   },
   "x86-64-v2/none-off/fibre": {
    "sections": {
-    ".text": 146546,
-    ".rdata": 35440,
+    ".text": 141861,
+    ".rdata": 34800,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -1544,8 +1544,8 @@
   },
   "x86-64-v2/none-off/k-nucleotide": {
    "sections": {
-    ".text": 340129,
-    ".rdata": 65076,
+    ".text": 328650,
+    ".rdata": 62956,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -1556,8 +1556,8 @@
   },
   "x86-64-v2/none-off/mandelbrot": {
    "sections": {
-    ".text": 154721,
-    ".rdata": 31456,
+    ".text": 150512,
+    ".rdata": 30544,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -1567,8 +1567,8 @@
   },
   "x86-64-v2/none-off/n-body": {
    "sections": {
-    ".text": 214277,
-    ".rdata": 47340,
+    ".text": 208457,
+    ".rdata": 46548,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -1579,8 +1579,8 @@
   },
   "x86-64-v2/none-off/pidigits": {
    "sections": {
-    ".text": 300983,
-    ".rdata": 57216,
+    ".text": 292852,
+    ".rdata": 56656,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -1591,8 +1591,8 @@
   },
   "x86-64-v2/none-off/regex-redux": {
    "sections": {
-    ".text": 877087,
-    ".rdata": 150492,
+    ".text": 831316,
+    ".rdata": 147564,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7572,
@@ -1602,8 +1602,8 @@
   },
   "x86-64-v2/none-off/reverse-complement": {
    "sections": {
-    ".text": 114387,
-    ".rdata": 21956,
+    ".text": 111542,
+    ".rdata": 21196,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -1613,8 +1613,8 @@
   },
   "x86-64-v2/none-off/spectral-norm": {
    "sections": {
-    ".text": 248723,
-    ".rdata": 53600,
+    ".text": 241387,
+    ".rdata": 52464,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -1625,8 +1625,8 @@
   },
   "x86-64-v2/none-off/thread": {
    "sections": {
-    ".text": 170845,
-    ".rdata": 40696,
+    ".text": 164667,
+    ".rdata": 40056,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -1636,8 +1636,8 @@
   },
   "x86-64-v2/size-all/binary-trees": {
    "sections": {
-    ".text": 51528,
-    ".rdata": 23736,
+    ".text": 47359,
+    ".rdata": 23040,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -1647,8 +1647,8 @@
   },
   "x86-64-v2/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 38145,
-    ".rdata": 19284,
+    ".text": 35065,
+    ".rdata": 18804,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -1658,8 +1658,8 @@
   },
   "x86-64-v2/size-all/fasta": {
    "sections": {
-    ".text": 25831,
-    ".rdata": 13388,
+    ".text": 23582,
+    ".rdata": 12988,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -1669,8 +1669,8 @@
   },
   "x86-64-v2/size-all/fibre": {
    "sections": {
-    ".text": 52533,
-    ".rdata": 26688,
+    ".text": 48280,
+    ".rdata": 26056,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -1680,8 +1680,8 @@
   },
   "x86-64-v2/size-all/k-nucleotide": {
    "sections": {
-    ".text": 118275,
-    ".rdata": 48668,
+    ".text": 106991,
+    ".rdata": 46540,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -1692,8 +1692,8 @@
   },
   "x86-64-v2/size-all/mandelbrot": {
    "sections": {
-    ".text": 51231,
-    ".rdata": 23720,
+    ".text": 47142,
+    ".rdata": 22808,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -1703,8 +1703,8 @@
   },
   "x86-64-v2/size-all/n-body": {
    "sections": {
-    ".text": 69133,
-    ".rdata": 34084,
+    ".text": 63409,
+    ".rdata": 33292,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -1715,8 +1715,8 @@
   },
   "x86-64-v2/size-all/pidigits": {
    "sections": {
-    ".text": 98161,
-    ".rdata": 42160,
+    ".text": 90220,
+    ".rdata": 41600,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -1727,8 +1727,8 @@
   },
   "x86-64-v2/size-all/regex-redux": {
    "sections": {
-    ".text": 302802,
-    ".rdata": 111372,
+    ".text": 258428,
+    ".rdata": 108452,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7452,
@@ -1738,8 +1738,8 @@
   },
   "x86-64-v2/size-all/reverse-complement": {
    "sections": {
-    ".text": 40380,
-    ".rdata": 18476,
+    ".text": 37645,
+    ".rdata": 17716,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -1749,8 +1749,8 @@
   },
   "x86-64-v2/size-all/spectral-norm": {
    "sections": {
-    ".text": 82377,
-    ".rdata": 39656,
+    ".text": 75170,
+    ".rdata": 38512,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -1761,8 +1761,8 @@
   },
   "x86-64-v2/size-all/thread": {
    "sections": {
-    ".text": 62147,
-    ".rdata": 30640,
+    ".text": 56792,
+    ".rdata": 30000,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -1772,8 +1772,8 @@
   },
   "x86-64-v2/size-auto/binary-trees": {
    "sections": {
-    ".text": 51528,
-    ".rdata": 23736,
+    ".text": 47359,
+    ".rdata": 23040,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -1783,8 +1783,8 @@
   },
   "x86-64-v2/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 38145,
-    ".rdata": 19284,
+    ".text": 35065,
+    ".rdata": 18804,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -1794,8 +1794,8 @@
   },
   "x86-64-v2/size-auto/fasta": {
    "sections": {
-    ".text": 25831,
-    ".rdata": 13388,
+    ".text": 23582,
+    ".rdata": 12988,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -1805,8 +1805,8 @@
   },
   "x86-64-v2/size-auto/fibre": {
    "sections": {
-    ".text": 52533,
-    ".rdata": 26688,
+    ".text": 48280,
+    ".rdata": 26056,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -1816,8 +1816,8 @@
   },
   "x86-64-v2/size-auto/k-nucleotide": {
    "sections": {
-    ".text": 118317,
-    ".rdata": 48668,
+    ".text": 107009,
+    ".rdata": 46540,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -1828,8 +1828,8 @@
   },
   "x86-64-v2/size-auto/mandelbrot": {
    "sections": {
-    ".text": 51231,
-    ".rdata": 23720,
+    ".text": 47142,
+    ".rdata": 22808,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -1839,8 +1839,8 @@
   },
   "x86-64-v2/size-auto/n-body": {
    "sections": {
-    ".text": 69133,
-    ".rdata": 34084,
+    ".text": 63409,
+    ".rdata": 33292,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -1851,8 +1851,8 @@
   },
   "x86-64-v2/size-auto/pidigits": {
    "sections": {
-    ".text": 98161,
-    ".rdata": 42160,
+    ".text": 90220,
+    ".rdata": 41600,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -1863,8 +1863,8 @@
   },
   "x86-64-v2/size-auto/regex-redux": {
    "sections": {
-    ".text": 303122,
-    ".rdata": 111372,
+    ".text": 258656,
+    ".rdata": 108452,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7452,
@@ -1874,8 +1874,8 @@
   },
   "x86-64-v2/size-auto/reverse-complement": {
    "sections": {
-    ".text": 40380,
-    ".rdata": 18476,
+    ".text": 37645,
+    ".rdata": 17716,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -1885,8 +1885,8 @@
   },
   "x86-64-v2/size-auto/spectral-norm": {
    "sections": {
-    ".text": 82377,
-    ".rdata": 39656,
+    ".text": 75170,
+    ".rdata": 38512,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -1897,8 +1897,8 @@
   },
   "x86-64-v2/size-auto/thread": {
    "sections": {
-    ".text": 62147,
-    ".rdata": 30640,
+    ".text": 56792,
+    ".rdata": 30000,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -1908,8 +1908,8 @@
   },
   "x86-64-v2/size-off/binary-trees": {
    "sections": {
-    ".text": 51604,
-    ".rdata": 23736,
+    ".text": 47435,
+    ".rdata": 23040,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -1919,8 +1919,8 @@
   },
   "x86-64-v2/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 38147,
-    ".rdata": 19284,
+    ".text": 35067,
+    ".rdata": 18804,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -1930,8 +1930,8 @@
   },
   "x86-64-v2/size-off/fasta": {
    "sections": {
-    ".text": 25857,
-    ".rdata": 13388,
+    ".text": 23608,
+    ".rdata": 12988,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -1941,8 +1941,8 @@
   },
   "x86-64-v2/size-off/fibre": {
    "sections": {
-    ".text": 52535,
-    ".rdata": 26688,
+    ".text": 48282,
+    ".rdata": 26056,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -1952,8 +1952,8 @@
   },
   "x86-64-v2/size-off/k-nucleotide": {
    "sections": {
-    ".text": 118525,
-    ".rdata": 48668,
+    ".text": 107224,
+    ".rdata": 46540,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -1964,8 +1964,8 @@
   },
   "x86-64-v2/size-off/mandelbrot": {
    "sections": {
-    ".text": 51316,
-    ".rdata": 23720,
+    ".text": 47229,
+    ".rdata": 22808,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -1975,8 +1975,8 @@
   },
   "x86-64-v2/size-off/n-body": {
    "sections": {
-    ".text": 69148,
-    ".rdata": 34084,
+    ".text": 63424,
+    ".rdata": 33292,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -1987,8 +1987,8 @@
   },
   "x86-64-v2/size-off/pidigits": {
    "sections": {
-    ".text": 98181,
-    ".rdata": 42160,
+    ".text": 90240,
+    ".rdata": 41600,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -1999,8 +1999,8 @@
   },
   "x86-64-v2/size-off/regex-redux": {
    "sections": {
-    ".text": 303187,
-    ".rdata": 111372,
+    ".text": 258721,
+    ".rdata": 108452,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7452,
@@ -2010,8 +2010,8 @@
   },
   "x86-64-v2/size-off/reverse-complement": {
    "sections": {
-    ".text": 40445,
-    ".rdata": 18476,
+    ".text": 37710,
+    ".rdata": 17716,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -2021,8 +2021,8 @@
   },
   "x86-64-v2/size-off/spectral-norm": {
    "sections": {
-    ".text": 82464,
-    ".rdata": 39656,
+    ".text": 75249,
+    ".rdata": 38512,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -2033,8 +2033,8 @@
   },
   "x86-64-v2/size-off/thread": {
    "sections": {
-    ".text": 62191,
-    ".rdata": 30640,
+    ".text": 56836,
+    ".rdata": 30000,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -2044,8 +2044,8 @@
   },
   "x86-64-v2/speed-all/binary-trees": {
    "sections": {
-    ".text": 71178,
-    ".rdata": 23472,
+    ".text": 66058,
+    ".rdata": 22896,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -2055,8 +2055,8 @@
   },
   "x86-64-v2/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 49755,
-    ".rdata": 19148,
+    ".text": 46363,
+    ".rdata": 18748,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -2066,8 +2066,8 @@
   },
   "x86-64-v2/speed-all/fasta": {
    "sections": {
-    ".text": 33849,
-    ".rdata": 13252,
+    ".text": 31289,
+    ".rdata": 12932,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -2077,8 +2077,8 @@
   },
   "x86-64-v2/speed-all/fibre": {
    "sections": {
-    ".text": 65677,
-    ".rdata": 26384,
+    ".text": 61133,
+    ".rdata": 25824,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -2088,8 +2088,8 @@
   },
   "x86-64-v2/speed-all/k-nucleotide": {
    "sections": {
-    ".text": 159143,
-    ".rdata": 48212,
+    ".text": 145575,
+    ".rdata": 46164,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -2100,8 +2100,8 @@
   },
   "x86-64-v2/speed-all/mandelbrot": {
    "sections": {
-    ".text": 69957,
-    ".rdata": 23464,
+    ".text": 65477,
+    ".rdata": 22664,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -2111,8 +2111,8 @@
   },
   "x86-64-v2/speed-all/n-body": {
    "sections": {
-    ".text": 91415,
-    ".rdata": 33980,
+    ".text": 84759,
+    ".rdata": 33268,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -2123,8 +2123,8 @@
   },
   "x86-64-v2/speed-all/pidigits": {
    "sections": {
-    ".text": 136171,
-    ".rdata": 41920,
+    ".text": 127019,
+    ".rdata": 41480,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -2135,8 +2135,8 @@
   },
   "x86-64-v2/speed-all/regex-redux": {
    "sections": {
-    ".text": 415880,
-    ".rdata": 110620,
+    ".text": 363592,
+    ".rdata": 107940,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7452,
@@ -2146,8 +2146,8 @@
   },
   "x86-64-v2/speed-all/reverse-complement": {
    "sections": {
-    ".text": 54055,
-    ".rdata": 18172,
+    ".text": 50983,
+    ".rdata": 17564,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -2157,8 +2157,8 @@
   },
   "x86-64-v2/speed-all/spectral-norm": {
    "sections": {
-    ".text": 112720,
-    ".rdata": 39120,
+    ".text": 104389,
+    ".rdata": 38096,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -2169,8 +2169,8 @@
   },
   "x86-64-v2/speed-all/thread": {
    "sections": {
-    ".text": 77701,
-    ".rdata": 30280,
+    ".text": 72197,
+    ".rdata": 29720,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -2180,8 +2180,8 @@
   },
   "x86-64-v2/speed-auto/binary-trees": {
    "sections": {
-    ".text": 71178,
-    ".rdata": 23472,
+    ".text": 66058,
+    ".rdata": 22896,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -2191,8 +2191,8 @@
   },
   "x86-64-v2/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 49755,
-    ".rdata": 19148,
+    ".text": 46363,
+    ".rdata": 18748,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -2202,8 +2202,8 @@
   },
   "x86-64-v2/speed-auto/fasta": {
    "sections": {
-    ".text": 33849,
-    ".rdata": 13252,
+    ".text": 31289,
+    ".rdata": 12932,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -2213,8 +2213,8 @@
   },
   "x86-64-v2/speed-auto/fibre": {
    "sections": {
-    ".text": 65677,
-    ".rdata": 26384,
+    ".text": 61133,
+    ".rdata": 25824,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -2224,8 +2224,8 @@
   },
   "x86-64-v2/speed-auto/k-nucleotide": {
    "sections": {
-    ".text": 159143,
-    ".rdata": 48212,
+    ".text": 145575,
+    ".rdata": 46164,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -2236,8 +2236,8 @@
   },
   "x86-64-v2/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 69957,
-    ".rdata": 23464,
+    ".text": 65477,
+    ".rdata": 22664,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -2247,8 +2247,8 @@
   },
   "x86-64-v2/speed-auto/n-body": {
    "sections": {
-    ".text": 91415,
-    ".rdata": 33980,
+    ".text": 84759,
+    ".rdata": 33268,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -2259,8 +2259,8 @@
   },
   "x86-64-v2/speed-auto/pidigits": {
    "sections": {
-    ".text": 136171,
-    ".rdata": 41920,
+    ".text": 127019,
+    ".rdata": 41480,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -2271,8 +2271,8 @@
   },
   "x86-64-v2/speed-auto/regex-redux": {
    "sections": {
-    ".text": 415880,
-    ".rdata": 110620,
+    ".text": 363592,
+    ".rdata": 107940,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7452,
@@ -2282,8 +2282,8 @@
   },
   "x86-64-v2/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 54055,
-    ".rdata": 18172,
+    ".text": 50983,
+    ".rdata": 17564,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -2293,8 +2293,8 @@
   },
   "x86-64-v2/speed-auto/spectral-norm": {
    "sections": {
-    ".text": 112720,
-    ".rdata": 39120,
+    ".text": 104389,
+    ".rdata": 38096,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -2305,8 +2305,8 @@
   },
   "x86-64-v2/speed-auto/thread": {
    "sections": {
-    ".text": 77701,
-    ".rdata": 30280,
+    ".text": 72197,
+    ".rdata": 29720,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -2316,8 +2316,8 @@
   },
   "x86-64-v2/speed-off/binary-trees": {
    "sections": {
-    ".text": 71178,
-    ".rdata": 23472,
+    ".text": 65930,
+    ".rdata": 22896,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1848,
@@ -2327,8 +2327,8 @@
   },
   "x86-64-v2/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 49947,
-    ".rdata": 19148,
+    ".text": 46427,
+    ".rdata": 18748,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1212,
@@ -2338,8 +2338,8 @@
   },
   "x86-64-v2/speed-off/fasta": {
    "sections": {
-    ".text": 33913,
-    ".rdata": 13252,
+    ".text": 31353,
+    ".rdata": 12932,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 924,
@@ -2349,8 +2349,8 @@
   },
   "x86-64-v2/speed-off/fibre": {
    "sections": {
-    ".text": 65805,
-    ".rdata": 26384,
+    ".text": 61197,
+    ".rdata": 25824,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1488,
@@ -2360,8 +2360,8 @@
   },
   "x86-64-v2/speed-off/k-nucleotide": {
    "sections": {
-    ".text": 159015,
-    ".rdata": 48212,
+    ".text": 145511,
+    ".rdata": 46164,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3168,
@@ -2372,8 +2372,8 @@
   },
   "x86-64-v2/speed-off/mandelbrot": {
    "sections": {
-    ".text": 69957,
-    ".rdata": 23464,
+    ".text": 65349,
+    ".rdata": 22664,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -2383,8 +2383,8 @@
   },
   "x86-64-v2/speed-off/n-body": {
    "sections": {
-    ".text": 91543,
-    ".rdata": 33980,
+    ".text": 84823,
+    ".rdata": 33268,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1704,
@@ -2395,8 +2395,8 @@
   },
   "x86-64-v2/speed-off/pidigits": {
    "sections": {
-    ".text": 136107,
-    ".rdata": 41920,
+    ".text": 126955,
+    ".rdata": 41480,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2436,
@@ -2407,8 +2407,8 @@
   },
   "x86-64-v2/speed-off/regex-redux": {
    "sections": {
-    ".text": 416264,
-    ".rdata": 110620,
+    ".text": 363528,
+    ".rdata": 107940,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7452,
@@ -2418,8 +2418,8 @@
   },
   "x86-64-v2/speed-off/reverse-complement": {
    "sections": {
-    ".text": 53863,
-    ".rdata": 18172,
+    ".text": 50855,
+    ".rdata": 17564,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1452,
@@ -2429,8 +2429,8 @@
   },
   "x86-64-v2/speed-off/spectral-norm": {
    "sections": {
-    ".text": 112656,
-    ".rdata": 39120,
+    ".text": 104197,
+    ".rdata": 38096,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2472,
@@ -2441,8 +2441,8 @@
   },
   "x86-64-v2/speed-off/thread": {
    "sections": {
-    ".text": 77893,
-    ".rdata": 30280,
+    ".text": 72389,
+    ".rdata": 29720,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1836,
@@ -2452,8 +2452,8 @@
   },
   "x86-64-v3/none-all/binary-trees": {
    "sections": {
-    ".text": 156034,
-    ".rdata": 31576,
+    ".text": 151698,
+    ".rdata": 30888,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -2463,8 +2463,8 @@
   },
   "x86-64-v3/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 121228,
-    ".rdata": 26676,
+    ".text": 118112,
+    ".rdata": 26204,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -2474,8 +2474,8 @@
   },
   "x86-64-v3/none-all/fasta": {
    "sections": {
-    ".text": 76333,
-    ".rdata": 16084,
+    ".text": 74020,
+    ".rdata": 15684,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -2485,8 +2485,8 @@
   },
   "x86-64-v3/none-all/fibre": {
    "sections": {
-    ".text": 149206,
-    ".rdata": 35616,
+    ".text": 144521,
+    ".rdata": 34976,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -2496,8 +2496,8 @@
   },
   "x86-64-v3/none-all/k-nucleotide": {
    "sections": {
-    ".text": 342277,
-    ".rdata": 65140,
+    ".text": 330798,
+    ".rdata": 63020,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -2508,8 +2508,8 @@
   },
   "x86-64-v3/none-all/mandelbrot": {
    "sections": {
-    ".text": 157189,
-    ".rdata": 31528,
+    ".text": 152980,
+    ".rdata": 30616,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -2519,8 +2519,8 @@
   },
   "x86-64-v3/none-all/n-body": {
    "sections": {
-    ".text": 216572,
-    ".rdata": 47412,
+    ".text": 210752,
+    ".rdata": 46620,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -2531,8 +2531,8 @@
   },
   "x86-64-v3/none-all/pidigits": {
    "sections": {
-    ".text": 303269,
-    ".rdata": 57280,
+    ".text": 295138,
+    ".rdata": 56720,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -2543,8 +2543,8 @@
   },
   "x86-64-v3/none-all/regex-redux": {
    "sections": {
-    ".text": 878943,
-    ".rdata": 150556,
+    ".text": 833172,
+    ".rdata": 147636,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7584,
@@ -2554,8 +2554,8 @@
   },
   "x86-64-v3/none-all/reverse-complement": {
    "sections": {
-    ".text": 116909,
-    ".rdata": 22028,
+    ".text": 114064,
+    ".rdata": 21268,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -2565,8 +2565,8 @@
   },
   "x86-64-v3/none-all/spectral-norm": {
    "sections": {
-    ".text": 250992,
-    ".rdata": 53664,
+    ".text": 243656,
+    ".rdata": 52528,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -2577,8 +2577,8 @@
   },
   "x86-64-v3/none-all/thread": {
    "sections": {
-    ".text": 173506,
-    ".rdata": 40872,
+    ".text": 167328,
+    ".rdata": 40232,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -2588,8 +2588,8 @@
   },
   "x86-64-v3/none-auto/binary-trees": {
    "sections": {
-    ".text": 156034,
-    ".rdata": 31576,
+    ".text": 151698,
+    ".rdata": 30888,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -2599,8 +2599,8 @@
   },
   "x86-64-v3/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 121228,
-    ".rdata": 26676,
+    ".text": 118112,
+    ".rdata": 26204,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -2610,8 +2610,8 @@
   },
   "x86-64-v3/none-auto/fasta": {
    "sections": {
-    ".text": 76333,
-    ".rdata": 16084,
+    ".text": 74020,
+    ".rdata": 15684,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -2621,8 +2621,8 @@
   },
   "x86-64-v3/none-auto/fibre": {
    "sections": {
-    ".text": 149206,
-    ".rdata": 35616,
+    ".text": 144521,
+    ".rdata": 34976,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -2632,8 +2632,8 @@
   },
   "x86-64-v3/none-auto/k-nucleotide": {
    "sections": {
-    ".text": 342292,
-    ".rdata": 65140,
+    ".text": 330813,
+    ".rdata": 63020,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -2644,8 +2644,8 @@
   },
   "x86-64-v3/none-auto/mandelbrot": {
    "sections": {
-    ".text": 157189,
-    ".rdata": 31528,
+    ".text": 152980,
+    ".rdata": 30616,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -2655,8 +2655,8 @@
   },
   "x86-64-v3/none-auto/n-body": {
    "sections": {
-    ".text": 216572,
-    ".rdata": 47412,
+    ".text": 210752,
+    ".rdata": 46620,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -2667,8 +2667,8 @@
   },
   "x86-64-v3/none-auto/pidigits": {
    "sections": {
-    ".text": 303269,
-    ".rdata": 57280,
+    ".text": 295138,
+    ".rdata": 56720,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -2679,8 +2679,8 @@
   },
   "x86-64-v3/none-auto/regex-redux": {
    "sections": {
-    ".text": 879123,
-    ".rdata": 150556,
+    ".text": 833352,
+    ".rdata": 147636,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7584,
@@ -2690,8 +2690,8 @@
   },
   "x86-64-v3/none-auto/reverse-complement": {
    "sections": {
-    ".text": 116909,
-    ".rdata": 22028,
+    ".text": 114064,
+    ".rdata": 21268,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -2701,8 +2701,8 @@
   },
   "x86-64-v3/none-auto/spectral-norm": {
    "sections": {
-    ".text": 250992,
-    ".rdata": 53664,
+    ".text": 243656,
+    ".rdata": 52528,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -2713,8 +2713,8 @@
   },
   "x86-64-v3/none-auto/thread": {
    "sections": {
-    ".text": 173506,
-    ".rdata": 40872,
+    ".text": 167328,
+    ".rdata": 40232,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -2724,8 +2724,8 @@
   },
   "x86-64-v3/none-off/binary-trees": {
    "sections": {
-    ".text": 156050,
-    ".rdata": 31576,
+    ".text": 151714,
+    ".rdata": 30888,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -2735,8 +2735,8 @@
   },
   "x86-64-v3/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 121230,
-    ".rdata": 26676,
+    ".text": 118114,
+    ".rdata": 26204,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -2746,8 +2746,8 @@
   },
   "x86-64-v3/none-off/fasta": {
    "sections": {
-    ".text": 76345,
-    ".rdata": 16084,
+    ".text": 74032,
+    ".rdata": 15684,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -2757,8 +2757,8 @@
   },
   "x86-64-v3/none-off/fibre": {
    "sections": {
-    ".text": 149208,
-    ".rdata": 35616,
+    ".text": 144523,
+    ".rdata": 34976,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -2768,8 +2768,8 @@
   },
   "x86-64-v3/none-off/k-nucleotide": {
    "sections": {
-    ".text": 342354,
-    ".rdata": 65140,
+    ".text": 330875,
+    ".rdata": 63020,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -2780,8 +2780,8 @@
   },
   "x86-64-v3/none-off/mandelbrot": {
    "sections": {
-    ".text": 157227,
-    ".rdata": 31528,
+    ".text": 153018,
+    ".rdata": 30616,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -2791,8 +2791,8 @@
   },
   "x86-64-v3/none-off/n-body": {
    "sections": {
-    ".text": 216581,
-    ".rdata": 47412,
+    ".text": 210761,
+    ".rdata": 46620,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -2803,8 +2803,8 @@
   },
   "x86-64-v3/none-off/pidigits": {
    "sections": {
-    ".text": 303296,
-    ".rdata": 57280,
+    ".text": 295165,
+    ".rdata": 56720,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -2815,8 +2815,8 @@
   },
   "x86-64-v3/none-off/regex-redux": {
    "sections": {
-    ".text": 879145,
-    ".rdata": 150556,
+    ".text": 833374,
+    ".rdata": 147636,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7584,
@@ -2826,8 +2826,8 @@
   },
   "x86-64-v3/none-off/reverse-complement": {
    "sections": {
-    ".text": 116931,
-    ".rdata": 22028,
+    ".text": 114086,
+    ".rdata": 21268,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -2837,8 +2837,8 @@
   },
   "x86-64-v3/none-off/spectral-norm": {
    "sections": {
-    ".text": 251027,
-    ".rdata": 53664,
+    ".text": 243691,
+    ".rdata": 52528,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -2849,8 +2849,8 @@
   },
   "x86-64-v3/none-off/thread": {
    "sections": {
-    ".text": 173507,
-    ".rdata": 40872,
+    ".text": 167329,
+    ".rdata": 40232,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -2860,8 +2860,8 @@
   },
   "x86-64-v3/size-all/binary-trees": {
    "sections": {
-    ".text": 52223,
-    ".rdata": 23808,
+    ".text": 48054,
+    ".rdata": 23112,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -2871,8 +2871,8 @@
   },
   "x86-64-v3/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 38836,
-    ".rdata": 19356,
+    ".text": 35756,
+    ".rdata": 18876,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -2882,8 +2882,8 @@
   },
   "x86-64-v3/size-all/fasta": {
    "sections": {
-    ".text": 26554,
-    ".rdata": 13452,
+    ".text": 24305,
+    ".rdata": 13052,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -2893,8 +2893,8 @@
   },
   "x86-64-v3/size-all/fibre": {
    "sections": {
-    ".text": 53381,
-    ".rdata": 26864,
+    ".text": 49128,
+    ".rdata": 26232,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -2904,8 +2904,8 @@
   },
   "x86-64-v3/size-all/k-nucleotide": {
    "sections": {
-    ".text": 118877,
-    ".rdata": 48732,
+    ".text": 107593,
+    ".rdata": 46604,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -2916,8 +2916,8 @@
   },
   "x86-64-v3/size-all/mandelbrot": {
    "sections": {
-    ".text": 51934,
-    ".rdata": 23792,
+    ".text": 47845,
+    ".rdata": 22880,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -2927,8 +2927,8 @@
   },
   "x86-64-v3/size-all/n-body": {
    "sections": {
-    ".text": 69755,
-    ".rdata": 34156,
+    ".text": 64031,
+    ".rdata": 33364,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -2939,8 +2939,8 @@
   },
   "x86-64-v3/size-all/pidigits": {
    "sections": {
-    ".text": 98846,
-    ".rdata": 42224,
+    ".text": 90905,
+    ".rdata": 41664,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -2951,8 +2951,8 @@
   },
   "x86-64-v3/size-all/regex-redux": {
    "sections": {
-    ".text": 303470,
-    ".rdata": 111444,
+    ".text": 259096,
+    ".rdata": 108516,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -2962,8 +2962,8 @@
   },
   "x86-64-v3/size-all/reverse-complement": {
    "sections": {
-    ".text": 41103,
-    ".rdata": 18548,
+    ".text": 38368,
+    ".rdata": 17788,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -2973,8 +2973,8 @@
   },
   "x86-64-v3/size-all/spectral-norm": {
    "sections": {
-    ".text": 82999,
-    ".rdata": 39720,
+    ".text": 75792,
+    ".rdata": 38576,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -2985,8 +2985,8 @@
   },
   "x86-64-v3/size-all/thread": {
    "sections": {
-    ".text": 62995,
-    ".rdata": 30816,
+    ".text": 57640,
+    ".rdata": 30176,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -2996,8 +2996,8 @@
   },
   "x86-64-v3/size-auto/binary-trees": {
    "sections": {
-    ".text": 52223,
-    ".rdata": 23808,
+    ".text": 48054,
+    ".rdata": 23112,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -3007,8 +3007,8 @@
   },
   "x86-64-v3/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 38836,
-    ".rdata": 19356,
+    ".text": 35756,
+    ".rdata": 18876,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -3018,8 +3018,8 @@
   },
   "x86-64-v3/size-auto/fasta": {
    "sections": {
-    ".text": 26554,
-    ".rdata": 13452,
+    ".text": 24305,
+    ".rdata": 13052,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -3029,8 +3029,8 @@
   },
   "x86-64-v3/size-auto/fibre": {
    "sections": {
-    ".text": 53381,
-    ".rdata": 26864,
+    ".text": 49128,
+    ".rdata": 26232,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -3040,8 +3040,8 @@
   },
   "x86-64-v3/size-auto/k-nucleotide": {
    "sections": {
-    ".text": 118919,
-    ".rdata": 48732,
+    ".text": 107611,
+    ".rdata": 46604,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -3052,8 +3052,8 @@
   },
   "x86-64-v3/size-auto/mandelbrot": {
    "sections": {
-    ".text": 51934,
-    ".rdata": 23792,
+    ".text": 47845,
+    ".rdata": 22880,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3063,8 +3063,8 @@
   },
   "x86-64-v3/size-auto/n-body": {
    "sections": {
-    ".text": 69755,
-    ".rdata": 34156,
+    ".text": 64031,
+    ".rdata": 33364,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -3075,8 +3075,8 @@
   },
   "x86-64-v3/size-auto/pidigits": {
    "sections": {
-    ".text": 98846,
-    ".rdata": 42224,
+    ".text": 90905,
+    ".rdata": 41664,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -3087,8 +3087,8 @@
   },
   "x86-64-v3/size-auto/regex-redux": {
    "sections": {
-    ".text": 303790,
-    ".rdata": 111444,
+    ".text": 259324,
+    ".rdata": 108516,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -3098,8 +3098,8 @@
   },
   "x86-64-v3/size-auto/reverse-complement": {
    "sections": {
-    ".text": 41103,
-    ".rdata": 18548,
+    ".text": 38368,
+    ".rdata": 17788,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -3109,8 +3109,8 @@
   },
   "x86-64-v3/size-auto/spectral-norm": {
    "sections": {
-    ".text": 82999,
-    ".rdata": 39720,
+    ".text": 75792,
+    ".rdata": 38576,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -3121,8 +3121,8 @@
   },
   "x86-64-v3/size-auto/thread": {
    "sections": {
-    ".text": 62995,
-    ".rdata": 30816,
+    ".text": 57640,
+    ".rdata": 30176,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -3132,8 +3132,8 @@
   },
   "x86-64-v3/size-off/binary-trees": {
    "sections": {
-    ".text": 52299,
-    ".rdata": 23808,
+    ".text": 48130,
+    ".rdata": 23112,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -3143,8 +3143,8 @@
   },
   "x86-64-v3/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 38838,
-    ".rdata": 19356,
+    ".text": 35758,
+    ".rdata": 18876,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -3154,8 +3154,8 @@
   },
   "x86-64-v3/size-off/fasta": {
    "sections": {
-    ".text": 26580,
-    ".rdata": 13452,
+    ".text": 24331,
+    ".rdata": 13052,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -3165,8 +3165,8 @@
   },
   "x86-64-v3/size-off/fibre": {
    "sections": {
-    ".text": 53383,
-    ".rdata": 26864,
+    ".text": 49130,
+    ".rdata": 26232,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -3176,8 +3176,8 @@
   },
   "x86-64-v3/size-off/k-nucleotide": {
    "sections": {
-    ".text": 119127,
-    ".rdata": 48732,
+    ".text": 107826,
+    ".rdata": 46604,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -3188,8 +3188,8 @@
   },
   "x86-64-v3/size-off/mandelbrot": {
    "sections": {
-    ".text": 52019,
-    ".rdata": 23792,
+    ".text": 47932,
+    ".rdata": 22880,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3199,8 +3199,8 @@
   },
   "x86-64-v3/size-off/n-body": {
    "sections": {
-    ".text": 69770,
-    ".rdata": 34156,
+    ".text": 64046,
+    ".rdata": 33364,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -3211,8 +3211,8 @@
   },
   "x86-64-v3/size-off/pidigits": {
    "sections": {
-    ".text": 98866,
-    ".rdata": 42224,
+    ".text": 90925,
+    ".rdata": 41664,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -3223,8 +3223,8 @@
   },
   "x86-64-v3/size-off/regex-redux": {
    "sections": {
-    ".text": 303855,
-    ".rdata": 111444,
+    ".text": 259389,
+    ".rdata": 108516,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -3234,8 +3234,8 @@
   },
   "x86-64-v3/size-off/reverse-complement": {
    "sections": {
-    ".text": 41168,
-    ".rdata": 18548,
+    ".text": 38433,
+    ".rdata": 17788,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -3245,8 +3245,8 @@
   },
   "x86-64-v3/size-off/spectral-norm": {
    "sections": {
-    ".text": 83086,
-    ".rdata": 39720,
+    ".text": 75871,
+    ".rdata": 38576,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -3257,8 +3257,8 @@
   },
   "x86-64-v3/size-off/thread": {
    "sections": {
-    ".text": 63039,
-    ".rdata": 30816,
+    ".text": 57684,
+    ".rdata": 30176,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -3268,8 +3268,8 @@
   },
   "x86-64-v3/speed-all/binary-trees": {
    "sections": {
-    ".text": 71818,
-    ".rdata": 23544,
+    ".text": 66826,
+    ".rdata": 22968,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -3279,8 +3279,8 @@
   },
   "x86-64-v3/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 50459,
-    ".rdata": 19220,
+    ".text": 47131,
+    ".rdata": 18820,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -3290,8 +3290,8 @@
   },
   "x86-64-v3/speed-all/fasta": {
    "sections": {
-    ".text": 34617,
-    ".rdata": 13316,
+    ".text": 32057,
+    ".rdata": 12996,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -3301,8 +3301,8 @@
   },
   "x86-64-v3/speed-all/fibre": {
    "sections": {
-    ".text": 66637,
-    ".rdata": 26560,
+    ".text": 62157,
+    ".rdata": 26000,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -3312,8 +3312,8 @@
   },
   "x86-64-v3/speed-all/k-nucleotide": {
    "sections": {
-    ".text": 159847,
-    ".rdata": 48276,
+    ".text": 146279,
+    ".rdata": 46228,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -3324,8 +3324,8 @@
   },
   "x86-64-v3/speed-all/mandelbrot": {
    "sections": {
-    ".text": 70661,
-    ".rdata": 23536,
+    ".text": 66245,
+    ".rdata": 22736,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3335,8 +3335,8 @@
   },
   "x86-64-v3/speed-all/n-body": {
    "sections": {
-    ".text": 92119,
-    ".rdata": 34052,
+    ".text": 85463,
+    ".rdata": 33340,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -3347,8 +3347,8 @@
   },
   "x86-64-v3/speed-all/pidigits": {
    "sections": {
-    ".text": 136875,
-    ".rdata": 41984,
+    ".text": 127787,
+    ".rdata": 41544,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -3359,8 +3359,8 @@
   },
   "x86-64-v3/speed-all/regex-redux": {
    "sections": {
-    ".text": 416584,
-    ".rdata": 110692,
+    ".text": 364360,
+    ".rdata": 108012,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -3370,8 +3370,8 @@
   },
   "x86-64-v3/speed-all/reverse-complement": {
    "sections": {
-    ".text": 54831,
-    ".rdata": 18244,
+    ".text": 51759,
+    ".rdata": 17636,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -3381,8 +3381,8 @@
   },
   "x86-64-v3/speed-all/spectral-norm": {
    "sections": {
-    ".text": 113424,
-    ".rdata": 39184,
+    ".text": 105093,
+    ".rdata": 38160,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -3393,8 +3393,8 @@
   },
   "x86-64-v3/speed-all/thread": {
    "sections": {
-    ".text": 78661,
-    ".rdata": 30456,
+    ".text": 73221,
+    ".rdata": 29896,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -3404,8 +3404,8 @@
   },
   "x86-64-v3/speed-auto/binary-trees": {
    "sections": {
-    ".text": 71818,
-    ".rdata": 23544,
+    ".text": 66826,
+    ".rdata": 22968,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -3415,8 +3415,8 @@
   },
   "x86-64-v3/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 50459,
-    ".rdata": 19220,
+    ".text": 47131,
+    ".rdata": 18820,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -3426,8 +3426,8 @@
   },
   "x86-64-v3/speed-auto/fasta": {
    "sections": {
-    ".text": 34617,
-    ".rdata": 13316,
+    ".text": 32057,
+    ".rdata": 12996,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -3437,8 +3437,8 @@
   },
   "x86-64-v3/speed-auto/fibre": {
    "sections": {
-    ".text": 66637,
-    ".rdata": 26560,
+    ".text": 62157,
+    ".rdata": 26000,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -3448,8 +3448,8 @@
   },
   "x86-64-v3/speed-auto/k-nucleotide": {
    "sections": {
-    ".text": 159847,
-    ".rdata": 48276,
+    ".text": 146279,
+    ".rdata": 46228,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -3460,8 +3460,8 @@
   },
   "x86-64-v3/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 70661,
-    ".rdata": 23536,
+    ".text": 66245,
+    ".rdata": 22736,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3471,8 +3471,8 @@
   },
   "x86-64-v3/speed-auto/n-body": {
    "sections": {
-    ".text": 92119,
-    ".rdata": 34052,
+    ".text": 85463,
+    ".rdata": 33340,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -3483,8 +3483,8 @@
   },
   "x86-64-v3/speed-auto/pidigits": {
    "sections": {
-    ".text": 136875,
-    ".rdata": 41984,
+    ".text": 127787,
+    ".rdata": 41544,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -3495,8 +3495,8 @@
   },
   "x86-64-v3/speed-auto/regex-redux": {
    "sections": {
-    ".text": 416584,
-    ".rdata": 110692,
+    ".text": 364360,
+    ".rdata": 108012,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -3506,8 +3506,8 @@
   },
   "x86-64-v3/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 54831,
-    ".rdata": 18244,
+    ".text": 51759,
+    ".rdata": 17636,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -3517,8 +3517,8 @@
   },
   "x86-64-v3/speed-auto/spectral-norm": {
    "sections": {
-    ".text": 113424,
-    ".rdata": 39184,
+    ".text": 105093,
+    ".rdata": 38160,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -3529,8 +3529,8 @@
   },
   "x86-64-v3/speed-auto/thread": {
    "sections": {
-    ".text": 78661,
-    ".rdata": 30456,
+    ".text": 73221,
+    ".rdata": 29896,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -3540,8 +3540,8 @@
   },
   "x86-64-v3/speed-off/binary-trees": {
    "sections": {
-    ".text": 71818,
-    ".rdata": 23544,
+    ".text": 66698,
+    ".rdata": 22968,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1860,
@@ -3551,8 +3551,8 @@
   },
   "x86-64-v3/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 50651,
-    ".rdata": 19220,
+    ".text": 47195,
+    ".rdata": 18820,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1224,
@@ -3562,8 +3562,8 @@
   },
   "x86-64-v3/speed-off/fasta": {
    "sections": {
-    ".text": 34681,
-    ".rdata": 13316,
+    ".text": 32121,
+    ".rdata": 12996,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 936,
@@ -3573,8 +3573,8 @@
   },
   "x86-64-v3/speed-off/fibre": {
    "sections": {
-    ".text": 66765,
-    ".rdata": 26560,
+    ".text": 62221,
+    ".rdata": 26000,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1500,
@@ -3584,8 +3584,8 @@
   },
   "x86-64-v3/speed-off/k-nucleotide": {
    "sections": {
-    ".text": 159719,
-    ".rdata": 48276,
+    ".text": 146215,
+    ".rdata": 46228,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3180,
@@ -3596,8 +3596,8 @@
   },
   "x86-64-v3/speed-off/mandelbrot": {
    "sections": {
-    ".text": 70661,
-    ".rdata": 23536,
+    ".text": 66117,
+    ".rdata": 22736,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3607,8 +3607,8 @@
   },
   "x86-64-v3/speed-off/n-body": {
    "sections": {
-    ".text": 92247,
-    ".rdata": 34052,
+    ".text": 85527,
+    ".rdata": 33340,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1716,
@@ -3619,8 +3619,8 @@
   },
   "x86-64-v3/speed-off/pidigits": {
    "sections": {
-    ".text": 136811,
-    ".rdata": 41984,
+    ".text": 127723,
+    ".rdata": 41544,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2448,
@@ -3631,8 +3631,8 @@
   },
   "x86-64-v3/speed-off/regex-redux": {
    "sections": {
-    ".text": 416968,
-    ".rdata": 110692,
+    ".text": 364296,
+    ".rdata": 108012,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7464,
@@ -3642,8 +3642,8 @@
   },
   "x86-64-v3/speed-off/reverse-complement": {
    "sections": {
-    ".text": 54639,
-    ".rdata": 18244,
+    ".text": 51631,
+    ".rdata": 17636,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1464,
@@ -3653,8 +3653,8 @@
   },
   "x86-64-v3/speed-off/spectral-norm": {
    "sections": {
-    ".text": 113360,
-    ".rdata": 39184,
+    ".text": 104901,
+    ".rdata": 38160,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2484,
@@ -3665,8 +3665,8 @@
   },
   "x86-64-v3/speed-off/thread": {
    "sections": {
-    ".text": 78853,
-    ".rdata": 30456,
+    ".text": 73413,
+    ".rdata": 29896,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1848,
@@ -3676,8 +3676,8 @@
   },
   "x86-64-v4/none-all/binary-trees": {
    "sections": {
-    ".text": 157443,
-    ".rdata": 31640,
+    ".text": 153107,
+    ".rdata": 30952,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3687,8 +3687,8 @@
   },
   "x86-64-v4/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 122637,
-    ".rdata": 26740,
+    ".text": 119521,
+    ".rdata": 26268,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -3698,8 +3698,8 @@
   },
   "x86-64-v4/none-all/fasta": {
    "sections": {
-    ".text": 77742,
-    ".rdata": 16156,
+    ".text": 75429,
+    ".rdata": 15756,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -3709,8 +3709,8 @@
   },
   "x86-64-v4/none-all/fibre": {
    "sections": {
-    ".text": 150689,
-    ".rdata": 35736,
+    ".text": 146004,
+    ".rdata": 35096,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -3720,8 +3720,8 @@
   },
   "x86-64-v4/none-all/k-nucleotide": {
    "sections": {
-    ".text": 343686,
-    ".rdata": 65204,
+    ".text": 332207,
+    ".rdata": 63084,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -3732,8 +3732,8 @@
   },
   "x86-64-v4/none-all/mandelbrot": {
    "sections": {
-    ".text": 158598,
-    ".rdata": 31600,
+    ".text": 154389,
+    ".rdata": 30688,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -3743,8 +3743,8 @@
   },
   "x86-64-v4/none-all/n-body": {
    "sections": {
-    ".text": 217981,
-    ".rdata": 47476,
+    ".text": 212161,
+    ".rdata": 46684,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -3755,8 +3755,8 @@
   },
   "x86-64-v4/none-all/pidigits": {
    "sections": {
-    ".text": 304678,
-    ".rdata": 57344,
+    ".text": 296547,
+    ".rdata": 56784,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -3767,8 +3767,8 @@
   },
   "x86-64-v4/none-all/regex-redux": {
    "sections": {
-    ".text": 880352,
-    ".rdata": 150628,
+    ".text": 834581,
+    ".rdata": 147708,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7596,
@@ -3778,8 +3778,8 @@
   },
   "x86-64-v4/none-all/reverse-complement": {
    "sections": {
-    ".text": 118318,
-    ".rdata": 22092,
+    ".text": 115473,
+    ".rdata": 21332,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -3789,8 +3789,8 @@
   },
   "x86-64-v4/none-all/spectral-norm": {
    "sections": {
-    ".text": 252401,
-    ".rdata": 53728,
+    ".text": 245065,
+    ".rdata": 52592,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -3801,8 +3801,8 @@
   },
   "x86-64-v4/none-all/thread": {
    "sections": {
-    ".text": 174989,
-    ".rdata": 40992,
+    ".text": 168811,
+    ".rdata": 40352,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -3812,8 +3812,8 @@
   },
   "x86-64-v4/none-auto/binary-trees": {
    "sections": {
-    ".text": 157443,
-    ".rdata": 31640,
+    ".text": 153107,
+    ".rdata": 30952,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3823,8 +3823,8 @@
   },
   "x86-64-v4/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 122637,
-    ".rdata": 26740,
+    ".text": 119521,
+    ".rdata": 26268,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -3834,8 +3834,8 @@
   },
   "x86-64-v4/none-auto/fasta": {
    "sections": {
-    ".text": 77742,
-    ".rdata": 16156,
+    ".text": 75429,
+    ".rdata": 15756,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -3845,8 +3845,8 @@
   },
   "x86-64-v4/none-auto/fibre": {
    "sections": {
-    ".text": 150689,
-    ".rdata": 35736,
+    ".text": 146004,
+    ".rdata": 35096,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -3856,8 +3856,8 @@
   },
   "x86-64-v4/none-auto/k-nucleotide": {
    "sections": {
-    ".text": 343701,
-    ".rdata": 65204,
+    ".text": 332222,
+    ".rdata": 63084,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -3868,8 +3868,8 @@
   },
   "x86-64-v4/none-auto/mandelbrot": {
    "sections": {
-    ".text": 158598,
-    ".rdata": 31600,
+    ".text": 154389,
+    ".rdata": 30688,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -3879,8 +3879,8 @@
   },
   "x86-64-v4/none-auto/n-body": {
    "sections": {
-    ".text": 217981,
-    ".rdata": 47476,
+    ".text": 212161,
+    ".rdata": 46684,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -3891,8 +3891,8 @@
   },
   "x86-64-v4/none-auto/pidigits": {
    "sections": {
-    ".text": 304678,
-    ".rdata": 57344,
+    ".text": 296547,
+    ".rdata": 56784,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -3903,8 +3903,8 @@
   },
   "x86-64-v4/none-auto/regex-redux": {
    "sections": {
-    ".text": 880532,
-    ".rdata": 150628,
+    ".text": 834761,
+    ".rdata": 147708,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7596,
@@ -3914,8 +3914,8 @@
   },
   "x86-64-v4/none-auto/reverse-complement": {
    "sections": {
-    ".text": 118318,
-    ".rdata": 22092,
+    ".text": 115473,
+    ".rdata": 21332,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -3925,8 +3925,8 @@
   },
   "x86-64-v4/none-auto/spectral-norm": {
    "sections": {
-    ".text": 252401,
-    ".rdata": 53728,
+    ".text": 245065,
+    ".rdata": 52592,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -3937,8 +3937,8 @@
   },
   "x86-64-v4/none-auto/thread": {
    "sections": {
-    ".text": 174989,
-    ".rdata": 40992,
+    ".text": 168811,
+    ".rdata": 40352,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -3948,8 +3948,8 @@
   },
   "x86-64-v4/none-off/binary-trees": {
    "sections": {
-    ".text": 157459,
-    ".rdata": 31640,
+    ".text": 153123,
+    ".rdata": 30952,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -3959,8 +3959,8 @@
   },
   "x86-64-v4/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 122639,
-    ".rdata": 26740,
+    ".text": 119523,
+    ".rdata": 26268,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -3970,8 +3970,8 @@
   },
   "x86-64-v4/none-off/fasta": {
    "sections": {
-    ".text": 77754,
-    ".rdata": 16156,
+    ".text": 75441,
+    ".rdata": 15756,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -3981,8 +3981,8 @@
   },
   "x86-64-v4/none-off/fibre": {
    "sections": {
-    ".text": 150691,
-    ".rdata": 35736,
+    ".text": 146006,
+    ".rdata": 35096,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -3992,8 +3992,8 @@
   },
   "x86-64-v4/none-off/k-nucleotide": {
    "sections": {
-    ".text": 343763,
-    ".rdata": 65204,
+    ".text": 332284,
+    ".rdata": 63084,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -4004,8 +4004,8 @@
   },
   "x86-64-v4/none-off/mandelbrot": {
    "sections": {
-    ".text": 158636,
-    ".rdata": 31600,
+    ".text": 154427,
+    ".rdata": 30688,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -4015,8 +4015,8 @@
   },
   "x86-64-v4/none-off/n-body": {
    "sections": {
-    ".text": 217990,
-    ".rdata": 47476,
+    ".text": 212170,
+    ".rdata": 46684,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -4027,8 +4027,8 @@
   },
   "x86-64-v4/none-off/pidigits": {
    "sections": {
-    ".text": 304705,
-    ".rdata": 57344,
+    ".text": 296574,
+    ".rdata": 56784,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -4039,8 +4039,8 @@
   },
   "x86-64-v4/none-off/regex-redux": {
    "sections": {
-    ".text": 880554,
-    ".rdata": 150628,
+    ".text": 834783,
+    ".rdata": 147708,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7596,
@@ -4050,8 +4050,8 @@
   },
   "x86-64-v4/none-off/reverse-complement": {
    "sections": {
-    ".text": 118340,
-    ".rdata": 22092,
+    ".text": 115495,
+    ".rdata": 21332,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -4061,8 +4061,8 @@
   },
   "x86-64-v4/none-off/spectral-norm": {
    "sections": {
-    ".text": 252436,
-    ".rdata": 53728,
+    ".text": 245100,
+    ".rdata": 52592,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -4073,8 +4073,8 @@
   },
   "x86-64-v4/none-off/thread": {
    "sections": {
-    ".text": 174990,
-    ".rdata": 40992,
+    ".text": 168812,
+    ".rdata": 40352,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -4084,8 +4084,8 @@
   },
   "x86-64-v4/size-all/binary-trees": {
    "sections": {
-    ".text": 52610,
-    ".rdata": 23872,
+    ".text": 48441,
+    ".rdata": 23176,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -4095,8 +4095,8 @@
   },
   "x86-64-v4/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 39223,
-    ".rdata": 19420,
+    ".text": 36143,
+    ".rdata": 18940,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -4106,8 +4106,8 @@
   },
   "x86-64-v4/size-all/fasta": {
    "sections": {
-    ".text": 26941,
-    ".rdata": 13524,
+    ".text": 24692,
+    ".rdata": 13124,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -4117,8 +4117,8 @@
   },
   "x86-64-v4/size-all/fibre": {
    "sections": {
-    ".text": 53839,
-    ".rdata": 26984,
+    ".text": 49586,
+    ".rdata": 26352,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -4128,8 +4128,8 @@
   },
   "x86-64-v4/size-all/k-nucleotide": {
    "sections": {
-    ".text": 119264,
-    ".rdata": 48796,
+    ".text": 107980,
+    ".rdata": 46668,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -4140,8 +4140,8 @@
   },
   "x86-64-v4/size-all/mandelbrot": {
    "sections": {
-    ".text": 52321,
-    ".rdata": 23864,
+    ".text": 48232,
+    ".rdata": 22952,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -4151,8 +4151,8 @@
   },
   "x86-64-v4/size-all/n-body": {
    "sections": {
-    ".text": 70142,
-    ".rdata": 34220,
+    ".text": 64418,
+    ".rdata": 33428,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -4163,8 +4163,8 @@
   },
   "x86-64-v4/size-all/pidigits": {
    "sections": {
-    ".text": 99233,
-    ".rdata": 42288,
+    ".text": 91292,
+    ".rdata": 41728,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -4175,8 +4175,8 @@
   },
   "x86-64-v4/size-all/regex-redux": {
    "sections": {
-    ".text": 303857,
-    ".rdata": 111516,
+    ".text": 259483,
+    ".rdata": 108588,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7476,
@@ -4186,8 +4186,8 @@
   },
   "x86-64-v4/size-all/reverse-complement": {
    "sections": {
-    ".text": 41490,
-    ".rdata": 18612,
+    ".text": 38755,
+    ".rdata": 17852,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -4197,8 +4197,8 @@
   },
   "x86-64-v4/size-all/spectral-norm": {
    "sections": {
-    ".text": 83386,
-    ".rdata": 39784,
+    ".text": 76179,
+    ".rdata": 38640,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -4209,8 +4209,8 @@
   },
   "x86-64-v4/size-all/thread": {
    "sections": {
-    ".text": 63453,
-    ".rdata": 30936,
+    ".text": 58098,
+    ".rdata": 30296,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -4220,8 +4220,8 @@
   },
   "x86-64-v4/size-auto/binary-trees": {
    "sections": {
-    ".text": 52610,
-    ".rdata": 23872,
+    ".text": 48441,
+    ".rdata": 23176,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -4231,8 +4231,8 @@
   },
   "x86-64-v4/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 39223,
-    ".rdata": 19420,
+    ".text": 36143,
+    ".rdata": 18940,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -4242,8 +4242,8 @@
   },
   "x86-64-v4/size-auto/fasta": {
    "sections": {
-    ".text": 26941,
-    ".rdata": 13524,
+    ".text": 24692,
+    ".rdata": 13124,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -4253,8 +4253,8 @@
   },
   "x86-64-v4/size-auto/fibre": {
    "sections": {
-    ".text": 53839,
-    ".rdata": 26984,
+    ".text": 49586,
+    ".rdata": 26352,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -4264,8 +4264,8 @@
   },
   "x86-64-v4/size-auto/k-nucleotide": {
    "sections": {
-    ".text": 119306,
-    ".rdata": 48796,
+    ".text": 107998,
+    ".rdata": 46668,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -4276,8 +4276,8 @@
   },
   "x86-64-v4/size-auto/mandelbrot": {
    "sections": {
-    ".text": 52321,
-    ".rdata": 23864,
+    ".text": 48232,
+    ".rdata": 22952,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -4287,8 +4287,8 @@
   },
   "x86-64-v4/size-auto/n-body": {
    "sections": {
-    ".text": 70142,
-    ".rdata": 34220,
+    ".text": 64418,
+    ".rdata": 33428,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -4299,8 +4299,8 @@
   },
   "x86-64-v4/size-auto/pidigits": {
    "sections": {
-    ".text": 99233,
-    ".rdata": 42288,
+    ".text": 91292,
+    ".rdata": 41728,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -4311,8 +4311,8 @@
   },
   "x86-64-v4/size-auto/regex-redux": {
    "sections": {
-    ".text": 304177,
-    ".rdata": 111516,
+    ".text": 259711,
+    ".rdata": 108588,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7476,
@@ -4322,8 +4322,8 @@
   },
   "x86-64-v4/size-auto/reverse-complement": {
    "sections": {
-    ".text": 41490,
-    ".rdata": 18612,
+    ".text": 38755,
+    ".rdata": 17852,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -4333,8 +4333,8 @@
   },
   "x86-64-v4/size-auto/spectral-norm": {
    "sections": {
-    ".text": 83386,
-    ".rdata": 39784,
+    ".text": 76179,
+    ".rdata": 38640,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -4345,8 +4345,8 @@
   },
   "x86-64-v4/size-auto/thread": {
    "sections": {
-    ".text": 63453,
-    ".rdata": 30936,
+    ".text": 58098,
+    ".rdata": 30296,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -4356,8 +4356,8 @@
   },
   "x86-64-v4/size-off/binary-trees": {
    "sections": {
-    ".text": 52686,
-    ".rdata": 23872,
+    ".text": 48517,
+    ".rdata": 23176,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -4367,8 +4367,8 @@
   },
   "x86-64-v4/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 39225,
-    ".rdata": 19420,
+    ".text": 36145,
+    ".rdata": 18940,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -4378,8 +4378,8 @@
   },
   "x86-64-v4/size-off/fasta": {
    "sections": {
-    ".text": 26967,
-    ".rdata": 13524,
+    ".text": 24718,
+    ".rdata": 13124,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -4389,8 +4389,8 @@
   },
   "x86-64-v4/size-off/fibre": {
    "sections": {
-    ".text": 53841,
-    ".rdata": 26984,
+    ".text": 49588,
+    ".rdata": 26352,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -4400,8 +4400,8 @@
   },
   "x86-64-v4/size-off/k-nucleotide": {
    "sections": {
-    ".text": 119514,
-    ".rdata": 48796,
+    ".text": 108213,
+    ".rdata": 46668,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -4412,8 +4412,8 @@
   },
   "x86-64-v4/size-off/mandelbrot": {
    "sections": {
-    ".text": 52406,
-    ".rdata": 23864,
+    ".text": 48319,
+    ".rdata": 22952,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -4423,8 +4423,8 @@
   },
   "x86-64-v4/size-off/n-body": {
    "sections": {
-    ".text": 70157,
-    ".rdata": 34220,
+    ".text": 64433,
+    ".rdata": 33428,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -4435,8 +4435,8 @@
   },
   "x86-64-v4/size-off/pidigits": {
    "sections": {
-    ".text": 99253,
-    ".rdata": 42288,
+    ".text": 91312,
+    ".rdata": 41728,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -4447,8 +4447,8 @@
   },
   "x86-64-v4/size-off/regex-redux": {
    "sections": {
-    ".text": 304242,
-    ".rdata": 111516,
+    ".text": 259776,
+    ".rdata": 108588,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7476,
@@ -4458,8 +4458,8 @@
   },
   "x86-64-v4/size-off/reverse-complement": {
    "sections": {
-    ".text": 41555,
-    ".rdata": 18612,
+    ".text": 38820,
+    ".rdata": 17852,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -4469,8 +4469,8 @@
   },
   "x86-64-v4/size-off/spectral-norm": {
    "sections": {
-    ".text": 83473,
-    ".rdata": 39784,
+    ".text": 76258,
+    ".rdata": 38640,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -4481,8 +4481,8 @@
   },
   "x86-64-v4/size-off/thread": {
    "sections": {
-    ".text": 63497,
-    ".rdata": 30936,
+    ".text": 58142,
+    ".rdata": 30296,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -4492,8 +4492,8 @@
   },
   "x86-64-v4/speed-all/binary-trees": {
    "sections": {
-    ".text": 72330,
-    ".rdata": 23608,
+    ".text": 67338,
+    ".rdata": 23032,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -4503,8 +4503,8 @@
   },
   "x86-64-v4/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 50971,
-    ".rdata": 19284,
+    ".text": 47643,
+    ".rdata": 18884,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -4514,8 +4514,8 @@
   },
   "x86-64-v4/speed-all/fasta": {
    "sections": {
-    ".text": 35129,
-    ".rdata": 13388,
+    ".text": 32569,
+    ".rdata": 13068,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -4525,8 +4525,8 @@
   },
   "x86-64-v4/speed-all/fibre": {
    "sections": {
-    ".text": 67149,
-    ".rdata": 26688,
+    ".text": 62669,
+    ".rdata": 26128,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -4536,8 +4536,8 @@
   },
   "x86-64-v4/speed-all/k-nucleotide": {
    "sections": {
-    ".text": 160359,
-    ".rdata": 48340,
+    ".text": 146791,
+    ".rdata": 46292,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -4548,8 +4548,8 @@
   },
   "x86-64-v4/speed-all/mandelbrot": {
    "sections": {
-    ".text": 71173,
-    ".rdata": 23608,
+    ".text": 66757,
+    ".rdata": 22808,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -4559,8 +4559,8 @@
   },
   "x86-64-v4/speed-all/n-body": {
    "sections": {
-    ".text": 92631,
-    ".rdata": 34116,
+    ".text": 85975,
+    ".rdata": 33404,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -4571,8 +4571,8 @@
   },
   "x86-64-v4/speed-all/pidigits": {
    "sections": {
-    ".text": 137387,
-    ".rdata": 42048,
+    ".text": 128299,
+    ".rdata": 41608,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -4583,8 +4583,8 @@
   },
   "x86-64-v4/speed-all/regex-redux": {
    "sections": {
-    ".text": 417096,
-    ".rdata": 110764,
+    ".text": 364872,
+    ".rdata": 108084,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7476,
@@ -4594,8 +4594,8 @@
   },
   "x86-64-v4/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55337,
-    ".rdata": 18308,
+    ".text": 52265,
+    ".rdata": 17700,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -4605,8 +4605,8 @@
   },
   "x86-64-v4/speed-all/spectral-norm": {
    "sections": {
-    ".text": 113936,
-    ".rdata": 39248,
+    ".text": 105605,
+    ".rdata": 38224,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -4617,8 +4617,8 @@
   },
   "x86-64-v4/speed-all/thread": {
    "sections": {
-    ".text": 79173,
-    ".rdata": 30576,
+    ".text": 73733,
+    ".rdata": 30016,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -4628,8 +4628,8 @@
   },
   "x86-64-v4/speed-auto/binary-trees": {
    "sections": {
-    ".text": 72330,
-    ".rdata": 23608,
+    ".text": 67338,
+    ".rdata": 23032,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -4639,8 +4639,8 @@
   },
   "x86-64-v4/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 50971,
-    ".rdata": 19284,
+    ".text": 47643,
+    ".rdata": 18884,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -4650,8 +4650,8 @@
   },
   "x86-64-v4/speed-auto/fasta": {
    "sections": {
-    ".text": 35129,
-    ".rdata": 13388,
+    ".text": 32569,
+    ".rdata": 13068,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -4661,8 +4661,8 @@
   },
   "x86-64-v4/speed-auto/fibre": {
    "sections": {
-    ".text": 67149,
-    ".rdata": 26688,
+    ".text": 62669,
+    ".rdata": 26128,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -4672,8 +4672,8 @@
   },
   "x86-64-v4/speed-auto/k-nucleotide": {
    "sections": {
-    ".text": 160359,
-    ".rdata": 48340,
+    ".text": 146791,
+    ".rdata": 46292,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -4684,8 +4684,8 @@
   },
   "x86-64-v4/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 71173,
-    ".rdata": 23608,
+    ".text": 66757,
+    ".rdata": 22808,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -4695,8 +4695,8 @@
   },
   "x86-64-v4/speed-auto/n-body": {
    "sections": {
-    ".text": 92631,
-    ".rdata": 34116,
+    ".text": 85975,
+    ".rdata": 33404,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -4707,8 +4707,8 @@
   },
   "x86-64-v4/speed-auto/pidigits": {
    "sections": {
-    ".text": 137387,
-    ".rdata": 42048,
+    ".text": 128299,
+    ".rdata": 41608,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -4719,8 +4719,8 @@
   },
   "x86-64-v4/speed-auto/regex-redux": {
    "sections": {
-    ".text": 417096,
-    ".rdata": 110764,
+    ".text": 364872,
+    ".rdata": 108084,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7476,
@@ -4730,8 +4730,8 @@
   },
   "x86-64-v4/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55337,
-    ".rdata": 18308,
+    ".text": 52265,
+    ".rdata": 17700,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -4741,8 +4741,8 @@
   },
   "x86-64-v4/speed-auto/spectral-norm": {
    "sections": {
-    ".text": 113936,
-    ".rdata": 39248,
+    ".text": 105605,
+    ".rdata": 38224,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -4753,8 +4753,8 @@
   },
   "x86-64-v4/speed-auto/thread": {
    "sections": {
-    ".text": 79173,
-    ".rdata": 30576,
+    ".text": 73733,
+    ".rdata": 30016,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
@@ -4764,8 +4764,8 @@
   },
   "x86-64-v4/speed-off/binary-trees": {
    "sections": {
-    ".text": 72330,
-    ".rdata": 23608,
+    ".text": 67210,
+    ".rdata": 23032,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1872,
@@ -4775,8 +4775,8 @@
   },
   "x86-64-v4/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 51163,
-    ".rdata": 19284,
+    ".text": 47707,
+    ".rdata": 18884,
     ".buildid": 81,
     ".data": 120,
     ".pdata": 1236,
@@ -4786,8 +4786,8 @@
   },
   "x86-64-v4/speed-off/fasta": {
    "sections": {
-    ".text": 35193,
-    ".rdata": 13388,
+    ".text": 32633,
+    ".rdata": 13068,
     ".buildid": 81,
     ".data": 136,
     ".pdata": 948,
@@ -4797,8 +4797,8 @@
   },
   "x86-64-v4/speed-off/fibre": {
    "sections": {
-    ".text": 67277,
-    ".rdata": 26688,
+    ".text": 62733,
+    ".rdata": 26128,
     ".buildid": 81,
     ".data": 16528,
     ".pdata": 1512,
@@ -4808,8 +4808,8 @@
   },
   "x86-64-v4/speed-off/k-nucleotide": {
    "sections": {
-    ".text": 160231,
-    ".rdata": 48340,
+    ".text": 146727,
+    ".rdata": 46292,
     ".buildid": 81,
     ".data": 244,
     ".pdata": 3192,
@@ -4820,8 +4820,8 @@
   },
   "x86-64-v4/speed-off/mandelbrot": {
    "sections": {
-    ".text": 71173,
-    ".rdata": 23608,
+    ".text": 66629,
+    ".rdata": 22808,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1884,
@@ -4831,8 +4831,8 @@
   },
   "x86-64-v4/speed-off/n-body": {
    "sections": {
-    ".text": 92759,
-    ".rdata": 34116,
+    ".text": 86039,
+    ".rdata": 33404,
     ".buildid": 81,
     ".data": 104,
     ".pdata": 1728,
@@ -4843,8 +4843,8 @@
   },
   "x86-64-v4/speed-off/pidigits": {
    "sections": {
-    ".text": 137323,
-    ".rdata": 42048,
+    ".text": 128235,
+    ".rdata": 41608,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 2460,
@@ -4855,8 +4855,8 @@
   },
   "x86-64-v4/speed-off/regex-redux": {
    "sections": {
-    ".text": 417480,
-    ".rdata": 110764,
+    ".text": 364808,
+    ".rdata": 108084,
     ".buildid": 81,
     ".data": 2804,
     ".pdata": 7476,
@@ -4866,8 +4866,8 @@
   },
   "x86-64-v4/speed-off/reverse-complement": {
    "sections": {
-    ".text": 55145,
-    ".rdata": 18308,
+    ".text": 52137,
+    ".rdata": 17700,
     ".buildid": 81,
     ".data": 212,
     ".pdata": 1476,
@@ -4877,8 +4877,8 @@
   },
   "x86-64-v4/speed-off/spectral-norm": {
    "sections": {
-    ".text": 113872,
-    ".rdata": 39248,
+    ".text": 105413,
+    ".rdata": 38224,
     ".buildid": 81,
     ".data": 196,
     ".pdata": 2496,
@@ -4889,8 +4889,8 @@
   },
   "x86-64-v4/speed-off/thread": {
    "sections": {
-    ".text": 79365,
-    ".rdata": 30576,
+    ".text": 73925,
+    ".rdata": 30016,
     ".buildid": 81,
     ".data": 147600,
     ".pdata": 1860,
