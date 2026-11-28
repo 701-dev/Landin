@@ -6836,6 +6836,117 @@ package body Landin.Tests.Backend_Suite is
       end;
    end Declared_Errors_Use_The_Dedicated_Register;
 
+   --  D3175: a call that can fail leaves its status in the failure
+   --  register, and where its result's store is all that lies between,
+   --  the branch after the call tests that register once: no load of the
+   --  sealed failure slot, no check of its atoms, no truth value made.
+   procedure A_Call_Status_Is_Tested_In_Its_Register
+     (Item : in out Landin.Testing.Context);
+
+   procedure A_Call_Status_Is_Tested_In_Its_Register
+     (Item : in out Landin.Testing.Context)
+   is
+      package L renames Landin.Targets.Levels;
+      Source : constant String :=
+        "bad: atom" & LF
+        & "problem: type = bad" & LF
+        & "operation: type = (fails: bool) -> (value: i32) ! problem" & LF
+        & "public run: (op: operation, fails: bool) -> (code: i32)"
+        & " ! problem =" & LF
+        & "    code = try op(fails)" & LF
+        & "end run" & LF;
+      Options : constant Landin.Optimization.Options :=
+        (Landin.Optimization.Size, Landin.Optimization.Auto);
+
+      type Backend_Kind is (X86_64, Arm64, RISC_V, Cortex_M);
+
+      function Emitted
+        (Kind : Backend_Kind; Facts : Landin.Targets.Target_Facts;
+         Level : String) return String;
+
+      function Emitted
+        (Kind : Backend_Kind; Facts : Landin.Targets.Target_Facts;
+         Level : String) return String
+      is
+         Work : Landin.Stages.Compilation := Landin.Stages.Create (Facts);
+         Ran : Natural;
+         Assembly : Ada.Strings.Unbounded.Unbounded_String;
+         Report : Landin.Build_Reports.Report;
+      begin
+         Lower (Work, Source, Ran);
+         Landin.Testing.Check_Equal
+           (Item, Ran, 5, Level & ": the source lowers");
+         if Landin.Stages.Failed (Work) then
+            return "";
+         end if;
+         case Kind is
+            when X86_64 =>
+               Landin.Backend.X86_64.Emit
+                 (Landin.Stages.Code (Work).all,
+                  Landin.Stages.Meanings (Work).all,
+                  Landin.Stages.Identities (Work).all, Facts, Options,
+                  Assembly, Report);
+            when Arm64 =>
+               Landin.Backend.Arm64.Emit
+                 (Landin.Stages.Code (Work).all,
+                  Landin.Stages.Meanings (Work).all,
+                  Landin.Stages.Identities (Work).all, Facts, Options,
+                  Assembly, Report, Level => L.Level_Named (Facts, Level));
+            when RISC_V =>
+               Landin.Backend.RiscV.Emit
+                 (Landin.Stages.Code (Work).all,
+                  Landin.Stages.Meanings (Work).all,
+                  Landin.Stages.Identities (Work).all, Facts, Options,
+                  Assembly, Report, Level => L.Level_Named (Facts, Level));
+            when Cortex_M =>
+               Landin.Backend.Cortex_M.Emit
+                 (Landin.Stages.Code (Work).all,
+                  Landin.Stages.Meanings (Work).all,
+                  Landin.Stages.Identities (Work).all, Facts, Options,
+                  Assembly, Report, Level => L.Level_Named (Facts, Level));
+         end case;
+         return Ada.Strings.Unbounded.To_String (Assembly);
+      end Emitted;
+
+      procedure One
+        (Kind : Backend_Kind; Facts : Landin.Targets.Target_Facts;
+         Level, Capture, Test : String);
+
+      procedure One
+        (Kind : Backend_Kind; Facts : Landin.Targets.Target_Facts;
+         Level, Capture, Test : String)
+      is
+         Text : constant String := Emitted (Kind, Facts, Level);
+         Captured : constant Natural :=
+           Ada.Strings.Fixed.Index (Text, HT & Capture);
+         Tested : constant Natural :=
+           (if Captured = 0 then 0
+            else Ada.Strings.Fixed.Index (Text, HT & Test, Captured));
+      begin
+         Landin.Testing.Check
+           (Item, Captured > 0,
+            Level & ": the caller keeps the status for its failed way");
+         Landin.Testing.Check
+           (Item, Tested > Captured,
+            Level & ": the branch after the call tests the status where"
+            & " the call left it");
+      end One;
+   begin
+      One (X86_64, Landin.Targets.Linux_X86_64, "x86-64",
+           "movl %r10d, ", "testl %r10d, %r10d" & LF & HT & "je ");
+      One (Arm64, Landin.Targets.Linux_Arm64, "armv8-a",
+           "stur w8, ", "cbz w8, ");
+      One (RISC_V, Landin.Targets.Linux_RV64, "rv64gc",
+           "sw x31, ", "beq x31, zero, ");
+      One (RISC_V, Landin.Targets.RV32, "rv32imc",
+           "sw x31, ", "beq x31, zero, ");
+      One (Cortex_M, Landin.Targets.Cortex_M, "armv6-m",
+           "mov r4, r12" & LF,
+           "mov r0, r12" & LF & HT & "cmp r0, #0" & LF & HT & "beq ");
+      One (Cortex_M, Landin.Targets.Cortex_M, "armv8-m.main",
+           "mov r4, r12" & LF, "cmp r12, #0" & LF & HT & "beq ");
+   end A_Call_Status_Is_Tested_In_Its_Register;
+
    procedure Generic_Evidence_Is_Ordered_Indirect_And_Shared
      (Item : in out Landin.Testing.Context);
 
@@ -12118,6 +12229,9 @@ package body Landin.Tests.Backend_Suite is
       Landin.Testing.Register
         (Into, "backend", "declared errors use the dedicated register",
          Declared_Errors_Use_The_Dedicated_Register'Access);
+      Landin.Testing.Register
+        (Into, "backend", "a call's status is tested in its register",
+         A_Call_Status_Is_Tested_In_Its_Register'Access);
       Landin.Testing.Register
         (Into, "backend", "six arguments reach their own widths",
          Six_Arguments_Reach_Their_Own_Widths'Access);

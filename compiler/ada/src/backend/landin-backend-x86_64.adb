@@ -1809,6 +1809,9 @@ package body Landin.Backend.X86_64 is
          --  load between, neither moves anything the fold leaves behind.
          Skipped_Store, Skipped_Load : Landin.IR.Value_Id :=
            Landin.IR.No_Value;
+         --  D3175: the load of a call's status that is not made, its
+         --  failure test reading %r10d, where the call left the status.
+         Status_Load : Landin.IR.Value_Id := Landin.IR.No_Value;
          --  An element address carried to several accesses, each through
          --  a temporary of its own or the address itself, as an element
          --  swapped in place is, is not formed either while the registers
@@ -3672,6 +3675,30 @@ package body Landin.Backend.X86_64 is
               and then abs Offset_Of (Index) <= 2 ** 16;
          end Offset_Folds;
 
+         --  D3175: whether the load at the current position reads a status
+         --  still in %r10d: Status_Carrier's call, whose result and the
+         --  store of it between move nothing into %r10.
+         function Status_In_R10 return Boolean;
+         function Status_In_R10 return Boolean is
+            Call : constant Landin.IR.Value_Id := Status_Carrier
+              (Of_Unit, Item, Current_Block, Current_Position);
+            function Clear (Place : Allocation.Location) return Boolean is
+              (Place.Kind /= Allocation.GP
+               or else Allocation."/=" (Place.Register, Allocation.R10));
+            Before : Landin.IR.Value_Id;
+         begin
+            if Call = Landin.IR.No_Value
+              or else not Clear (Allocation_Plan.Value (Positive (Call)))
+            then
+               return False;
+            end if;
+            Before := Landin.IR.Nth_Value
+              (Of_Unit, Item, Current_Block, Current_Position - 1);
+            return Before = Call
+              or else Clear (Allocation_Plan.Slot
+                (Positive (Landin.IR.Slot_Of (Of_Unit, Item, Before))));
+         end Status_In_R10;
+
          procedure Emit_Instruction (Value : Landin.IR.Value_Id) is
             Op : constant Landin.IR.Opcode :=
               Landin.IR.Op_Of (Of_Unit, Item, Value);
@@ -4516,6 +4543,11 @@ package body Landin.Backend.X86_64 is
             if Value = Skipped_Store or else Value = Skipped_Load
               or else (Optimized and then Carrying (Positive (Value)) > 0)
             then
+               return;
+            end if;
+            if Optimized and then Op = Landin.IR.Load and then Status_In_R10
+            then
+               Status_Load := Value;
                return;
             end if;
             --  D2492: a load whose every use is the length of a slice
@@ -7603,9 +7635,40 @@ package body Landin.Backend.X86_64 is
                   end;
 
                when Landin.IR.Failure_Test =>
-                  Emit ("cmpl $0, " & Value_Operand (Operand (1)));
-                  Emit ("setne %al");
-                  Emit ("movb %al, " & Value_Operand (Value));
+                  declare
+                     Status : constant String :=
+                       (if Operand (1) = Status_Load then "%r10d"
+                        else Value_Operand (Operand (1)));
+                  begin
+                     --  A status in a register is tested against itself,
+                     --  which encodes shorter than a comparison with zero.
+                     if Is_Register (Status) then
+                        Emit ("testl " & Status & ", " & Status);
+                     else
+                        Emit ("cmpl $0, " & Status);
+                     end if;
+                     --  A test whose one use is the branch right after it,
+                     --  as lowering makes every call's, leaves its verdict
+                     --  in the flags, as a comparison does.
+                     if Optimized and then Uses (Positive (Value)) = 1
+                       and then Next_Instruction /= Landin.IR.No_Value
+                       and then Landin.IR.Op_Of
+                         (Of_Unit, Item, Next_Instruction) = Landin.IR.Branch
+                       and then Landin.IR.Nth_Operand
+                         (Of_Unit, Item, Next_Instruction, 1) = Value
+                     then
+                        Conditional_Branch
+                          ("ne",
+                           Landin.IR.Target_Of
+                             (Of_Unit, Item, Next_Instruction),
+                           Landin.IR.Alternative_Of
+                             (Of_Unit, Item, Next_Instruction));
+                        Fused_Branch := Next_Instruction;
+                     else
+                        Emit ("setne %al");
+                        Emit ("movb %al, " & Value_Operand (Value));
+                     end if;
+                  end;
 
                when Landin.IR.Function_Address =>
                   declare

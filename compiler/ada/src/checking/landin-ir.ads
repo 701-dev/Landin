@@ -2483,11 +2483,13 @@ package Landin.IR is
                  and then Holds (Of_Unit, Item, Slot);
 
    --  A sealed slot is a compiler temporary of an atom set that only a
-   --  Store and a Load ever name: nothing takes its address, no storage
-   --  operand or assembly output reaches it, so what a load of it reads
-   --  is what a store of a value of the set wrote.  Lowering seals the
-   --  copy an atom `match` keeps of its subject, and the verifier holds a
-   --  sealed slot to that rule.
+   --  Store, a Load and the call whose failure it carries ever name:
+   --  nothing takes its address, no storage operand or assembly output
+   --  reaches it, so what a load of it reads is what a store of a value
+   --  of the set, or a callee failing with one of its errors, wrote.
+   --  Lowering seals the copy an atom `match` keeps of its subject and
+   --  every call's failure slot (D3176), and the verifier holds a sealed
+   --  slot to that rule.
    function Is_Sealed
      (Of_Unit : Unit; Item : Item_Id; Slot : Slot_Id) return Boolean
      with Pre => Holds (Of_Unit, Item)

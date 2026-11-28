@@ -382,6 +382,22 @@ package Landin.Backend is
                  and then References'Last
                    = Landin.IR.Slot_Count (Of_Unit, Item);
 
+   --  D3175: the call whose failure register still holds the status the
+   --  failure test after the load at Position reads.  The load reads the
+   --  failure slot of the call just before it, or of the call before the
+   --  store of that call's result just before it; the failure test right
+   --  after the load is its one reader, and the branch right after the
+   --  test is the test's.  Lowering makes every call that can fail so.
+   --  The backend may then test the register the call left the status
+   --  in and make no load, once it knows nothing between wrote that
+   --  register.  No_Value otherwise.
+   function Status_Carrier
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Block : Landin.IR.Block_Id;
+      Position : Positive) return Landin.IR.Value_Id
+     with Pre => Position <= Landin.IR.Length (Of_Unit, Item, Block);
+
    --  The Load_Indirect or Store_Indirect an address reaches as its one
    --  use, either as the very next instruction or through the address
    --  slot lowering carries it in as the access's type witness: the next

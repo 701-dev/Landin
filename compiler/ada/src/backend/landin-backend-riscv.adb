@@ -3272,6 +3272,12 @@ package body Landin.Backend.RiscV is
          Current_Block : Natural := 0;
          Next_Value : Landin.IR.Value_Id := Landin.IR.No_Value;
          Fused : Landin.IR.Value_Id := Landin.IR.No_Value;
+         --  D3175: the position emitted now in its block, and the load of
+         --  a call's status that is not made, its failure test reading
+         --  x31, where the call left the status: no location is held in
+         --  x31, and selection writes it only to carry a failure.
+         Current_Position : Natural := 0;
+         Status_Load : Landin.IR.Value_Id := Landin.IR.No_Value;
          Readers : Landin.Backend.Placement.Count_Buffers.Buffer
            (Landin.IR.Value_Count (Of_Unit, Item));
 
@@ -5962,6 +5968,15 @@ package body Landin.Backend.RiscV is
                end case;
             end Pair_Instruction;
          begin
+            if Options.Optimize /= Landin.Optimization.None
+              and then Op = Landin.IR.Load
+              and then Status_Carrier
+                (Of_Unit, Item, Landin.IR.Block_Id (Current_Block),
+                 Current_Position) /= Landin.IR.No_Value
+            then
+               Status_Load := Value;
+               return;
+            end if;
             if Pairs then
                declare
                   Handled : Boolean;
@@ -7147,10 +7162,26 @@ package body Landin.Backend.RiscV is
                   Emit (Load_Word & " x5, 0(x5)");
                   Store_Value (Value);
                when Landin.IR.Failure_Test =>
-                  Load_Value (Operand (1));
-                  Compare ("x5", "0", Literal => True);
-                  Predicate ("x5", "ne");
-                  Store_Value (Value);
+                  declare
+                     Status : constant String :=
+                       (if Operand (1) = Status_Load then "x31"
+                        else Operand_In
+                          (Operand (1), "x5", Landin.Types.U32));
+                  begin
+                     Compare (Status, "0", Literal => True);
+                     --  A test only the branch after it reads, as
+                     --  lowering makes every call's, is that branch's.
+                     if Fuses (Value) then
+                        Fused := Next_Value;
+                        Transfer ("ne",
+                          Landin.IR.Target_Of (Of_Unit, Item, Next_Value),
+                          Landin.IR.Alternative_Of
+                            (Of_Unit, Item, Next_Value));
+                        return;
+                     end if;
+                     Predicate ("x5", "ne");
+                     Store_Value (Value);
+                  end;
                when Landin.IR.Call | Landin.IR.Indirect_Call =>
                   declare
                      Indirect : constant Boolean := Op =
@@ -7668,6 +7699,7 @@ package body Landin.Backend.RiscV is
               Landin.IR.Block_Id (Block)) loop
                Current_Value := Landin.IR.Nth_Value (Of_Unit, Item,
                  Landin.IR.Block_Id (Block), Position);
+               Current_Position := Position;
                Next_Value :=
                  (if Position < Landin.IR.Length
                     (Of_Unit, Item, Landin.IR.Block_Id (Block))

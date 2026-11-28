@@ -14,6 +14,7 @@ with Landin.Backend.Arm64.Selection;
 with Landin.Backend.Reciprocals;
 with Landin.Build_Reports;
 with Landin.IR.If_Conversion;
+with Landin.IR.Pipeline;
 with Landin.IR.Simplification;
 with Landin.Optimization;
 with Landin.Source;
@@ -1337,6 +1338,61 @@ package body Landin.Tests.Arm64_Selection_Suite is
          "none chooses with a branch");
    end Choices_Select_Conditionally;
 
+   --  D3177: at speed a loop tested at its foot starts its body on a
+   --  32-byte line, after the jump to its test, so the padding never
+   --  runs; size pads nothing.
+   procedure Loop_Heads_Start_Lines (Item : in out Landin.Testing.Context);
+   procedure Loop_Heads_Start_Lines (Item : in out Landin.Testing.Context) is
+      Source : constant String :=
+        "public total: (n: u32) -> (r: u32) =" & LF
+        & "    mut i: u32 = 0" & LF
+        & "    mut s: u32 = 0" & LF
+        & "    while i < n do" & LF
+        & "        s = s +% i" & LF
+        & "        i = i + 1" & LF
+        & "    end while" & LF
+        & "    r = s" & LF
+        & "end total" & LF;
+
+      --  The driver's whole pipeline, whose block layout tests a hosted
+      --  loop at its foot (D2096).
+      function Laid_Out (Objective : Opt.Objective) return String;
+      function Laid_Out (Objective : Opt.Objective) return String is
+         Work : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_Arm64);
+         Report : Landin.Build_Reports.Report;
+      begin
+         Lower (Item, Work, Source);
+         Landin.IR.Pipeline.Run_On_Verified
+           (Landin.Stages.Code (Work).all, Landin.Targets.Linux_Arm64,
+            (Objective, Opt.Off), Report);
+         return Emitted (Work, Objective);
+      end Laid_Out;
+   begin
+      for Objective in Opt.Size .. Opt.Speed loop
+         declare
+            Text : constant String :=
+              Routine (Laid_Out (Objective), "total");
+            Aligned : constant Natural :=
+              Ada.Strings.Fixed.Index (Text, HT & ".p2align 5" & LF);
+         begin
+            if Objective = Opt.Speed then
+               Landin.Testing.Check
+                 (Item, Aligned > 0
+                    and then Ada.Strings.Fixed.Index
+                      (Text (Text'First .. Aligned), HT & "b ",
+                       Ada.Strings.Backward) > 0
+                    and then Text (Aligned + 12 .. Aligned + 13) = ".L",
+                  "speed starts the loop's head on a line after a jump");
+            else
+               Landin.Testing.Check
+                 (Item, Text'Length > 0 and then Aligned = 0,
+                  "size aligns no loop");
+            end if;
+         end;
+      end loop;
+   end Loop_Heads_Start_Lines;
+
    procedure Register (Into : in out Landin.Testing.Registry) is
    begin
       Landin.Testing.Register
@@ -1366,6 +1422,9 @@ package body Landin.Tests.Arm64_Selection_Suite is
       Landin.Testing.Register
         (Into, "arm64 selection", "a choice is a conditional move",
          Choices_Select_Conditionally'Access);
+      Landin.Testing.Register
+        (Into, "arm64 selection", "a loop head starts a line at speed",
+         Loop_Heads_Start_Lines'Access);
       Landin.Testing.Register
         (Into, "arm64 selection", "constants live nowhere",
          Constants_Live_Nowhere'Access);

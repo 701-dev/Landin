@@ -1079,7 +1079,7 @@ item 2 ROUTINE leaf result i32 signature 1 params 1 slots 4 blocks 3 values 14
 item 3 ROUTINE forward result i32 signature 2 params 1 slots 5 blocks 3 values 14
   slot 1 value i32 param 1
   slot 2 result i32 return
-  slot 3 - u32 atoms {missing, denied}
+  slot 3 - u32 atoms {missing, denied} sealed
   slot 4 - i32
   slot 5 - u32 atoms {missing, denied}
   block 1 scope 7 BLOCK length 6
@@ -1104,7 +1104,7 @@ item 4 ROUTINE first result i32 signature 3 params 1 slots 7 blocks 5 values 24
   slot 2 result i32 return
   slot 3 - i32
   slot 4 - u32 atoms {missing}
-  slot 5 - u32 atoms {missing, denied}
+  slot 5 - u32 atoms {missing, denied} sealed
   slot 6 - i32
   slot 7 - u32 atoms {missing, denied}
   block 1 scope 9 BLOCK length 6
@@ -1143,7 +1143,7 @@ item 5 ROUTINE second result i32 signature 4 params 1 slots 9 blocks 9 values 37
   slot 4 - u32 atoms {denied}
   slot 5 - i32
   slot 6 - i32
-  slot 7 - u32 atoms {missing, denied}
+  slot 7 - u32 atoms {missing, denied} sealed
   slot 8 - i32
   slot 9 - u32 atoms {missing, denied}
   block 1 scope 11 BLOCK length 6
@@ -1199,11 +1199,11 @@ item 6 ROUTINE use result i32 signature 5 params 2 slots 17 blocks 19 values 77
   slot 4 local u32 atoms {west, east, south, north}
   slot 5 worker usize signature 6
   slot 6 from_worker i32
-  slot 7 - u32 atoms {missing, denied}
+  slot 7 - u32 atoms {missing, denied} sealed
   slot 8 - i32
   slot 9 - usize signature 6
   slot 10 from_forward i32
-  slot 11 - u32 atoms {missing, denied}
+  slot 11 - u32 atoms {missing, denied} sealed
   slot 12 - i32
   slot 13 problem u32 atoms {missing, denied}
   slot 14 - i32
@@ -2371,28 +2371,28 @@ item 2 ROUTINE cell_poke result none signature 2 params 1 slots 7 blocks 3 value
 item 3 ROUTINE forms result none signature 3 params 2 slots 24 blocks 61 values 153
   slot 1 flag bool param 1
   slot 2 which u32 atoms {left, right} param 2
-  slot 3 - u32 atoms {refused}
-  slot 4 - u32 atoms {refused}
+  slot 3 - u32 atoms {refused} sealed
+  slot 4 - u32 atoms {refused} sealed
   slot 5 state aggregate fields u32
   slot 6 erased elements 2 of usize
-  slot 7 - u32 atoms {refused}
+  slot 7 - u32 atoms {refused} sealed
   slot 8 - elements 2 of usize
   slot 9 through usize signature 5
-  slot 10 - u32 atoms {refused}
+  slot 10 - u32 atoms {refused} sealed
   slot 11 - usize signature 5
-  slot 12 - u32 atoms {refused}
-  slot 13 - u32 atoms {refused}
-  slot 14 - u32 atoms {refused}
-  slot 15 - u32 atoms {refused}
-  slot 16 - u32 atoms {refused}
+  slot 12 - u32 atoms {refused} sealed
+  slot 13 - u32 atoms {refused} sealed
+  slot 14 - u32 atoms {refused} sealed
+  slot 15 - u32 atoms {refused} sealed
+  slot 16 - u32 atoms {refused} sealed
   slot 17 - u32 atoms {left, right} sealed
-  slot 18 - u32 atoms {refused}
-  slot 19 - u32 atoms {refused}
+  slot 18 - u32 atoms {refused} sealed
+  slot 19 - u32 atoms {refused} sealed
   slot 20 index i32
   slot 21 - i32
-  slot 22 - u32 atoms {refused}
+  slot 22 - u32 atoms {refused} sealed
   slot 23 - i32
-  slot 24 - u32 atoms {refused}
+  slot 24 - u32 atoms {refused} sealed
   block 1 scope 11 BLOCK length 5
     1 LOAD bool slot 1
     2 CALL none callee 1 attempt signature 1 failure slot 3 <- 1
@@ -2958,7 +2958,7 @@ item 3 ROUTINE start result none signature 2 params 0 slots 6 blocks 4 values 26
   slot 1 room elements 16 of u8
   slot 2 line aggregate fields [2]usize usize usize u32 atoms {not_allocated, allocated} bool usize usize struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8) bool [2]usize variant u8 cases2 () ([2]usize)
   slot 3 - elements 2 of usize
-  slot 4 - u32 atoms {out_of_memory}
+  slot 4 - u32 atoms {out_of_memory} sealed
   slot 5 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 6 - usize
   block 1 scope 39 BLOCK length 16
@@ -3063,7 +3063,7 @@ item 8 ROUTINE room result none signature 6 params 2 slots 13 blocks 5 values 44
   slot 5 - usize
   slot 6 - address of usize
   slot 7 policy elements 2 of usize
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - elements 2 of usize
   slot 10 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 11 - usize
@@ -3125,7 +3125,7 @@ item 9 ROUTINE decimal_usize result none signature 7 params 2 slots 31 blocks 9 
   slot 4 scan usize
   slot 5 - usize
   slot 6 - usize
-  slot 7 - u32 atoms {out_of_memory}
+  slot 7 - u32 atoms {out_of_memory} sealed
   slot 8 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 9 - u32 atoms {out_of_memory}
   slot 10 remaining usize
@@ -3293,7 +3293,7 @@ item 9 ROUTINE decimal_usize result none signature 7 params 2 slots 31 blocks 9 
 item 10 ROUTINE append_usize result none signature 8 params 2 slots 5 blocks 3 values 13
   slot 1 into address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize)) param 1
   slot 2 value usize param 2
-  slot 3 - u32 atoms {out_of_memory}
+  slot 3 - u32 atoms {out_of_memory} sealed
   slot 4 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 5 - u32 atoms {out_of_memory}
   block 1 scope 134 BLOCK length 8
@@ -4165,9 +4165,9 @@ item 2 ROUTINE print_arguments result none signature 3 params 1 slots 24 blocks 
   slot 2 index usize
   slot 3 - usize
   slot 4 argument aggregate fields [2]usize
-  slot 5 - u32 atoms {not_found}
+  slot 5 - u32 atoms {not_found} sealed
   slot 6 - address of struct (struct (usize,usize))
-  slot 7 - u32 atoms {io_failed}
+  slot 7 - u32 atoms {io_failed} sealed
   slot 8 - address of struct (struct (usize,usize))
   slot 9 - aggregate fields struct (usize,usize)
   slot 10 - address of struct (struct (usize,usize))
@@ -4176,7 +4176,7 @@ item 2 ROUTINE print_arguments result none signature 3 params 1 slots 24 blocks 
   slot 13 - address of struct (usize)
   slot 14 - elements 2 of usize
   slot 15 - u32 atoms {io_failed}
-  slot 16 - u32 atoms {io_failed}
+  slot 16 - u32 atoms {io_failed} sealed
   slot 17 - address of struct (struct (usize,usize))
   slot 18 - aggregate fields struct (usize,usize)
   slot 19 - address of struct (struct (usize,usize))
@@ -4359,7 +4359,7 @@ item 5 ROUTINE byte_blocks result bool signature 6 params 2 slots 24 blocks 3 va
   slot 1 packet elements 2 of usize param 1
   slot 2 scratch elements 2 of usize param 2
   slot 3 same bool return
-  slot 4 - u32 atoms {out_of_bounds}
+  slot 4 - u32 atoms {out_of_bounds} sealed
   slot 5 - elements 2 of usize
   slot 6 - address of [2]usize
   slot 7 - elements 2 of usize
@@ -4495,7 +4495,7 @@ item 7 ROUTINE print_report result none signature 8 params 2 slots 30 blocks 19 
   slot 14 - usize
   slot 15 - usize
   slot 16 - address of [2]usize
-  slot 17 - u32 atoms {out_of_memory, invalid_format, io_failed}
+  slot 17 - u32 atoms {out_of_memory, invalid_format, io_failed} sealed
   slot 18 - address of struct (struct (struct (usize,usize)),struct (usize),[2]usize,usize)
   slot 19 - elements 2 of usize
   slot 20 - address of [2]usize
@@ -4504,11 +4504,11 @@ item 7 ROUTINE print_report result none signature 8 params 2 slots 30 blocks 19 
   slot 23 - elements 2 of usize
   slot 24 - elements 2 of usize
   slot 25 - u32 atoms {out_of_memory, invalid_format, io_failed}
-  slot 26 - u32 atoms {io_failed}
-  slot 27 - u32 atoms {io_failed}
+  slot 26 - u32 atoms {io_failed} sealed
+  slot 27 - u32 atoms {io_failed} sealed
   slot 28 - u32 atoms {io_failed}
-  slot 29 - u32 atoms {io_failed}
-  slot 30 - u32 atoms {io_failed}
+  slot 29 - u32 atoms {io_failed} sealed
+  slot 30 - u32 atoms {io_failed} sealed
   block 1 scope 215 BLOCK length 32
     1 CLEAR_ARRAY destination slot 3
     2 STORAGE_ADDRESS usize storage slot 1
@@ -4746,28 +4746,28 @@ item 13 ROUTINE copy_first_block result none signature 14 params 3 slots 43 bloc
   slot 2 source_path aggregate fields [2]usize param 2
   slot 3 target_path aggregate fields [2]usize param 3
   slot 4 source aggregate fields usize
-  slot 5 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
+  slot 5 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   slot 6 - address of struct (struct (usize,usize))
   slot 7 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
   slot 8 target aggregate fields usize
-  slot 9 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
+  slot 9 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   slot 10 - address of struct (struct (usize,usize))
   slot 11 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
-  slot 12 - u32 atoms {io_failed}
+  slot 12 - u32 atoms {io_failed} sealed
   slot 13 - address of struct (struct (usize,usize))
   slot 14 block elements 512 of u8
   slot 15 count usize
-  slot 16 - u32 atoms {io_failed}
+  slot 16 - u32 atoms {io_failed} sealed
   slot 17 - usize
   slot 18 - address of struct (struct (usize,usize))
   slot 19 - address of struct (usize)
   slot 20 - elements 2 of usize
   slot 21 - u32 atoms {io_failed}
-  slot 22 - u32 atoms {io_failed}
+  slot 22 - u32 atoms {io_failed} sealed
   slot 23 - address of struct (struct (usize,usize))
-  slot 24 - u32 atoms {io_failed}
+  slot 24 - u32 atoms {io_failed} sealed
   slot 25 - address of struct (struct (usize,usize))
-  slot 26 - u32 atoms {io_failed}
+  slot 26 - u32 atoms {io_failed} sealed
   slot 27 - address of struct (struct (usize,usize))
   slot 28 - address of struct (usize)
   slot 29 - elements 2 of usize
@@ -4777,13 +4777,13 @@ item 13 ROUTINE copy_first_block result none signature 14 params 3 slots 43 bloc
   slot 33 - usize
   slot 34 - usize
   slot 35 - u32 atoms {io_failed}
-  slot 36 - u32 atoms {io_failed}
+  slot 36 - u32 atoms {io_failed} sealed
   slot 37 - address of struct (struct (usize,usize))
-  slot 38 - u32 atoms {io_failed}
+  slot 38 - u32 atoms {io_failed} sealed
   slot 39 - address of struct (struct (usize,usize))
-  slot 40 - u32 atoms {io_failed}
+  slot 40 - u32 atoms {io_failed} sealed
   slot 41 - address of struct (struct (usize,usize))
-  slot 42 - u32 atoms {io_failed}
+  slot 42 - u32 atoms {io_failed} sealed
   slot 43 - address of struct (struct (usize,usize))
   block 1 scope 236 BLOCK length 10
     1 STORAGE_ADDRESS usize storage slot 1
@@ -4987,14 +4987,14 @@ item 14 ROUTINE settings_present result bool signature 15 params 1 slots 14 bloc
   slot 3 path aggregate fields [2]usize
   slot 4 - elements 2 of usize
   slot 5 opened aggregate fields usize
-  slot 6 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
+  slot 6 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   slot 7 - address of struct (struct (usize,usize))
   slot 8 problem u32 atoms {not_found, no_access, is_a_directory, io_failed}
   slot 9 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   slot 10 - u32 atoms {no_access}
   slot 11 - u32 atoms {is_a_directory}
   slot 12 - u32 atoms {io_failed}
-  slot 13 - u32 atoms {io_failed}
+  slot 13 - u32 atoms {io_failed} sealed
   slot 14 - address of struct (struct (usize,usize))
   block 1 scope 242 BLOCK length 19
     1 TRUTH bool false
@@ -5098,7 +5098,7 @@ item 17 ROUTINE longest_line result usize signature 18 params 1 slots 15 blocks 
   slot 10 - address of struct (usize)
   slot 11 - elements 2 of usize
   slot 12 line aggregate fields [2]usize bool
-  slot 13 - u32 atoms {out_of_memory, io_failed}
+  slot 13 - u32 atoms {out_of_memory, io_failed} sealed
   slot 14 - u32 atoms {out_of_memory, io_failed}
   slot 15 - usize
   block 1 scope 254 BLOCK length 26
@@ -5302,7 +5302,7 @@ item 19 ROUTINE home_directory result struct signature 20 params 2 slots 11 bloc
   slot 1 home_directory usize param 1
   slot 2 host aggregate fields struct (usize,usize) param 2
   slot 3 home aggregate fields [2]usize return
-  slot 4 - u32 atoms {not_found}
+  slot 4 - u32 atoms {not_found} sealed
   slot 5 - address of struct (struct (usize,usize))
   slot 6 - aggregate fields struct (usize,usize)
   slot 7 - address of struct (struct (usize,usize))
@@ -5469,7 +5469,7 @@ item 24 ROUTINE main result i32 signature 25 params 0 slots 12 blocks 11 values 
   slot 1 code i32 return
   slot 2 host aggregate fields struct (usize,usize)
   slot 3 - usize
-  slot 4 - u32 atoms {io_failed}
+  slot 4 - u32 atoms {io_failed} sealed
   slot 5 - address of struct (struct (usize,usize))
   slot 6 - aggregate fields struct (usize,usize)
   slot 7 - address of struct (struct (usize,usize))
@@ -5477,7 +5477,7 @@ item 24 ROUTINE main result i32 signature 25 params 0 slots 12 blocks 11 values 
   slot 9 - aggregate fields usize
   slot 10 - address of struct (usize)
   slot 11 - elements 2 of usize
-  slot 12 - u32 atoms {io_failed}
+  slot 12 - u32 atoms {io_failed} sealed
   block 1 scope 277 BLOCK length 12
     1 STORAGE_ADDRESS usize storage slot 2
     2 CALL none callee 212 new signature 177 <- 1
@@ -5549,7 +5549,7 @@ item 24 ROUTINE main result i32 signature 25 params 0 slots 12 blocks 11 values 
 item 25 ROUTINE from_heap_or_arena result i32 signature 26 params 0 slots 17 blocks 5 values 53
   slot 1 sum i32 return
   slot 2 origin aggregate fields i32 i32
-  slot 3 - u32 atoms {out_of_memory}
+  slot 3 - u32 atoms {out_of_memory} sealed
   slot 4 - i32
   slot 5 - aggregate fields u8
   slot 6 - address of struct (u8)
@@ -5560,7 +5560,7 @@ item 25 ROUTINE from_heap_or_arena result i32 signature 26 params 0 slots 17 blo
   slot 11 - address of struct (usize,usize)
   slot 12 - usize
   slot 13 - i32
-  slot 14 - u32 atoms {out_of_memory}
+  slot 14 - u32 atoms {out_of_memory} sealed
   slot 15 - i32
   slot 16 - address of struct (usize,usize)
   slot 17 - u32 atoms {out_of_memory}
@@ -5889,7 +5889,7 @@ item 34 ROUTINE report result none signature 34 params 3 slots 17 blocks 3 value
   slot 1 host aggregate fields struct (usize,usize) param 1
   slot 2 name elements 2 of usize param 2
   slot 3 count u32 param 3
-  slot 4 - u32 atoms {io_failed, invalid_format}
+  slot 4 - u32 atoms {io_failed, invalid_format} sealed
   slot 5 - address of struct (struct (usize,usize))
   slot 6 - aggregate fields struct (usize,usize)
   slot 7 - address of struct (struct (usize,usize))
@@ -6516,7 +6516,7 @@ item 47 ROUTINE report_aligned result none signature 47 params 4 slots 14 blocks
   slot 2 name elements 2 of usize param 2
   slot 3 count u32 param 3
   slot 4 share f64 param 4
-  slot 5 - u32 atoms {out_of_memory, invalid_format, io_failed}
+  slot 5 - u32 atoms {out_of_memory, invalid_format, io_failed} sealed
   slot 6 - address of struct (struct (struct (usize,usize)),struct (usize),[2]usize,usize)
   slot 7 - elements 2 of usize
   slot 8 - address of [2]usize
@@ -6861,7 +6861,7 @@ item 54 ROUTINE open_at result struct signature 50 params 5 slots 23 blocks 5 va
   slot 6 opened aggregate fields i32 return
   slot 7 room elements 4096 of u8
   slot 8 terminated usize
-  slot 9 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 9 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 10 - usize
   slot 11 - address of struct ([2]usize)
   slot 12 - elements 2 of usize
@@ -6871,7 +6871,7 @@ item 54 ROUTINE open_at result struct signature 50 params 5 slots 23 blocks 5 va
   slot 16 - usize
   slot 17 - usize
   slot 18 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
-  slot 19 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 19 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 20 - address of struct (i32)
   slot 21 - usize
   slot 22 - address of struct (u32 atoms {read_only, write_only, read_write},bool,bool,bool,bool,bool)
@@ -6941,7 +6941,7 @@ item 55 ROUTINE read result usize signature 51 params 2 slots 8 blocks 3 values 
   slot 1 source aggregate fields i32 param 1
   slot 2 into elements 2 of usize param 2
   slot 3 count usize return
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - usize
   slot 6 - address of struct (i32)
   slot 7 - elements 2 of usize
@@ -6971,7 +6971,7 @@ item 56 ROUTINE write result usize signature 52 params 2 slots 8 blocks 3 values
   slot 1 to aggregate fields i32 param 1
   slot 2 bytes elements 2 of usize param 2
   slot 3 count usize return
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - usize
   slot 6 - address of struct (i32)
   slot 7 - elements 2 of usize
@@ -6999,7 +6999,7 @@ item 56 ROUTINE write result usize signature 52 params 2 slots 8 blocks 3 values
     18 LEAVE <- 17
 item 57 ROUTINE close result none signature 53 params 1 slots 3 blocks 3 values 10
   slot 1 closing aggregate fields i32 param 1
-  slot 2 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 2 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 3 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
   block 1 scope 642 BLOCK length 5
     1 STORAGE_ADDRESS usize storage slot 1
@@ -7125,7 +7125,7 @@ item 59 ROUTINE status_of result struct signature 55 params 2 slots 5 blocks 3 v
   slot 1 status_of usize param 1
   slot 2 opened aggregate fields i32 param 2
   slot 3 result aggregate fields u64 u64 u32 atoms {regular, directory, symbolic_link, fifo, socket_file, character_device, block_device, unknown_kind} u64 u32 u64 struct (u32) struct (u32) struct (i64,u32) struct (i64,u32) struct (i64,u32) return
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
   block 1 scope 694 BLOCK length 6
     1 STORAGE_ADDRESS usize storage slot 2
@@ -7666,7 +7666,7 @@ item 67 ROUTINE system_status_of result struct signature 63 params 2 slots 15 bl
 item 68 ROUTINE map result usize signature 64 params 1 slots 5 blocks 3 values 14
   slot 1 length usize param 1
   slot 2 base usize return
-  slot 3 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 3 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 4 - usize
   slot 5 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
   block 1 scope 817 BLOCK length 6
@@ -7689,7 +7689,7 @@ item 68 ROUTINE map result usize signature 64 params 1 slots 5 blocks 3 values 1
 item 69 ROUTINE unmap result none signature 65 params 2 slots 5 blocks 3 values 13
   slot 1 base usize param 1
   slot 2 length usize param 2
-  slot 3 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 3 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 4 - usize
   slot 5 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
   block 1 scope 819 BLOCK length 8
@@ -8165,15 +8165,15 @@ item 93 ROUTINE misused result none signature 74 params 3 slots 15 blocks 10 val
   slot 1 report elements 2 of usize param 1
   slot 2 rest elements 2 of usize param 2
   slot 3 last elements 2 of usize param 3
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - usize
   slot 6 - address of struct (i32)
   slot 7 - elements 2 of usize
-  slot 8 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 8 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 9 - usize
   slot 10 - address of struct (i32)
   slot 11 - elements 2 of usize
-  slot 12 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 12 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 13 - usize
   slot 14 - address of struct (i32)
   slot 15 - elements 2 of usize
@@ -9007,7 +9007,7 @@ item 105 ROUTINE send result usize signature 85 params 2 slots 8 blocks 3 values
   slot 1 socket aggregate fields i32 param 1
   slot 2 bytes elements 2 of usize param 2
   slot 3 count usize return
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - usize
   slot 6 - address of struct (i32)
   slot 7 - elements 2 of usize
@@ -10653,7 +10653,7 @@ item 130 ROUTINE room result none signature 104 params 2 slots 13 blocks 5 value
   slot 5 - usize
   slot 6 - address of usize
   slot 7 policy elements 2 of usize
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - elements 2 of usize
   slot 10 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 11 - usize
@@ -10717,7 +10717,7 @@ item 131 ROUTINE append result none signature 105 params 2 slots 31 blocks 9 val
   slot 6 - usize
   slot 7 - address of usize
   slot 8 policy elements 2 of usize
-  slot 9 - u32 atoms {out_of_memory}
+  slot 9 - u32 atoms {out_of_memory} sealed
   slot 10 - elements 2 of usize
   slot 11 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 12 - usize
@@ -10726,7 +10726,7 @@ item 131 ROUTINE append result none signature 105 params 2 slots 31 blocks 9 val
   slot 15 ends usize
   slot 16 - address of usize
   slot 17 - usize
-  slot 18 - u32 atoms {out_of_bounds}
+  slot 18 - u32 atoms {out_of_bounds} sealed
   slot 19 - elements 2 of usize
   slot 20 - usize
   slot 21 - usize
@@ -10855,7 +10855,7 @@ item 131 ROUTINE append result none signature 105 params 2 slots 31 blocks 9 val
 item 132 ROUTINE append_byte result none signature 106 params 2 slots 11 blocks 3 values 40
   slot 1 into address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize)) param 1
   slot 2 value u8 param 2
-  slot 3 - u32 atoms {out_of_memory}
+  slot 3 - u32 atoms {out_of_memory} sealed
   slot 4 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 5 - u32 atoms {out_of_memory}
   slot 6 - address of [2]usize
@@ -10914,7 +10914,7 @@ item 133 ROUTINE decimal_u32 result none signature 107 params 2 slots 31 blocks 
   slot 4 scan u32
   slot 5 - u32
   slot 6 - u32
-  slot 7 - u32 atoms {out_of_memory}
+  slot 7 - u32 atoms {out_of_memory} sealed
   slot 8 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 9 - u32 atoms {out_of_memory}
   slot 10 remaining u32
@@ -11349,7 +11349,7 @@ item 138 ROUTINE zeros result none signature 110 params 2 slots 17 blocks 10 val
   slot 5 piece usize
   slot 6 - usize
   slot 7 - usize
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 10 - elements 2 of usize
   slot 11 - usize
@@ -11530,14 +11530,14 @@ item 140 ROUTINE exponent_digits result none signature 112 params 2 slots 13 blo
   slot 1 into address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize)) param 1
   slot 2 value i32 param 2
   slot 3 - i32
-  slot 4 - u32 atoms {out_of_memory}
+  slot 4 - u32 atoms {out_of_memory} sealed
   slot 5 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 6 - u32 atoms {out_of_memory}
-  slot 7 - u32 atoms {out_of_memory}
+  slot 7 - u32 atoms {out_of_memory} sealed
   slot 8 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 9 - i32
   slot 10 - u32 atoms {out_of_memory}
-  slot 11 - u32 atoms {out_of_memory}
+  slot 11 - u32 atoms {out_of_memory} sealed
   slot 12 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 13 - u32 atoms {out_of_memory}
   block 1 scope 2152 BLOCK length 6
@@ -11608,10 +11608,10 @@ item 141 ROUTINE signed result none signature 113 params 3 slots 9 blocks 10 val
   slot 1 into address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize)) param 1
   slot 2 negative bool param 2
   slot 3 plus bool param 3
-  slot 4 - u32 atoms {out_of_memory}
+  slot 4 - u32 atoms {out_of_memory} sealed
   slot 5 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 6 - u32 atoms {out_of_memory}
-  slot 7 - u32 atoms {out_of_memory}
+  slot 7 - u32 atoms {out_of_memory} sealed
   slot 8 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 9 - u32 atoms {out_of_memory}
   block 1 scope 2156 BLOCK length 2
@@ -12017,7 +12017,7 @@ item 146 ROUTINE nonfinite_text result none signature 118 params 3 slots 40 bloc
   slot 29 - bool
   slot 30 - usize
   slot 31 - elements 2 of usize
-  slot 32 - u32 atoms {out_of_memory}
+  slot 32 - u32 atoms {out_of_memory} sealed
   slot 33 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 34 - elements 2 of usize
   slot 35 - usize
@@ -12173,7 +12173,7 @@ item 147 ROUTINE shortest_text result none signature 119 params 5 slots 196 bloc
   slot 3 plus bool param 3
   slot 4 form u32 atoms {literal_form, exponent_form, fixed_form, places_form} param 4
   slot 5 letter u8 param 5
-  slot 6 - u32 atoms {out_of_memory}
+  slot 6 - u32 atoms {out_of_memory} sealed
   slot 7 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 8 - address of struct (bool,bool,bool,bool,u64,u32,u32,i32,u64,i32)
   slot 9 - u32 atoms {out_of_memory}
@@ -12355,7 +12355,7 @@ item 147 ROUTINE shortest_text result none signature 119 params 5 slots 196 bloc
   slot 185 - usize
   slot 186 - usize
   slot 187 - i32
-  slot 188 - u32 atoms {out_of_memory}
+  slot 188 - u32 atoms {out_of_memory} sealed
   slot 189 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 190 - elements 2 of usize
   slot 191 - usize
@@ -14202,7 +14202,7 @@ item 150 ROUTINE run_of result none signature 122 params 5 slots 32 blocks 23 va
   slot 8 lead i32
   slot 9 - i32
   slot 10 - i32
-  slot 11 - u32 atoms {out_of_memory}
+  slot 11 - u32 atoms {out_of_memory} sealed
   slot 12 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 13 - i32
   slot 14 - u32 atoms {out_of_memory}
@@ -14211,7 +14211,7 @@ item 150 ROUTINE run_of result none signature 122 params 5 slots 32 blocks 23 va
   slot 17 - i32
   slot 18 - i32
   slot 19 - i32
-  slot 20 - u32 atoms {out_of_memory}
+  slot 20 - u32 atoms {out_of_memory} sealed
   slot 21 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 22 - elements 2 of usize
   slot 23 - usize
@@ -14220,7 +14220,7 @@ item 150 ROUTINE run_of result none signature 122 params 5 slots 32 blocks 23 va
   slot 26 - usize
   slot 27 - usize
   slot 28 - u32 atoms {out_of_memory}
-  slot 29 - u32 atoms {out_of_memory}
+  slot 29 - u32 atoms {out_of_memory} sealed
   slot 30 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 31 - i32
   slot 32 - u32 atoms {out_of_memory}
@@ -14386,11 +14386,11 @@ item 151 ROUTINE exact_text result none signature 123 params 8 slots 85 blocks 5
   slot 6 letter u8 param 6
   slot 7 number elements 2 of usize param 7
   slot 8 digits elements 2 of usize param 8
-  slot 9 - u32 atoms {out_of_memory}
+  slot 9 - u32 atoms {out_of_memory} sealed
   slot 10 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 11 - address of struct (bool,bool,bool,bool,u64,u32,u32,i32,u64,i32)
   slot 12 - u32 atoms {out_of_memory}
-  slot 13 - u32 atoms {out_of_memory}
+  slot 13 - u32 atoms {out_of_memory} sealed
   slot 14 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 15 - bool
   slot 16 - u32 atoms {out_of_memory}
@@ -14409,10 +14409,10 @@ item 151 ROUTINE exact_text result none signature 123 params 8 slots 85 blocks 5
   slot 29 - usize
   slot 30 - i32
   slot 31 - i32
-  slot 32 - u32 atoms {out_of_memory}
+  slot 32 - u32 atoms {out_of_memory} sealed
   slot 33 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 34 - u32 atoms {out_of_memory}
-  slot 35 - u32 atoms {out_of_memory}
+  slot 35 - u32 atoms {out_of_memory} sealed
   slot 36 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 37 - elements 2 of usize
   slot 38 - address of [2]usize
@@ -14420,10 +14420,10 @@ item 151 ROUTINE exact_text result none signature 123 params 8 slots 85 blocks 5
   slot 40 - i32
   slot 41 - u32 atoms {out_of_memory}
   slot 42 - usize
-  slot 43 - u32 atoms {out_of_memory}
+  slot 43 - u32 atoms {out_of_memory} sealed
   slot 44 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 45 - u32 atoms {out_of_memory}
-  slot 46 - u32 atoms {out_of_memory}
+  slot 46 - u32 atoms {out_of_memory} sealed
   slot 47 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 48 - elements 2 of usize
   slot 49 - address of [2]usize
@@ -14438,7 +14438,7 @@ item 151 ROUTINE exact_text result none signature 123 params 8 slots 85 blocks 5
   slot 58 - address of [2]usize
   slot 59 - usize
   slot 60 - i32
-  slot 61 - u32 atoms {out_of_memory}
+  slot 61 - u32 atoms {out_of_memory} sealed
   slot 62 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 63 - elements 2 of usize
   slot 64 - address of [2]usize
@@ -14446,10 +14446,10 @@ item 151 ROUTINE exact_text result none signature 123 params 8 slots 85 blocks 5
   slot 66 - i32
   slot 67 - u32 atoms {out_of_memory}
   slot 68 - usize
-  slot 69 - u32 atoms {out_of_memory}
+  slot 69 - u32 atoms {out_of_memory} sealed
   slot 70 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 71 - u32 atoms {out_of_memory}
-  slot 72 - u32 atoms {out_of_memory}
+  slot 72 - u32 atoms {out_of_memory} sealed
   slot 73 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 74 - elements 2 of usize
   slot 75 - address of [2]usize
@@ -14457,10 +14457,10 @@ item 151 ROUTINE exact_text result none signature 123 params 8 slots 85 blocks 5
   slot 77 - i32
   slot 78 - i32
   slot 79 - u32 atoms {out_of_memory}
-  slot 80 - u32 atoms {out_of_memory}
+  slot 80 - u32 atoms {out_of_memory} sealed
   slot 81 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 82 - u32 atoms {out_of_memory}
-  slot 83 - u32 atoms {out_of_memory}
+  slot 83 - u32 atoms {out_of_memory} sealed
   slot 84 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 85 - u32 atoms {out_of_memory}
   block 1 scope 2229 BLOCK length 2
@@ -14846,7 +14846,7 @@ item 152 ROUTINE rounded_text result none signature 124 params 8 slots 22 blocks
   slot 7 number elements 2 of usize param 7
   slot 8 digits elements 2 of usize param 8
   slot 9 start usize
-  slot 10 - u32 atoms {out_of_memory}
+  slot 10 - u32 atoms {out_of_memory} sealed
   slot 11 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 12 - address of struct (bool,bool,bool,bool,u64,u32,u32,i32,u64,i32)
   slot 13 - bool
@@ -14916,7 +14916,7 @@ item 153 ROUTINE rounded_64 result none signature 125 params 6 slots 30 blocks 3
   slot 6 letter u8 param 6
   slot 7 number elements 82 of u32
   slot 8 digits elements 780 of u8
-  slot 9 - u32 atoms {out_of_memory}
+  slot 9 - u32 atoms {out_of_memory} sealed
   slot 10 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 11 - aggregate fields bool bool bool bool u64 u32 u32 i32 u64 i32
   slot 12 - address of struct (bool,bool,bool,bool,u64,u32,u32,i32,u64,i32)
@@ -15026,14 +15026,14 @@ item 154 ROUTINE f64_text result none signature 126 params 6 slots 22 blocks 10 
   slot 6 letter u8 param 6
   slot 7 - u32 atoms {literal_form, exponent_form, fixed_form, places_form}
   slot 8 - u32 atoms {literal_form, exponent_form, fixed_form, places_form}
-  slot 9 - u32 atoms {out_of_memory}
+  slot 9 - u32 atoms {out_of_memory} sealed
   slot 10 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 11 - aggregate fields bool bool bool bool u64 u32 u32 i32 u64 i32
   slot 12 - address of struct (bool,bool,bool,bool,u64,u32,u32,i32,u64,i32)
   slot 13 - bool
   slot 14 - u32 atoms {literal_form, exponent_form, fixed_form, places_form}
   slot 15 - u32 atoms {out_of_memory}
-  slot 16 - u32 atoms {out_of_memory}
+  slot 16 - u32 atoms {out_of_memory} sealed
   slot 17 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 18 - f64
   slot 19 - bool
@@ -15521,7 +15521,7 @@ item 160 ROUTINE parsed result usize signature 131 params 3 slots 88 blocks 51 v
   slot 49 - u8
   slot 50 - address of bool
   slot 51 - address of usize
-  slot 52 - u32 atoms {invalid_format}
+  slot 52 - u32 atoms {invalid_format} sealed
   slot 53 - usize
   slot 54 - elements 2 of usize
   slot 55 - address of [2]usize
@@ -15538,7 +15538,7 @@ item 160 ROUTINE parsed result usize signature 131 params 3 slots 88 blocks 51 v
   slot 66 - u32 atoms {invalid_format}
   slot 67 - address of bool
   slot 68 - address of usize
-  slot 69 - u32 atoms {invalid_format}
+  slot 69 - u32 atoms {invalid_format} sealed
   slot 70 - usize
   slot 71 - elements 2 of usize
   slot 72 - address of [2]usize
@@ -16038,7 +16038,7 @@ item 161 ROUTINE checked result none signature 132 params 2 slots 40 blocks 21 v
   slot 20 - usize
   slot 21 - u8
   slot 22 spec aggregate fields u32 u32 atoms {unaligned, left_aligned, right_aligned, centred} bool bool bool usize bool usize u8
-  slot 23 - u32 atoms {invalid_format}
+  slot 23 - u32 atoms {invalid_format} sealed
   slot 24 - usize
   slot 25 - elements 2 of usize
   slot 26 - address of [2]usize
@@ -16347,7 +16347,7 @@ item 163 ROUTINE inserted result none signature 134 params 4 slots 58 blocks 22 
   slot 9 - usize
   slot 10 - address of usize
   slot 11 - u32 atoms {out_of_memory}
-  slot 12 - u32 atoms {out_of_memory}
+  slot 12 - u32 atoms {out_of_memory} sealed
   slot 13 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 14 - u32 atoms {out_of_memory}
   slot 15 - usize
@@ -16361,7 +16361,7 @@ item 163 ROUTINE inserted result none signature 134 params 4 slots 58 blocks 22 
   slot 23 - usize
   slot 24 moved usize
   slot 25 - usize
-  slot 26 - u32 atoms {out_of_bounds}
+  slot 26 - u32 atoms {out_of_bounds} sealed
   slot 27 - elements 2 of usize
   slot 28 - usize
   slot 29 - usize
@@ -16708,7 +16708,7 @@ item 164 ROUTINE padded result none signature 135 params 4 slots 92 blocks 44 va
   slot 67 - usize
   slot 68 - usize
   slot 69 - usize
-  slot 70 - u32 atoms {out_of_memory}
+  slot 70 - u32 atoms {out_of_memory} sealed
   slot 71 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 72 - usize
   slot 73 - elements 2 of usize
@@ -16719,7 +16719,7 @@ item 164 ROUTINE padded result none signature 135 params 4 slots 92 blocks 44 va
   slot 78 - usize
   slot 79 - address of [2]usize
   slot 80 - u32 atoms {out_of_memory}
-  slot 81 - u32 atoms {out_of_memory}
+  slot 81 - u32 atoms {out_of_memory} sealed
   slot 82 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 83 - usize
   slot 84 - elements 2 of usize
@@ -17161,7 +17161,7 @@ item 165 ROUTINE placed result none signature 136 params 3 slots 31 blocks 7 val
   slot 10 - address of struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8)
   slot 11 - address of bool
   slot 12 start usize
-  slot 13 - u32 atoms {out_of_memory}
+  slot 13 - u32 atoms {out_of_memory} sealed
   slot 14 - elements 2 of usize
   slot 15 problem u32 atoms {out_of_memory}
   slot 16 - address of struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8)
@@ -17173,7 +17173,7 @@ item 165 ROUTINE placed result none signature 136 params 3 slots 31 blocks 7 val
   slot 22 - address of struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8)
   slot 23 - address of struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8)
   slot 24 - address of bool
-  slot 25 - u32 atoms {out_of_memory}
+  slot 25 - u32 atoms {out_of_memory} sealed
   slot 26 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 27 - usize
   slot 28 - address of struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8)
@@ -17298,7 +17298,7 @@ item 166 ROUTINE written result none signature 137 params 3 slots 67 blocks 23 v
   slot 17 - usize
   slot 18 - address of u8
   slot 19 - u8
-  slot 20 - u32 atoms {out_of_memory}
+  slot 20 - u32 atoms {out_of_memory} sealed
   slot 21 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 22 - elements 2 of usize
   slot 23 - usize
@@ -17309,14 +17309,14 @@ item 166 ROUTINE written result none signature 137 params 3 slots 67 blocks 23 v
   slot 28 - u32 atoms {out_of_memory}
   slot 29 spec aggregate fields u32 u32 atoms {unaligned, left_aligned, right_aligned, centred} bool bool bool usize bool usize u8
   slot 30 after usize
-  slot 31 - u32 atoms {invalid_format}
+  slot 31 - u32 atoms {invalid_format} sealed
   slot 32 - usize
   slot 33 - elements 2 of usize
   slot 34 - address of [2]usize
   slot 35 - usize
   slot 36 problem u32 atoms {invalid_format}
   slot 37 - u32 atoms {out_of_memory}
-  slot 38 - u32 atoms {out_of_memory}
+  slot 38 - u32 atoms {out_of_memory} sealed
   slot 39 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 40 - elements 2 of usize
   slot 41 - usize
@@ -17326,7 +17326,7 @@ item 166 ROUTINE written result none signature 137 params 3 slots 67 blocks 23 v
   slot 45 - u32 atoms {out_of_memory}
   slot 46 - u8
   slot 47 - u8
-  slot 48 - u32 atoms {out_of_memory}
+  slot 48 - u32 atoms {out_of_memory} sealed
   slot 49 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 50 - elements 2 of usize
   slot 51 - usize
@@ -17337,7 +17337,7 @@ item 166 ROUTINE written result none signature 137 params 3 slots 67 blocks 23 v
   slot 56 - usize
   slot 57 - u32 atoms {out_of_memory}
   slot 58 - usize
-  slot 59 - u32 atoms {out_of_memory}
+  slot 59 - u32 atoms {out_of_memory} sealed
   slot 60 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 61 - elements 2 of usize
   slot 62 - usize
@@ -17747,7 +17747,7 @@ item 168 ROUTINE format result none signature 139 params 3 slots 30 blocks 6 val
   slot 1 into address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize)) param 1
   slot 2 template elements 2 of usize param 2
   slot 3 values elements 2 of usize param 3
-  slot 4 - u32 atoms {invalid_format}
+  slot 4 - u32 atoms {invalid_format} sealed
   slot 5 - elements 2 of usize
   slot 6 - address of [2]usize
   slot 7 - u32 atoms {invalid_format}
@@ -17760,7 +17760,7 @@ item 168 ROUTINE format result none signature 139 params 3 slots 30 blocks 6 val
   slot 14 - address of usize
   slot 15 - address of bool
   slot 16 - address of usize
-  slot 17 - u32 atoms {out_of_memory}
+  slot 17 - u32 atoms {out_of_memory} sealed
   slot 18 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 19 - elements 2 of usize
   slot 20 - address of [2]usize
@@ -17878,7 +17878,7 @@ item 169 ROUTINE fitted result usize signature 140 params 4 slots 12 blocks 3 va
   slot 5 count usize return
   slot 6 fitting aggregate fields [2]usize usize usize u32 atoms {not_allocated, allocated} bool usize usize struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8) bool [2]usize variant u8 cases2 () ([2]usize)
   slot 7 - elements 2 of usize
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 10 - elements 2 of usize
   slot 11 - address of [2]usize
@@ -18233,7 +18233,7 @@ item 174 ROUTINE integer_32 result none signature 144 params 4 slots 55 blocks 2
   slot 20 - u32
   slot 21 - u32
   slot 22 - u32
-  slot 23 - u32 atoms {out_of_memory}
+  slot 23 - u32 atoms {out_of_memory} sealed
   slot 24 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 25 - usize
   slot 26 - u32 atoms {out_of_memory}
@@ -18529,7 +18529,7 @@ item 174 ROUTINE integer_32 result none signature 144 params 4 slots 55 blocks 2
 item 175 ROUTINE append_u32_value result none signature 145 params 2 slots 9 blocks 3 values 27
   slot 1 self usize param 1
   slot 2 into address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize)) param 2
-  slot 3 - u32 atoms {out_of_memory}
+  slot 3 - u32 atoms {out_of_memory} sealed
   slot 4 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 5 - bool
   slot 6 - address of u32
@@ -18575,7 +18575,7 @@ item 176 ROUTINE append_text_value result none signature 146 params 2 slots 30 b
   slot 6 source elements 2 of usize
   slot 7 - elements 2 of usize
   slot 8 - address of [2]usize
-  slot 9 - u32 atoms {out_of_memory}
+  slot 9 - u32 atoms {out_of_memory} sealed
   slot 10 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 11 - elements 2 of usize
   slot 12 - u32 atoms {out_of_memory}
@@ -18588,7 +18588,7 @@ item 176 ROUTINE append_text_value result none signature 146 params 2 slots 30 b
   slot 19 - elements 2 of usize
   slot 20 - address of [2]usize
   slot 21 - address of [2]usize
-  slot 22 - u32 atoms {out_of_memory}
+  slot 22 - u32 atoms {out_of_memory} sealed
   slot 23 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 24 - elements 2 of usize
   slot 25 - usize
@@ -18784,7 +18784,7 @@ item 178 ROUTINE append_f64_value result none signature 148 params 2 slots 17 bl
   slot 7 letter u8
   slot 8 - u8
   slot 9 - u8
-  slot 10 - u32 atoms {out_of_memory}
+  slot 10 - u32 atoms {out_of_memory} sealed
   slot 11 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 12 - address of f64
   slot 13 - f64
@@ -21262,13 +21262,13 @@ item 207 ROUTINE put_some result usize signature 172 params 2 slots 15 blocks 9 
   slot 1 opened aggregate fields usize param 1
   slot 2 bytes elements 2 of usize param 2
   slot 3 count usize return
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - usize
   slot 6 - aggregate fields i32
   slot 7 - address of struct (i32)
   slot 8 - elements 2 of usize
   slot 9 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
-  slot 10 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 10 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 11 - usize
   slot 12 - aggregate fields i32
   slot 13 - address of struct (i32)
@@ -21336,7 +21336,7 @@ item 208 ROUTINE blocking_read result usize signature 173 params 3 slots 17 bloc
   slot 4 count usize return
   slot 5 - usize
   slot 6 got usize
-  slot 7 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 7 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 8 - usize
   slot 9 - aggregate fields i32
   slot 10 - address of struct (i32)
@@ -21438,7 +21438,7 @@ item 209 ROUTINE write_all result none signature 174 params 3 slots 24 blocks 12
   slot 10 - usize
   slot 11 - usize
   slot 12 accepted usize
-  slot 13 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 13 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 14 - usize
   slot 15 - address of struct (usize)
   slot 16 - elements 2 of usize
@@ -21554,7 +21554,7 @@ item 210 ROUTINE blocking_write result none signature 175 params 3 slots 9 block
   slot 2 opened aggregate fields usize param 2
   slot 3 bytes elements 2 of usize param 3
   slot 4 - usize
-  slot 5 - u32 atoms {io_failed}
+  slot 5 - u32 atoms {io_failed} sealed
   slot 6 - address of struct (struct (usize,usize))
   slot 7 - address of struct (usize)
   slot 8 - elements 2 of usize
@@ -21600,7 +21600,7 @@ item 211 ROUTINE blocking_write_some result usize signature 176 params 3 slots 2
   slot 6 requested usize
   slot 7 - usize
   slot 8 accepted usize
-  slot 9 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 9 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 10 - usize
   slot 11 - address of struct (usize)
   slot 12 - elements 2 of usize
@@ -22332,7 +22332,7 @@ item 217 ROUTINE arena_alloc result usize signature 182 params 3 slots 25 blocks
   slot 5 state usize
   slot 6 - address of usize
   slot 7 offset usize
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - usize
   slot 10 - address of usize
   slot 11 - usize
@@ -22682,7 +22682,7 @@ item 220 ROUTINE arena_resize result usize signature 185 params 5 slots 36 block
   slot 27 - usize
   slot 28 - usize
   slot 29 - usize
-  slot 30 - u32 atoms {out_of_memory}
+  slot 30 - u32 atoms {out_of_memory} sealed
   slot 31 - usize
   slot 32 - address of struct (usize,usize)
   slot 33 - usize
@@ -23819,7 +23819,7 @@ item 249 ROUTINE map_pages result usize signature 203 params 1 slots 6 blocks 4 
   slot 1 length usize param 1
   slot 2 address usize return
   slot 3 base usize
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - usize
   slot 6 problem u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
   block 1 scope 3575 BLOCK length 6
@@ -23851,7 +23851,7 @@ item 250 ROUTINE release_pages result none signature 204 params 2 slots 5 blocks
   slot 1 origin usize param 1
   slot 2 length usize param 2
   slot 3 base usize
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - usize
   block 1 scope 3578 BLOCK length 12
     1 LOAD usize slot 1
@@ -27181,7 +27181,7 @@ item 345 ROUTINE open result struct signature 247 params 5 slots 37 blocks 32 va
   slot 6 opened aggregate fields usize return
   slot 7 - address of struct (usize,usize)
   slot 8 made aggregate fields i32
-  slot 9 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 9 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 10 - address of struct (i32)
   slot 11 - address of struct ([2]usize)
   slot 12 - address of struct (u32 atoms {read_only, write_only, read_write},bool,bool,bool,bool,bool)
@@ -27193,21 +27193,21 @@ item 345 ROUTINE open result struct signature 247 params 5 slots 37 blocks 32 va
   slot 18 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
   slot 19 - address of struct (usize,usize)
   slot 20 - u32 atoms {is_a_directory}
-  slot 21 - u32 atoms {not_found, no_access, io_failed}
+  slot 21 - u32 atoms {not_found, no_access, io_failed} sealed
   slot 22 - address of struct (usize,usize)
   slot 23 - u32 atoms {not_found, no_access, io_failed}
   slot 24 - u32 atoms {io_failed}
   slot 25 - address of u32 atoms {read_only, write_only, read_write}
   slot 26 - u32 atoms {read_only, write_only, read_write}
   slot 27 found aggregate fields u64 u64 u32 atoms {regular, directory, symbolic_link, fifo, socket_file, character_device, block_device, unknown_kind} u64 u32 u64 struct (u32) struct (u32) struct (i64,u32) struct (i64,u32) struct (i64,u32)
-  slot 28 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 28 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 29 problem u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
-  slot 30 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 30 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 31 - address of struct (usize,usize)
   slot 32 - u32 atoms {io_failed}
   slot 33 - address of u32 atoms {regular, directory, symbolic_link, fifo, socket_file, character_device, block_device, unknown_kind}
   slot 34 - u32 atoms {regular, directory, symbolic_link, fifo, socket_file, character_device, block_device, unknown_kind}
-  slot 35 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 35 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 36 - address of struct (usize,usize)
   slot 37 - u32 atoms {is_a_directory}
   block 1 scope 4985 BLOCK length 6
@@ -27396,7 +27396,7 @@ item 346 ROUTINE system_open_read result struct signature 248 params 3 slots 16 
   slot 2 self aggregate fields usize usize param 2
   slot 3 path aggregate fields [2]usize param 3
   slot 4 opened aggregate fields usize return
-  slot 5 - u32 atoms {already_exists, not_found, no_access, is_a_directory, io_failed}
+  slot 5 - u32 atoms {already_exists, not_found, no_access, is_a_directory, io_failed} sealed
   slot 6 - address of struct (usize,usize)
   slot 7 - address of struct ([2]usize)
   slot 8 - address of struct (u32 atoms {read_only, write_only, read_write},bool,bool,bool,bool,bool)
@@ -27476,7 +27476,7 @@ item 347 ROUTINE system_open_write result struct signature 249 params 3 slots 16
   slot 2 self aggregate fields usize usize param 2
   slot 3 path aggregate fields [2]usize param 3
   slot 4 opened aggregate fields usize return
-  slot 5 - u32 atoms {already_exists, not_found, no_access, is_a_directory, io_failed}
+  slot 5 - u32 atoms {already_exists, not_found, no_access, is_a_directory, io_failed} sealed
   slot 6 - address of struct (usize,usize)
   slot 7 - address of struct ([2]usize)
   slot 8 - address of struct (u32 atoms {read_only, write_only, read_write},bool,bool,bool,bool,bool)
@@ -27555,7 +27555,7 @@ item 348 ROUTINE system_close result none signature 250 params 2 slots 8 blocks 
   slot 1 self aggregate fields usize usize param 1
   slot 2 opened aggregate fields usize param 2
   slot 3 - address of struct (usize,usize)
-  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
+  slot 4 - u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted} sealed
   slot 5 - aggregate fields i32
   slot 6 problem u32 atoms {eperm, enoent, esrch, eintr, eio, enxio, e2big, enoexec, ebadf, echild, eagain, enomem, eacces, efault, enotblk, ebusy, eexist, exdev, enodev, enotdir, eisdir, einval, enfile, emfile, enotty, etxtbsy, efbig, enospc, espipe, erofs, emlink, epipe, edom, erange, edeadlk, enametoolong, enolck, enosys, enotempty, eloop, enomsg, eidrm, echrng, el2nsync, el3hlt, el3rst, elnrng, eunatch, enocsi, el2hlt, ebade, ebadr, exfull, enoano, ebadrqc, ebadslt, ebfont, enostr, enodata, etime, enosr, enonet, enopkg, eremote, enolink, eadv, esrmnt, ecomm, eproto, emultihop, edotdot, ebadmsg, eoverflow, enotuniq, ebadfd, eremchg, elibacc, elibbad, elibscn, elibmax, elibexec, eilseq, erestart, estrpipe, eusers, enotsock, edestaddrreq, emsgsize, eprototype, enoprotoopt, eprotonosupport, esocktnosupport, eopnotsupp, epfnosupport, eafnosupport, eaddrinuse, eaddrnotavail, enetdown, enetunreach, enetreset, econnaborted, econnreset, enobufs, eisconn, enotconn, eshutdown, etoomanyrefs, etimedout, econnrefused, ehostdown, ehostunreach, ealready, einprogress, estale, euclean, enotnam, enavail, eisnam, eremoteio, edquot, enomedium, emediumtype, ecanceled, enokey, ekeyexpired, ekeyrevoked, ekeyrejected, eownerdead, enotrecoverable, erfkill, ehwpoison, eauth, ebadarch, ebadexec, ebadmacho, ebadrpc, ecapmode, edeverr, edoofus, eftype, eintegrity, eneedauth, enoattr, enopolicy, enotcapable, enotsup, eproclim, eprocunavail, eprogmismatch, eprogunavail, epwroff, eqfull, erpcmismatch, eshlibvers, unlisted}
   slot 7 - address of struct (usize,usize)
@@ -27959,7 +27959,7 @@ item 366 ROUTINE - result struct signature 266 params 4 slots 9 blocks 3 values 
   slot 3 host aggregate fields struct (usize,usize) param 3
   slot 4 index usize param 4
   slot 5 value aggregate fields [2]usize return
-  slot 6 - u32 atoms {not_found}
+  slot 6 - u32 atoms {not_found} sealed
   slot 7 - usize signature 361
   slot 8 - address of struct (struct (usize,usize))
   slot 9 - u32 atoms {not_found}
@@ -28030,7 +28030,7 @@ item 369 ROUTINE - result struct signature 272 params 4 slots 9 blocks 3 values 
   slot 3 host aggregate fields struct (usize,usize) param 3
   slot 4 path aggregate fields [2]usize param 4
   slot 5 opened aggregate fields usize return
-  slot 6 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
+  slot 6 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   slot 7 - usize signature 363
   slot 8 - address of struct (struct (usize,usize))
   slot 9 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
@@ -28061,7 +28061,7 @@ item 370 ROUTINE - result struct signature 274 params 4 slots 9 blocks 3 values 
   slot 3 host aggregate fields struct (usize,usize) param 3
   slot 4 path aggregate fields [2]usize param 4
   slot 5 opened aggregate fields usize return
-  slot 6 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
+  slot 6 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   slot 7 - usize signature 364
   slot 8 - address of struct (struct (usize,usize))
   slot 9 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
@@ -28092,7 +28092,7 @@ item 371 ROUTINE - result usize signature 276 params 4 slots 12 blocks 3 values 
   slot 3 opened aggregate fields usize param 3
   slot 4 into elements 2 of usize param 4
   slot 5 count usize return
-  slot 6 - u32 atoms {io_failed}
+  slot 6 - u32 atoms {io_failed} sealed
   slot 7 - usize
   slot 8 - usize signature 173
   slot 9 - address of struct (struct (usize,usize))
@@ -28178,7 +28178,7 @@ item 374 ROUTINE - result none signature 282 params 4 slots 10 blocks 3 values 2
   slot 2 host aggregate fields struct (usize,usize) param 2
   slot 3 opened aggregate fields usize param 3
   slot 4 bytes elements 2 of usize param 4
-  slot 5 - u32 atoms {io_failed}
+  slot 5 - u32 atoms {io_failed} sealed
   slot 6 - usize signature 175
   slot 7 - address of struct (struct (usize,usize))
   slot 8 - address of struct (usize)
@@ -28215,7 +28215,7 @@ item 375 ROUTINE - result none signature 284 params 2 slots 33 blocks 14 values 
   slot 4 - usize
   slot 5 - address of usize
   slot 6 wrote usize
-  slot 7 - u32 atoms {io_failed}
+  slot 7 - u32 atoms {io_failed} sealed
   slot 8 - usize
   slot 9 - usize signature 176
   slot 10 - address of struct (struct (usize,usize))
@@ -28231,12 +28231,12 @@ item 375 ROUTINE - result none signature 284 params 2 slots 33 blocks 14 values 
   slot 20 - address of [2]usize
   slot 21 - address of usize
   slot 22 problem u32 atoms {io_failed}
-  slot 23 - u32 atoms {io_failed}
+  slot 23 - u32 atoms {io_failed} sealed
   slot 24 - address of struct (struct (struct (usize,usize)),struct (usize),[2]usize,usize)
   slot 25 - u32 atoms {io_failed}
   slot 26 - u32 atoms {io_failed}
   slot 27 - usize
-  slot 28 - u32 atoms {io_failed}
+  slot 28 - u32 atoms {io_failed} sealed
   slot 29 - address of struct (struct (struct (usize,usize)),struct (usize),[2]usize,usize)
   slot 30 - u32 atoms {io_failed}
   slot 31 - u32 atoms {io_failed}
@@ -28378,7 +28378,7 @@ item 376 ROUTINE - result none signature 286 params 2 slots 25 blocks 4 values 8
   slot 3 remaining usize
   slot 4 - address of usize
   slot 5 - usize
-  slot 6 - u32 atoms {out_of_bounds}
+  slot 6 - u32 atoms {out_of_bounds} sealed
   slot 7 - elements 2 of usize
   slot 8 - usize
   slot 9 - usize
@@ -28498,7 +28498,7 @@ item 377 ROUTINE - result none signature 288 params 3 slots 44 blocks 13 values 
   slot 11 - address of [2]usize
   slot 12 - address of usize
   slot 13 - address of [2]usize
-  slot 14 - u32 atoms {out_of_memory, invalid_format}
+  slot 14 - u32 atoms {out_of_memory, invalid_format} sealed
   slot 15 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 16 - elements 2 of usize
   slot 17 - address of [2]usize
@@ -28506,7 +28506,7 @@ item 377 ROUTINE - result none signature 288 params 3 slots 44 blocks 13 values 
   slot 19 problem u32 atoms {out_of_memory, invalid_format}
   slot 20 - u32 atoms {out_of_memory, invalid_format}
   slot 21 - u32 atoms {invalid_format}
-  slot 22 - u32 atoms {io_failed}
+  slot 22 - u32 atoms {io_failed} sealed
   slot 23 - u32 atoms {io_failed}
   slot 24 whole aggregate fields [2]usize usize usize u32 atoms {not_allocated, allocated} bool usize usize struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8) bool [2]usize variant u8 cases2 () ([2]usize)
   slot 25 - elements 2 of usize
@@ -28517,7 +28517,7 @@ item 377 ROUTINE - result none signature 288 params 3 slots 44 blocks 13 values 
   slot 30 - usize
   slot 31 - address of [2]usize
   slot 32 - address of [2]usize
-  slot 33 - u32 atoms {out_of_memory, invalid_format}
+  slot 33 - u32 atoms {out_of_memory, invalid_format} sealed
   slot 34 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 35 - elements 2 of usize
   slot 36 - address of [2]usize
@@ -29068,7 +29068,7 @@ item 380 ROUTINE - result none signature 296 params 3 slots 7 blocks 3 values 17
   slot 1 - usize param 1
   slot 2 host aggregate fields struct (usize,usize) param 2
   slot 3 opened aggregate fields usize param 3
-  slot 4 - u32 atoms {io_failed}
+  slot 4 - u32 atoms {io_failed} sealed
   slot 5 - usize signature 368
   slot 6 - address of struct (struct (usize,usize))
   slot 7 - u32 atoms {io_failed}
@@ -29125,7 +29125,7 @@ item 381 ROUTINE - result struct signature 298 params 3 slots 111 blocks 39 valu
   slot 30 - address of usize
   slot 31 - address of bool
   slot 32 - address of bool
-  slot 33 - u32 atoms {io_failed}
+  slot 33 - u32 atoms {io_failed} sealed
   slot 34 - u32 atoms {io_failed}
   slot 35 waiting usize
   slot 36 - address of usize
@@ -29181,7 +29181,7 @@ item 381 ROUTINE - result struct signature 298 params 3 slots 111 blocks 39 valu
   slot 86 - address of [2]usize
   slot 87 probe elements 1 of u8
   slot 88 got usize
-  slot 89 - u32 atoms {io_failed}
+  slot 89 - u32 atoms {io_failed} sealed
   slot 90 - usize
   slot 91 - usize signature 173
   slot 92 - address of struct (struct (usize,usize))
@@ -29202,7 +29202,7 @@ item 381 ROUTINE - result struct signature 298 params 3 slots 111 blocks 39 valu
   slot 107 - address of bool
   slot 108 - u8
   slot 109 - u32 atoms {out_of_memory}
-  slot 110 - u32 atoms {io_failed}
+  slot 110 - u32 atoms {io_failed} sealed
   slot 111 - u32 atoms {io_failed}
   block 1 scope 1671 BLOCK length 11
     1 STORAGE_ADDRESS usize storage address slot 3 field 3
@@ -29683,10 +29683,10 @@ item 381 ROUTINE - result struct signature 298 params 3 slots 111 blocks 39 valu
 item 382 ROUTINE - result none signature 300 params 2 slots 26 blocks 9 values 92
   slot 1 - usize param 1
   slot 2 lines address of struct (struct (struct (usize,usize)),struct (usize),[2]usize,usize,usize,bool,bool) param 2
-  slot 3 - u32 atoms {io_failed}
+  slot 3 - u32 atoms {io_failed} sealed
   slot 4 - u32 atoms {io_failed}
   slot 5 got usize
-  slot 6 - u32 atoms {io_failed}
+  slot 6 - u32 atoms {io_failed} sealed
   slot 7 - usize
   slot 8 - usize signature 173
   slot 9 - address of struct (struct (usize,usize))
@@ -29816,7 +29816,7 @@ item 383 ROUTINE - result none signature 302 params 1 slots 29 blocks 6 values 1
   slot 5 - address of usize
   slot 6 - usize
   slot 7 - address of usize
-  slot 8 - u32 atoms {out_of_bounds}
+  slot 8 - u32 atoms {out_of_bounds} sealed
   slot 9 - elements 2 of usize
   slot 10 - usize
   slot 11 - usize
@@ -29953,7 +29953,7 @@ item 384 ROUTINE - result struct signature 304 params 4 slots 9 blocks 3 values 
   slot 3 host aggregate fields struct (usize,usize) param 3
   slot 4 name aggregate fields [2]usize param 4
   slot 5 value aggregate fields [2]usize return
-  slot 6 - u32 atoms {not_found}
+  slot 6 - u32 atoms {not_found} sealed
   slot 7 - usize signature 369
   slot 8 - address of struct (struct (usize,usize))
   slot 9 - u32 atoms {not_found}
@@ -29998,7 +29998,7 @@ item 386 ROUTINE - result i32 signature 308 params 2 slots 14 blocks 3 values 45
   slot 2 start aggregate fields i32 i32 param 2
   slot 3 x i32 return
   slot 4 cell usize
-  slot 5 - u32 atoms {out_of_memory}
+  slot 5 - u32 atoms {out_of_memory} sealed
   slot 6 - usize
   slot 7 - address of struct (u8)
   slot 8 - u32 atoms {out_of_memory}
@@ -30062,7 +30062,7 @@ item 387 ROUTINE - result usize signature 310 params 3 slots 13 blocks 3 values 
   slot 3 value aggregate fields i32 i32 param 3
   slot 4 object usize return
   slot 5 block usize
-  slot 6 - u32 atoms {out_of_memory}
+  slot 6 - u32 atoms {out_of_memory} sealed
   slot 7 - usize
   slot 8 - usize signature 200
   slot 9 - address of struct (u8)
@@ -30140,7 +30140,7 @@ item 389 ROUTINE - result i32 signature 314 params 2 slots 14 blocks 3 values 45
   slot 2 start aggregate fields i32 i32 param 2
   slot 3 x i32 return
   slot 4 cell usize
-  slot 5 - u32 atoms {out_of_memory}
+  slot 5 - u32 atoms {out_of_memory} sealed
   slot 6 - usize
   slot 7 - address of struct (usize,usize)
   slot 8 - u32 atoms {out_of_memory}
@@ -30204,7 +30204,7 @@ item 390 ROUTINE - result usize signature 316 params 3 slots 13 blocks 3 values 
   slot 3 value aggregate fields i32 i32 param 3
   slot 4 object usize return
   slot 5 block usize
-  slot 6 - u32 atoms {out_of_memory}
+  slot 6 - u32 atoms {out_of_memory} sealed
   slot 7 - usize
   slot 8 - usize signature 182
   slot 9 - address of struct (usize,usize)
@@ -30289,7 +30289,7 @@ item 392 ROUTINE - result none signature 320 params 4 slots 28 blocks 6 values 7
   slot 9 - address of struct (usize)
   slot 10 - address of struct (usize)
   slot 11 onto elements 2 of usize
-  slot 12 - u32 atoms {out_of_memory, invalid_format}
+  slot 12 - u32 atoms {out_of_memory, invalid_format} sealed
   slot 13 - elements 2 of usize
   slot 14 - usize
   slot 15 - usize
@@ -30386,7 +30386,7 @@ item 393 ROUTINE - result none signature 322 params 3 slots 14 blocks 4 values 3
   slot 1 - usize param 1
   slot 2 self usize param 2
   slot 3 bytes elements 2 of usize param 3
-  slot 4 - u32 atoms {io_failed}
+  slot 4 - u32 atoms {io_failed} sealed
   slot 5 - usize signature 175
   slot 6 - address of struct (struct (struct (usize,usize)),struct (usize))
   slot 7 - address of struct (struct (usize,usize))
@@ -30441,7 +30441,7 @@ item 394 ROUTINE - result none signature 324 params 4 slots 24 blocks 7 values 7
   slot 2 onto elements 2 of usize param 2
   slot 3 template elements 2 of usize param 3
   slot 4 values elements 2 of usize param 4
-  slot 5 - u32 atoms {invalid_format}
+  slot 5 - u32 atoms {invalid_format} sealed
   slot 6 - elements 2 of usize
   slot 7 - address of [2]usize
   slot 8 - u32 atoms {invalid_format}
@@ -30451,14 +30451,14 @@ item 394 ROUTINE - result none signature 324 params 4 slots 24 blocks 7 values 7
   slot 12 line aggregate fields [2]usize usize usize u32 atoms {not_allocated, allocated} bool usize usize struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8) bool [2]usize variant u8 cases2 () ([2]usize)
   slot 13 - address of struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8)
   slot 14 - address of struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8)
-  slot 15 - u32 atoms {out_of_memory}
+  slot 15 - u32 atoms {out_of_memory} sealed
   slot 16 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 17 - usize
   slot 18 - elements 2 of usize
   slot 19 - address of [2]usize
   slot 20 - elements 2 of usize
   slot 21 - u32 atoms {out_of_memory}
-  slot 22 - u32 atoms {out_of_memory}
+  slot 22 - u32 atoms {out_of_memory} sealed
   slot 23 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 24 - u32 atoms {out_of_memory}
   block 1 scope 2369 BLOCK length 10
@@ -30552,17 +30552,17 @@ item 395 ROUTINE - result none signature 326 params 4 slots 24 blocks 13 values 
   slot 5 onto usize
   slot 6 - address of struct (usize)
   slot 7 - address of usize
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 10 - u32 atoms {out_of_memory}
   slot 11 - usize
   slot 12 - address of [2]usize
-  slot 13 - u32 atoms {out_of_memory}
+  slot 13 - u32 atoms {out_of_memory} sealed
   slot 14 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 15 - elements 2 of usize
   slot 16 - u32 atoms {out_of_memory}
   slot 17 - usize
-  slot 18 - u32 atoms {out_of_memory}
+  slot 18 - u32 atoms {out_of_memory} sealed
   slot 19 - usize
   slot 20 - elements 2 of usize
   slot 21 - u32 atoms {out_of_memory}
@@ -30672,7 +30672,7 @@ item 396 ROUTINE - result none signature 328 params 2 slots 19 blocks 5 values 7
   slot 2 onto usize param 2
   slot 3 - address of usize
   slot 4 - usize
-  slot 5 - u32 atoms {out_of_memory}
+  slot 5 - u32 atoms {out_of_memory} sealed
   slot 6 - usize
   slot 7 - elements 2 of usize
   slot 8 - usize
@@ -30784,7 +30784,7 @@ item 397 ROUTINE - result none signature 330 params 4 slots 69 blocks 23 values 
   slot 18 - usize
   slot 19 - address of u8
   slot 20 - u8
-  slot 21 - u32 atoms {out_of_memory}
+  slot 21 - u32 atoms {out_of_memory} sealed
   slot 22 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 23 - elements 2 of usize
   slot 24 - usize
@@ -30795,14 +30795,14 @@ item 397 ROUTINE - result none signature 330 params 4 slots 69 blocks 23 values 
   slot 29 - u32 atoms {out_of_memory}
   slot 30 spec aggregate fields u32 u32 atoms {unaligned, left_aligned, right_aligned, centred} bool bool bool usize bool usize u8
   slot 31 after usize
-  slot 32 - u32 atoms {invalid_format}
+  slot 32 - u32 atoms {invalid_format} sealed
   slot 33 - usize
   slot 34 - elements 2 of usize
   slot 35 - address of [2]usize
   slot 36 - usize
   slot 37 problem u32 atoms {invalid_format}
   slot 38 - u32 atoms {out_of_memory}
-  slot 39 - u32 atoms {out_of_memory}
+  slot 39 - u32 atoms {out_of_memory} sealed
   slot 40 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 41 - usize
   slot 42 - elements 2 of usize
@@ -30813,7 +30813,7 @@ item 397 ROUTINE - result none signature 330 params 4 slots 69 blocks 23 values 
   slot 47 - u32 atoms {out_of_memory}
   slot 48 - u8
   slot 49 - u8
-  slot 50 - u32 atoms {out_of_memory}
+  slot 50 - u32 atoms {out_of_memory} sealed
   slot 51 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 52 - elements 2 of usize
   slot 53 - usize
@@ -30824,7 +30824,7 @@ item 397 ROUTINE - result none signature 330 params 4 slots 69 blocks 23 values 
   slot 58 - usize
   slot 59 - u32 atoms {out_of_memory}
   slot 60 - usize
-  slot 61 - u32 atoms {out_of_memory}
+  slot 61 - u32 atoms {out_of_memory} sealed
   slot 62 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 63 - elements 2 of usize
   slot 64 - usize
@@ -31129,7 +31129,7 @@ item 398 ROUTINE - result none signature 332 params 4 slots 33 blocks 11 values 
   slot 3 value elements 2 of usize param 3
   slot 4 spec aggregate fields u32 u32 atoms {unaligned, left_aligned, right_aligned, centred} bool bool bool usize bool usize u8 param 4
   slot 5 count usize
-  slot 6 - u32 atoms {out_of_memory}
+  slot 6 - u32 atoms {out_of_memory} sealed
   slot 7 - usize
   slot 8 - elements 2 of usize
   slot 9 - address of [2]usize
@@ -31138,11 +31138,11 @@ item 398 ROUTINE - result none signature 332 params 4 slots 33 blocks 11 values 
   slot 12 - elements 2 of usize
   slot 13 - address of [2]usize
   slot 14 problem u32 atoms {out_of_memory}
-  slot 15 - u32 atoms {out_of_memory}
+  slot 15 - u32 atoms {out_of_memory} sealed
   slot 16 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 17 - u32 atoms {out_of_memory}
   slot 18 whole usize
-  slot 19 - u32 atoms {out_of_memory}
+  slot 19 - u32 atoms {out_of_memory} sealed
   slot 20 - usize
   slot 21 - elements 2 of usize
   slot 22 - address of [2]usize
@@ -31150,7 +31150,7 @@ item 398 ROUTINE - result none signature 332 params 4 slots 33 blocks 11 values 
   slot 24 - elements 2 of usize
   slot 25 - address of [2]usize
   slot 26 again u32 atoms {out_of_memory}
-  slot 27 - u32 atoms {out_of_memory}
+  slot 27 - u32 atoms {out_of_memory} sealed
   slot 28 - address of struct ([2]usize,usize,usize,u32 atoms {not_allocated, allocated},bool,usize,usize,struct (u32,u32 atoms {unaligned, left_aligned, right_aligned, centred},bool,bool,bool,usize,bool,usize,u8),bool,[2]usize,variant u8 cases2 () ([2]usize))
   slot 29 - elements 2 of usize
   slot 30 - address of [2]usize
@@ -31342,7 +31342,7 @@ item 400 ROUTINE - result usize signature 336 params 6 slots 26 blocks 10 values
   slot 5 new_size usize param 5
   slot 6 alignment usize param 6
   slot 7 moved usize return
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - usize
   slot 10 - usize signature 182
   slot 11 - address of struct (usize,usize)
@@ -31353,7 +31353,7 @@ item 400 ROUTINE - result usize signature 336 params 6 slots 26 blocks 10 values
   slot 16 - usize
   slot 17 into elements 2 of usize
   slot 18 - usize
-  slot 19 - u32 atoms {out_of_bounds}
+  slot 19 - u32 atoms {out_of_bounds} sealed
   slot 20 - elements 2 of usize
   slot 21 - address of [2]usize
   slot 22 - elements 2 of usize
@@ -31503,7 +31503,7 @@ item 403 ROUTINE - result struct signature 345 params 3 slots 5 blocks 3 values 
   slot 2 - aggregate fields struct (usize,usize) param 2
   slot 3 - aggregate fields [2]usize param 3
   slot 4 - aggregate fields usize return
-  slot 5 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
+  slot 5 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   block 1 scope 1 PROGRAM length 7
     1 STORAGE_ADDRESS usize storage slot 2 field 1
     2 STORAGE_ADDRESS usize storage slot 3
@@ -31522,7 +31522,7 @@ item 404 ROUTINE - result struct signature 346 params 3 slots 5 blocks 3 values 
   slot 2 - aggregate fields struct (usize,usize) param 2
   slot 3 - aggregate fields [2]usize param 3
   slot 4 - aggregate fields usize return
-  slot 5 - u32 atoms {not_found, no_access, is_a_directory, io_failed}
+  slot 5 - u32 atoms {not_found, no_access, is_a_directory, io_failed} sealed
   block 1 scope 1 PROGRAM length 7
     1 STORAGE_ADDRESS usize storage slot 2 field 1
     2 STORAGE_ADDRESS usize storage slot 3
@@ -31539,7 +31539,7 @@ item 404 ROUTINE - result struct signature 346 params 3 slots 5 blocks 3 values 
 item 405 ROUTINE - result none signature 347 params 2 slots 3 blocks 3 values 9
   slot 1 - aggregate fields struct (usize,usize) param 1
   slot 2 - aggregate fields usize param 2
-  slot 3 - u32 atoms {io_failed}
+  slot 3 - u32 atoms {io_failed} sealed
   block 1 scope 1 PROGRAM length 6
     1 STORAGE_ADDRESS usize storage slot 1 field 1
     2 STORAGE_ADDRESS usize storage slot 2
@@ -31593,7 +31593,7 @@ item 410 ROUTINE - result struct signature 352 params 3 slots 5 blocks 3 values 
   slot 2 - aggregate fields struct (usize,usize) param 2
   slot 3 - usize param 3
   slot 4 - aggregate fields [2]usize return
-  slot 5 - u32 atoms {not_found}
+  slot 5 - u32 atoms {not_found} sealed
   block 1 scope 1 PROGRAM length 7
     1 STORAGE_ADDRESS usize storage slot 2 field 1
     2 LOAD usize slot 3
@@ -31612,7 +31612,7 @@ item 411 ROUTINE - result struct signature 353 params 3 slots 5 blocks 3 values 
   slot 2 - aggregate fields struct (usize,usize) param 2
   slot 3 - aggregate fields [2]usize param 3
   slot 4 - aggregate fields [2]usize return
-  slot 5 - u32 atoms {not_found}
+  slot 5 - u32 atoms {not_found} sealed
   block 1 scope 1 PROGRAM length 7
     1 STORAGE_ADDRESS usize storage slot 2 field 1
     2 STORAGE_ADDRESS usize storage slot 3
@@ -31629,7 +31629,7 @@ item 411 ROUTINE - result struct signature 353 params 3 slots 5 blocks 3 values 
 item 412 ROUTINE - result none signature 321 params 2 slots 3 blocks 3 values 10
   slot 1 self usize param 1
   slot 2 bytes elements 2 of usize param 2
-  slot 3 - u32 atoms {out_of_memory}
+  slot 3 - u32 atoms {out_of_memory} sealed
   block 1 scope 1632 SIGNATURE length 7
     1 EVIDENCE_ADDRESS usize evidence 10
     2 LOAD usize slot 1
@@ -36076,7 +36076,7 @@ item 6 ROUTINE recover_early result usize signature 6 params 2 slots 8 blocks 5 
   slot 2 reject bool param 2
   slot 3 result usize return
   slot 4 local usize
-  slot 5 - u32 atoms {unavailable}
+  slot 5 - u32 atoms {unavailable} sealed
   slot 6 - usize
   slot 7 - usize
   slot 8 - usize
@@ -36110,7 +36110,7 @@ item 7 ROUTINE recover_value result usize signature 7 params 2 slots 8 blocks 6 
   slot 1 cell usize param 1
   slot 2 reject bool param 2
   slot 3 result usize return
-  slot 4 - u32 atoms {unavailable}
+  slot 4 - u32 atoms {unavailable} sealed
   slot 5 - usize
   slot 6 - usize
   slot 7 - usize
@@ -36162,7 +36162,7 @@ item 9 ROUTINE recover_state result usize signature 9 params 2 slots 5 blocks 6 
   slot 2 reject bool param 2
   slot 3 result usize return
   slot 4 local usize
-  slot 5 - u32 atoms {unavailable}
+  slot 5 - u32 atoms {unavailable} sealed
   block 1 scope 30 BLOCK length 7
     1 NUMBER usize 0
     2 STORE slot 4 <- 1
@@ -36854,7 +36854,7 @@ item 8 ROUTINE forward_try result struct signature 8 params 4 slots 9 blocks 3 v
   slot 3 right usize param 3
   slot 4 reject bool param 4
   slot 5 - aggregate fields usize usize return
-  slot 6 - u32 atoms {unavailable}
+  slot 6 - u32 atoms {unavailable} sealed
   slot 7 - usize
   slot 8 - usize
   slot 9 - u32 atoms {unavailable}
@@ -39307,7 +39307,7 @@ item 7 ROUTINE propagate result u32 signature 7 params 1 slots 12 blocks 8 value
   slot 6 - address of struct (u32)
   slot 7 - usize
   slot 8 - usize
-  slot 9 - u32 atoms {problem}
+  slot 9 - u32 atoms {problem} sealed
   slot 10 - u32
   slot 11 - u32 atoms {problem}
   slot 12 - usize
@@ -39890,9 +39890,9 @@ item 7 ROUTINE close result none signature 7 params 2 slots 3 blocks 1 values 4
     4 FAIL <- 3
 item 8 ROUTINE abort_before_close result none signature 8 params 1 slots 6 blocks 8 values 32
   slot 1 handle address of i32 param 1
-  slot 2 - u32 atoms {unavailable}
+  slot 2 - u32 atoms {unavailable} sealed
   slot 3 - i32
-  slot 4 - u32 atoms {unavailable}
+  slot 4 - u32 atoms {unavailable} sealed
   slot 5 - usize
   slot 6 - u32 atoms {unavailable}
   block 1 scope 21 BLOCK length 8
@@ -39937,7 +39937,7 @@ item 8 ROUTINE abort_before_close result none signature 8 params 1 slots 6 block
     27 JUMP target 6
 item 9 ROUTINE restore_entered_close result none signature 9 params 1 slots 6 blocks 7 values 34
   slot 1 handle address of i32 param 1
-  slot 2 - u32 atoms {unavailable}
+  slot 2 - u32 atoms {unavailable} sealed
   slot 3 - i32
   slot 4 - u32 atoms {unavailable}
   slot 5 - i32
@@ -40241,11 +40241,11 @@ item 3 ROUTINE button_focus result none signature 3 params 1 slots 1 blocks 1 va
 item 4 ROUTINE probe result none signature 4 params 1 slots 13 blocks 5 values 51
   slot 1 memory aggregate fields usize usize param 1
   slot 2 buffers aggregate fields struct (struct (usize,usize,[2]usize),usize) struct (struct (usize,usize,[2]usize),usize) struct (struct (usize,usize,[2]usize),usize)
-  slot 3 - u32 atoms {out_of_memory}
+  slot 3 - u32 atoms {out_of_memory} sealed
   slot 4 - address of struct (usize,usize)
   slot 5 - u32 atoms {out_of_memory}
   slot 6 chosen elements 2 of usize
-  slot 7 - u32 atoms {out_of_memory}
+  slot 7 - u32 atoms {out_of_memory} sealed
   slot 8 - u32 atoms {out_of_memory}
   slot 9 target aggregate fields i32
   slot 10 - elements 2 of usize
@@ -40396,7 +40396,7 @@ item 9 ROUTINE arena_alloc result usize signature 9 params 3 slots 25 blocks 3 v
   slot 5 state usize
   slot 6 - address of usize
   slot 7 offset usize
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - usize
   slot 10 - address of usize
   slot 11 - usize
@@ -40746,7 +40746,7 @@ item 12 ROUTINE arena_resize result usize signature 12 params 5 slots 36 blocks 
   slot 27 - usize
   slot 28 - usize
   slot 29 - usize
-  slot 30 - u32 atoms {out_of_memory}
+  slot 30 - u32 atoms {out_of_memory} sealed
   slot 31 - usize
   slot 32 - address of struct (usize,usize)
   slot 33 - usize
@@ -42279,7 +42279,7 @@ item 28 ROUTINE admit_copy result none signature 24 params 2 slots 21 blocks 10 
   slot 5 room elements 2 of usize
   slot 6 - usize
   slot 7 - u32 atoms {out_of_memory}
-  slot 8 - u32 atoms {out_of_bounds}
+  slot 8 - u32 atoms {out_of_bounds} sealed
   slot 9 - elements 2 of usize
   slot 10 - usize
   slot 11 - usize
@@ -42290,7 +42290,7 @@ item 28 ROUTINE admit_copy result none signature 24 params 2 slots 21 blocks 10 
   slot 16 - elements 2 of usize
   slot 17 problem u32 atoms {out_of_bounds}
   slot 18 - u32 atoms {out_of_memory}
-  slot 19 - u32 atoms {out_of_memory}
+  slot 19 - u32 atoms {out_of_memory} sealed
   slot 20 - address of struct (usize,usize,[2]usize)
   slot 21 - u32 atoms {out_of_memory}
   block 1 scope 172 BLOCK length 9
@@ -42615,14 +42615,14 @@ item 30 ROUTINE - result struct signature 27 params 3 slots 16 blocks 7 values 6
   slot 2 memory aggregate fields usize usize param 2
   slot 3 count usize param 3
   slot 4 - aggregate fields struct (struct (usize,usize,[2]usize),usize) struct (struct (usize,usize,[2]usize),usize) struct (struct (usize,usize,[2]usize),usize) return
-  slot 5 - u32 atoms {out_of_memory}
+  slot 5 - u32 atoms {out_of_memory} sealed
   slot 6 - address of struct (usize,usize)
   slot 7 - u32 atoms {out_of_memory}
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - address of struct (usize,usize)
   slot 10 - u32 atoms {out_of_memory}
   slot 11 - address of struct (usize,usize)
-  slot 12 - u32 atoms {out_of_memory}
+  slot 12 - u32 atoms {out_of_memory} sealed
   slot 13 - address of struct (usize,usize)
   slot 14 - u32 atoms {out_of_memory}
   slot 15 - address of struct (usize,usize)
@@ -42707,7 +42707,7 @@ item 31 ROUTINE - result struct signature 29 params 4 slots 52 blocks 13 values 
   slot 9 - address of struct (usize,usize,[2]usize)
   slot 10 - address of struct (usize,usize,[2]usize)
   slot 11 block usize
-  slot 12 - u32 atoms {out_of_memory}
+  slot 12 - u32 atoms {out_of_memory} sealed
   slot 13 - usize
   slot 14 - usize signature 9
   slot 15 - address of struct (usize,usize)
@@ -42732,7 +42732,7 @@ item 31 ROUTINE - result struct signature 29 params 4 slots 52 blocks 13 values 
   slot 34 - usize
   slot 35 initial u8
   slot 36 admitted usize
-  slot 37 - u32 atoms {out_of_memory}
+  slot 37 - u32 atoms {out_of_memory} sealed
   slot 38 - usize
   slot 39 - address of struct (usize,usize,[2]usize)
   slot 40 problem u32 atoms {out_of_memory}
@@ -43161,7 +43161,7 @@ item 36 ROUTINE - result none signature 39 params 3 slots 15 blocks 6 values 48
   slot 6 extent usize
   slot 7 - address of usize
   slot 8 block usize
-  slot 9 - u32 atoms {not_empty, empty}
+  slot 9 - u32 atoms {not_empty, empty} sealed
   slot 10 - usize
   slot 11 problem u32 atoms {not_empty, empty}
   slot 12 - address of usize
@@ -43332,7 +43332,7 @@ item 39 ROUTINE - result array signature 45 params 2 slots 10 blocks 3 values 26
   slot 4 initial aggregate fields [2]usize
   slot 5 - elements 2 of usize
   slot 6 b usize
-  slot 7 - u32 atoms {out_of_memory}
+  slot 7 - u32 atoms {out_of_memory} sealed
   slot 8 - usize
   slot 9 - address of struct (usize,usize)
   slot 10 - u32 atoms {out_of_memory}
@@ -43371,7 +43371,7 @@ item 40 ROUTINE - result usize signature 47 params 3 slots 13 blocks 3 values 35
   slot 3 value aggregate fields [2]usize param 3
   slot 4 object usize return
   slot 5 block usize
-  slot 6 - u32 atoms {out_of_memory}
+  slot 6 - u32 atoms {out_of_memory} sealed
   slot 7 - usize
   slot 8 - usize signature 9
   slot 9 - address of struct (usize,usize)
@@ -43425,7 +43425,7 @@ item 41 ROUTINE - result usize signature 49 params 6 slots 26 blocks 10 values 7
   slot 5 new_size usize param 5
   slot 6 alignment usize param 6
   slot 7 moved usize return
-  slot 8 - u32 atoms {out_of_memory}
+  slot 8 - u32 atoms {out_of_memory} sealed
   slot 9 - usize
   slot 10 - usize signature 9
   slot 11 - address of struct (usize,usize)
@@ -43436,7 +43436,7 @@ item 41 ROUTINE - result usize signature 49 params 6 slots 26 blocks 10 values 7
   slot 16 - usize
   slot 17 into elements 2 of usize
   slot 18 - usize
-  slot 19 - u32 atoms {out_of_bounds}
+  slot 19 - u32 atoms {out_of_bounds} sealed
   slot 20 - elements 2 of usize
   slot 21 - address of [2]usize
   slot 22 - elements 2 of usize
@@ -44012,7 +44012,7 @@ item 4 ROUTINE f result none signature 4 params 4 slots 23 blocks 17 values 87
   slot 13 - aggregate fields u8 u8
   slot 14 - elements 2 of u8
   slot 15 - elements 2 of u8
-  slot 16 - u32 atoms {missing}
+  slot 16 - u32 atoms {missing} sealed
   slot 17 - u32 atoms {missing}
   slot 18 - elements 2 of u8
   slot 19 - usize
@@ -44701,7 +44701,7 @@ item 4 ROUTINE f result none signature 4 params 6 slots 32 blocks 16 values 125
   slot 9 - address of [2]u16
   slot 10 - elements 2 of u16
   slot 11 - elements 2 of u16
-  slot 12 - u32 atoms {missing}
+  slot 12 - u32 atoms {missing} sealed
   slot 13 - u32 atoms {missing}
   slot 14 - elements 2 of u16
   slot 15 - elements 2 of u16
@@ -46583,7 +46583,7 @@ item 1 ROUTINE may_fail result none signature 1 params 1 slots 2 blocks 3 values
     7 LEAVE
 item 2 ROUTINE forward result none signature 2 params 1 slots 3 blocks 3 values 10
   slot 1 fail_now bool param 1
-  slot 2 - u32 atoms {problem}
+  slot 2 - u32 atoms {problem} sealed
   slot 3 - u32 atoms {problem}
   block 1 scope 7 BLOCK length 5
     1 LOAD bool slot 1
@@ -46908,7 +46908,7 @@ item 5 ROUTINE direct_failure result none signature 5 params 0 slots 2 blocks 1 
     8 FAIL <- 7
 item 6 ROUTINE propagated_failure result none signature 6 params 0 slots 3 blocks 3 values 13
   slot 1 local i32
-  slot 2 - u32 atoms {bad}
+  slot 2 - u32 atoms {bad} sealed
   slot 3 - u32 atoms {bad}
   block 1 scope 15 BLOCK length 6
     1 NUMBER i32 42
@@ -46928,7 +46928,7 @@ item 6 ROUTINE propagated_failure result none signature 6 params 0 slots 3 block
     13 LEAVE
 item 7 ROUTINE recovered_failure result none signature 7 params 0 slots 2 blocks 4 values 7
   slot 1 local i32
-  slot 2 - u32 atoms {bad}
+  slot 2 - u32 atoms {bad} sealed
   block 1 scope 17 BLOCK length 4
     1 CALL none callee 2 leaf signature 2 failure slot 2
     2 LOAD u32 slot 2
@@ -48584,7 +48584,7 @@ item 8 ROUTINE main result i32 signature 7 params 0 slots 143 blocks 21 values 4
   slot 37 - address of struct (usize signature 3)
   slot 38 - address of struct (usize signature 3)
   slot 39 fallible_result i32
-  slot 40 - u32 atoms {failed}
+  slot 40 - u32 atoms {failed} sealed
   slot 41 - i32
   slot 42 - usize signature 15
   slot 43 editable elements 2 of i32

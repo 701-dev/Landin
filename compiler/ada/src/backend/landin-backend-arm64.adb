@@ -1689,6 +1689,10 @@ package body Landin.Backend.Arm64 is
          elsif Instruction = ".p2align 2" then
             --  Alignment may change after an earlier branch is shortened.
             Offset := Offset + 3;
+         elsif Line = Character'Val (9) & ".p2align 5" then
+            --  D3177: a loop head's line, at most seven instructions of
+            --  padding.
+            Offset := Offset + 28;
          elsif Known and then Instruction'Length > 0
            and then Instruction (Instruction'First) /= '.'
          then
@@ -2977,6 +2981,15 @@ package body Landin.Backend.Arm64 is
          --  The branch a comparison right before it already took, testing
          --  the comparison's flags rather than a stored verdict.
          Fused_Branch : Landin.IR.Value_Id := Landin.IR.No_Value;
+         --  D3177: the blocks that begin a loop, found at speed.
+         Align_Loops : constant Boolean := Landin.Optimization."="
+           (Options.Optimize, Landin.Optimization.Speed);
+         Loop_Heads : Home_Mask (1 .. Landin.IR.Block_Count (Of_Unit, Item))
+           := [others => False];
+         --  D3175: the load of a call's status that is not made, its
+         --  failure test reading w8, where the call left the status:
+         --  neither allocation nor selection's scratch writes x8.
+         Status_Load : Landin.IR.Value_Id := Landin.IR.No_Value;
          --  D338's choice whose condition a comparison right before it
          --  left in the flags, and the condition that holds it.
          Fused_Choice : Landin.IR.Value_Id := Landin.IR.No_Value;
@@ -5481,6 +5494,14 @@ package body Landin.Backend.Arm64 is
             then
                return;
             end if;
+            if Optimized and then Op = Landin.IR.Load
+              and then Status_Carrier
+                (Of_Unit, Item, Current_Block, Current_Position)
+                /= Landin.IR.No_Value
+            then
+               Status_Load := Value;
+               return;
+            end if;
             case Op is
                when Landin.IR.Assembly =>
                   Assembly_Block (Value);
@@ -6908,10 +6929,48 @@ package body Landin.Backend.Arm64 is
                   Emit ("ldr x9, [x9]");
                   Store_Value (Value);
                when Landin.IR.Failure_Test =>
-                  Load_Value (Operand (1));
-                  Emit ("cmp w9, #0");
-                  Emit ("cset w9, ne");
-                  Store_Value (Value);
+                  --  A test whose one use is the branch right after it,
+                  --  as lowering makes every call's, is that branch's
+                  --  cbnz on the status where it is.
+                  if Optimized and then Uses (Positive (Value)) = 1
+                    and then Next_Instruction /= Landin.IR.No_Value
+                    and then Landin.IR.Op_Of (Of_Unit, Item, Next_Instruction)
+                      = Landin.IR.Branch
+                    and then Landin.IR.Nth_Operand
+                      (Of_Unit, Item, Next_Instruction, 1) = Value
+                  then
+                     declare
+                        Status : constant String :=
+                          (if Operand (1) = Status_Load then "w8"
+                           else Short (Read (Operand (1))));
+                        Yes : constant Landin.IR.Block_Id :=
+                          Landin.IR.Target_Of
+                            (Of_Unit, Item, Next_Instruction);
+                        No : constant Landin.IR.Block_Id :=
+                          Landin.IR.Alternative_Of
+                            (Of_Unit, Item, Next_Instruction);
+                     begin
+                        if Yes = Following and then No /= Following then
+                           Emit ("cbz " & Status & ", " & Label (Item, No));
+                        else
+                           Emit ("cbnz " & Status & ", "
+                                 & Label (Item, Yes));
+                           if No /= Following then
+                              Emit ("b " & Label (Item, No));
+                           end if;
+                        end if;
+                        Fused_Branch := Next_Instruction;
+                     end;
+                  else
+                     if Operand (1) = Status_Load then
+                        Emit ("mov w9, w8");
+                     else
+                        Load_Value (Operand (1));
+                     end if;
+                     Emit ("cmp w9, #0");
+                     Emit ("cset w9, ne");
+                     Store_Value (Value);
+                  end if;
                when Landin.IR.Call | Landin.IR.Indirect_Call =>
                   declare
                      Indirect : constant Boolean := Op =
@@ -7311,7 +7370,37 @@ package body Landin.Backend.Arm64 is
          if Optimized then
             Count_Uses (Of_Unit, Item, Uses, References);
          end if;
+         if Align_Loops then
+            Landin.Backend.Placement.Find_Loop_Heads
+              (Of_Unit, Item, Loop_Heads);
+         end if;
          for Block in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
+            --  D3177: at speed a loop's head that no instruction falls
+            --  into starts a 32-byte line, its padding never executed:
+            --  reverse-complement's byte loop, tested at its foot after
+            --  its cold path, took from 162 M to 224 M cycles on a
+            --  Cortex-X925 as code before it moved.  One fallen into stays
+            --  where it is, as on RISC-V.
+            if Align_Loops and then Loop_Heads (Block)
+              and then not Lines.Is_Empty
+            then
+               declare
+                  Last : constant String :=
+                    Unbounded.To_String (Lines.Last_Element.Text);
+                  --  Whether the last line is Word's instruction.
+                  function Starts (Word : String) return Boolean is
+                    (Last'Length > Word'Length
+                     and then Last (Last'First .. Last'First + Word'Length)
+                       = Character'Val (9) & Word);
+               begin
+                  if Starts ("b ") or else Starts ("br ")
+                    or else Starts ("brk ")
+                    or else Last = Character'Val (9) & "ret"
+                  then
+                     Put (Character'Val (9) & ".p2align 5");
+                  end if;
+               end;
+            end if;
             Put (Label (Item, Landin.IR.Block_Id (Block)) & ":");
             for Position in 1 .. Landin.IR.Length (Of_Unit, Item,
               Landin.IR.Block_Id (Block)) loop

@@ -6522,7 +6522,7 @@ package body Landin.Stages.Lowering is
          if Error_Set /= IR.No_Atom_Set then
             Failure_Slot := IR.Add_Slot
               (Unit.all, Filling, Ty.U32, Res.No_Declaration, Site,
-               Atoms => Error_Set);
+               Atoms => Error_Set, Sealed => True);
             if Type_At (Of_Tree, Node)
                  in Ty.Scalar_Name | Ty.Function_Value | Ty.Pointer_Value
                     | Ty.Atom_Value
@@ -11718,7 +11718,7 @@ package body Landin.Stages.Lowering is
               (if Errors = IR.No_Atom_Set then IR.No_Slot
                else IR.Add_Slot
                  (Unit.all, Filling, Ty.U32, Res.No_Declaration, Site,
-                  Atoms => Errors));
+                  Atoms => Errors, Sealed => True));
             Success_Slot : constant IR.Slot_Id :=
               (if Errors = IR.No_Atom_Set or else Is_Stored (Result_Part)
                then IR.No_Slot else Add_Part_Slot (Result_Part));
@@ -16389,7 +16389,7 @@ package body Landin.Stages.Lowering is
                if Errors /= IR.No_Atom_Set then
                   Failure := IR.Add_Slot
                     (Unit.all, Filling, Ty.U32, Res.No_Declaration, Site,
-                     Atoms => Errors);
+                     Atoms => Errors, Sealed => True);
                end if;
                Call := IR.Emit_Call
                  (Unit.all, Filling, Bound_Target,
@@ -17153,7 +17153,7 @@ package body Landin.Stages.Lowering is
          if Errors /= IR.No_Atom_Set then
             Failure := IR.Add_Slot
               (Unit.all, Filling, Ty.U32, Res.No_Declaration, Site,
-               Atoms => Errors);
+               Atoms => Errors, Sealed => True);
          end if;
 
          declare

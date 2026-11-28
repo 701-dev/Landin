@@ -116,7 +116,8 @@ package body Landin.IR.Verifier is
                "an instruction is marked unchecked and carries no check"
                & " D187 removes, or sits in a module value",
             when Sealed_Slot_Exposed =>
-               "a sealed slot is named other than by a load or a store",
+               "a sealed slot is named other than by a load, a store or"
+               & " its call",
             when Slot_Out_Of_Range    =>
                "a load or a store names a slot the item does not have",
             when Pieces_Disagree =>
@@ -6387,7 +6388,9 @@ package body Landin.IR.Verifier is
                         --  A sealed slot reads back only what a store of
                         --  its set wrote, which is why a backend does not
                         --  validate its loads: nothing but a Load or a
-                        --  Store may name it.
+                        --  Store may name it, or a call whose failure it
+                        --  carries, which the call's own rule below holds
+                        --  to the callee's errors (D3176).
                         declare
                            function Sealed (Slot : Slot_Id) return Boolean
                              is (Slot /= No_Slot
@@ -6395,7 +6398,7 @@ package body Landin.IR.Verifier is
                                    <= Slot_Count (Of_Unit, Id)
                                  and then Is_Sealed (Of_Unit, Id, Slot));
                            Exposed : Boolean :=
-                             (Op not in Load | Store
+                             (Op not in Load | Store | Call | Indirect_Call
                               and then Sealed (Code.Slot))
                              or else (Code.Source.Kind = Frame_Slot
                                       and then Sealed (Code.Source.Slot))

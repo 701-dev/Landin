@@ -1509,10 +1509,10 @@ and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R16.45 — A call's failure tested once
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
-SR-1861: every call that can fail costs x86-64 about eleven instructions
+`SR-1861`: every call that can fail costs x86-64 about eleven instructions
 on its succeeding way where two would do, its status stored, loaded back,
 validated against its atom set and tested through a byte. R16.39
 measured sealing the call's failure slot and fusing the test into its
@@ -1522,6 +1522,50 @@ it. Scheduled by the register sweep of 2026-11-26. Exit evidence: a
 call's succeeding way testing its status once, in a register, on every
 target, binary-trees measured against the item's base, and no other
 combination over its own.
+
+Done: lowering seals every call's failure slot, so no backend checks the
+status it loads against the callee's errors, which the verifier already
+holds it to (D3176); and at `size` and `speed` the failure test after a
+call is the branch after it on every backend, reading the status in the
+register the call left it in, with no load, when only the store of the
+call's result lies between (D3175): `call; movl %r10d, slot; testl
+%r10d, %r10d; je` on x86-64, `cbz w8` on arm64, `beq x31, zero` on
+RISC-V, `cmp r12, #0` on Thumb-2 and `beqz` on Xtensa, the store kept
+for the failed way. Against the item's base under QEMU at speed
+binary-trees executes 4.7% fewer x86-64 instructions, 4.6% arm64 and
+2.4% RV64 (5.0%, 4.9% and 3.1% at size), reverse-complement about 1%,
+fasta about 0.2%, the others the same, every output the same and no
+configuration over its own; every hosted benchmark's `.text` is 2.8 to
+5.6 KB smaller. In user cycles binary-trees takes 3.0% fewer on an EPYC
+7302 and 1.0% fewer on a Cortex-X925 core, no workload 5% or more on
+x86-64. The shorter calls moved reverse-complement's foot-tested loop on
+arm64 and it took 16% more cycles, which `SR-2042` had seen at 1.6%, so
+the item took that row: at `speed` arm64 starts a loop head nothing
+falls into on a 32-byte line (D3177), and reverse-complement takes 17.0%
+fewer cycles than at the base and fannkuch-redux 1.9% fewer. `SR-1861`
+and `SR-2042` are completed and deleted; `SR-2223` (the arm64 cross
+lane's `events-network-limits` under QEMU) and `SR-2224`
+(`assemble_targets.py` without a fixture's `--firmware-entry`), both met
+at the base as well, are filed.
+
+### R16.46 — A square root is its instruction
+
+Status: planned
+Depends on: R16.10
+
+SR-2092: `math.sqrt` of an `f64` is a call to `sqrt_f64`, whose
+`assembler.block` around one `sqrtsd` or `fsqrt` is never copied into
+its caller. n-body's `advance` takes one for each of its pairs a step:
+at speed on x86-64 `sqrt_f64` is 22.4% of the program's 1.53 G
+instructions for 1,000,000 steps by `perf record`, and the call's
+set-up in `advance` a few more each pair, where the frame-routed float
+stores of SR-2093 are about 8%. D2551 left a builtin open for when a
+measurement shows the block's cost. Scheduled by R16.45's close at the
+roadmap manager's request, as the largest measured cost among the open
+rows on the benchmark ports. Exit evidence: a square root in a hot loop
+costing its one instruction on every target with a float unit, n-body
+measured in instructions and cycles against the item's base on x86-64
+and arm64, and no other combination over its own.
 
 ### The continuous items
 
