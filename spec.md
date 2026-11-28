@@ -29213,7 +29213,10 @@ instruction before it is a `b`, `br`, `brk` or `ret`, so its padding is
 never executed. Branch shortening counts the padding as seven
 instructions. A head entered by falling into it stays where it is, as
 on Thumb-2 and RV32. reverse-complement's loop so aligned took 162 M
-cycles, against 191 M with its foot's test aligned instead.
+cycles, against 191 M with its foot's test aligned instead. Windows on
+arm64 aligns nothing: a routine's SEH unwind information states its
+length, which LLVM's assembler refuses to evaluate across padding
+("Failed to evaluate function length in SEH unwind info").
 
 **The alternatives:** placing the test beside the body, which would
 reorder blocks every backend lays out in lowering's order; aligning the

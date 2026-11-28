@@ -2982,8 +2982,11 @@ package body Landin.Backend.Arm64 is
          --  the comparison's flags rather than a stored verdict.
          Fused_Branch : Landin.IR.Value_Id := Landin.IR.No_Value;
          --  D3177: the blocks that begin a loop, found at speed.
+         --  Not on COFF: a routine's SEH unwind information states its
+         --  length, which LLVM's assembler must evaluate as a constant
+         --  and cannot across alignment padding.
          Align_Loops : constant Boolean := Landin.Optimization."="
-           (Options.Optimize, Landin.Optimization.Speed);
+           (Options.Optimize, Landin.Optimization.Speed) and then not COFF;
          Loop_Heads : Home_Mask (1 .. Landin.IR.Block_Count (Of_Unit, Item))
            := [others => False];
          --  D3175: the load of a call's status that is not made, its
