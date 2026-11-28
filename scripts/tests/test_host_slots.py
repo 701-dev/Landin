@@ -242,9 +242,16 @@ class Scopes(unittest.TestCase):
         self.assertEqual(lived["exit_status"], 0, said)
         self.assertIn("survived", (survivor / "command.log").read_text())
         #  As before the change: a run in the service's cgroup ends with it.
-        died, said = self.wait(unscoped)
-        self.assertNotEqual(died["exit_status"], 0, said)
-        self.assertNotIn("scope", died)
+        #  Its wrapper either records the command's death or, killed with
+        #  it as on a GitHub runner, leaves no result: `--wait` says lost.
+        said = self.logged("--wait", str(unscoped), "--timeout", str(HANG))
+        if (unscoped / "result.json").exists():
+            died = json.loads((unscoped / "result.json").read_text())
+            self.assertNotEqual(died["exit_status"], 0, said.stdout)
+            self.assertNotIn("scope", died)
+        else:
+            self.assertTrue(said.stdout.startswith("state=lost"), said.stdout)
+        self.assertNotIn("survived", (unscoped / "command.log").read_text())
 
 
 if __name__ == "__main__":
