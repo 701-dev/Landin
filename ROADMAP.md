@@ -1547,6 +1547,11 @@ and `SR-2042` are completed and deleted; `SR-2223` (the arm64 cross
 lane's `events-network-limits` under QEMU) and `SR-2224`
 (`assemble_targets.py` without a fixture's `--firmware-entry`), both met
 at the base as well, are filed.
+Landed in batch-3, with the caseless-scalars split and the register
+sweep of 2026-11-28, on gate 46134308490 and boards 46134323359. The
+batch's gate found llvm-mingw refusing D3177's aligned loop heads in SEH
+unwind info, so COFF aligns none, and the RV32 and M0 corpus rows the
+shorter calls brought under their limits.
 
 ### R16.46 — A square root is its instruction
 
