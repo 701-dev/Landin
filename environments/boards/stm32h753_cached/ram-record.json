@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "image_sha256": "609c9d97ffd505421210164e91de43484f5f1ae1fe5283eba7ac273540e3ea08",
+  "image_sha256": "0caa6bc080137691cc32eda0344b23436c6c2d62e2a12c8b05ac0af7ea997d0c",
   "image_name": "board.elf",
   "image": {
     "cache_registers": [
@@ -60,13 +60,13 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "609c9d97ffd505421210164e91de43484f5f1ae1fe5283eba7ac273540e3ea08",
+    "elf_sha256": "0caa6bc080137691cc32eda0344b23436c6c2d62e2a12c8b05ac0af7ea997d0c",
     "entry": 603987869,
     "flash_written": false,
     "format_version": 1,
     "helper_source_sha256": "fc2f5b5081e7f4778195e621b04081bd05ac04dee304934a44bab3475aff0880",
     "mode": "warm",
-    "previous_pc": 603988096,
+    "previous_pc": 603980734,
     "segments": [
       {
         "address": 603979776,
@@ -78,10 +78,10 @@
     "status": "passed",
     "vector": 603979776
   },
-  "seconds": 4.51,
+  "seconds": 3.753,
   "kernel_usb": {
-    "since": 1795701789.8547647,
-    "until": 1795701794.3500073,
+    "since": 1795813610.5350523,
+    "until": 1795813614.2691472,
     "lines": [],
     "status": "captured"
   },

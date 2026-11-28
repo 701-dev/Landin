@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "image_sha256": "ea28ecc256caf96a2e172b5bae538853222648565844ed4809609e30c190831a",
+  "image_sha256": "e96aab627ed829c3346be27501e4f778f12836aef85e243d52b71445a18e1c66",
   "image_name": "board.elf",
-  "elf_sha256": "ea28ecc256caf96a2e172b5bae538853222648565844ed4809609e30c190831a",
+  "elf_sha256": "e96aab627ed829c3346be27501e4f778f12836aef85e243d52b71445a18e1c66",
   "instructions": [],
   "verdicts": {
     "boot": {
@@ -39,8 +39,8 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 2465,
-      "receive_interrupts": 6347,
+      "timer_events": 2462,
+      "receive_interrupts": 6338,
       "echoed": 3014,
       "sent": 3614
     },
@@ -59,7 +59,7 @@
     "recoveries": 2,
     "dropped": 44,
     "overflows": 1,
-    "entries": 6349,
+    "entries": 6340,
     "boot_reason": 1,
     "byte_cell": 116,
     "half_cell": 29789,
@@ -69,7 +69,7 @@
     "0x40380000+0x180",
     "0x40380180+0x4ca4"
   ],
-  "uart_sha256": "2bf22ae4f9b4bd9ccb533d044123ffafce70bf9e14c2791851f87bfc75be11db",
+  "uart_sha256": "db1edbed5fcf4d6b74aabc719f0c3c79a1265140cbf002c571d81439b43ea549",
   "mode": "ram",
   "warm_load": {
     "board": "esp32c3",
@@ -79,7 +79,7 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "ea28ecc256caf96a2e172b5bae538853222648565844ed4809609e30c190831a",
+    "elf_sha256": "e96aab627ed829c3346be27501e4f778f12836aef85e243d52b71445a18e1c66",
     "entry": 1077411840,
     "flash_written": false,
     "format_version": 1,
@@ -107,10 +107,10 @@
     "status": "passed",
     "vector": 1077412096
   },
-  "seconds": 14.674,
+  "seconds": 14.699,
   "kernel_usb": {
-    "since": 1795532800.729616,
-    "until": 1795532815.3784873,
+    "since": 1795813665.9190478,
+    "until": 1795813680.5931005,
     "lines": [],
     "status": "captured"
   },
@@ -131,8 +131,8 @@
       "tag": "t",
       "h": "00000bc7",
       "c": "00000002",
-      "i": "000018cd",
-      "m": "000009cf",
+      "i": "000018c4",
+      "m": "000009cc",
       "p": "80000001",
       "q": "80000002",
       "k": "00000064",

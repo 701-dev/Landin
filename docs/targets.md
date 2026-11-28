@@ -753,7 +753,7 @@ below. `refine compile --target=cortex-m0 --emit=asm`
 emits ARMv6-M assembly at the default `armv6-m` level;
 selecting `armv7-m`, `armv7e-m` or `armv8-m.main` permits instructions from that higher level
 while retaining the same layout and ABI. The toolchain identity is
-`arm-eabi`, the pinned GNAT arm-elf archive's; with no `--toolchain`, a
+`arm-eabi`, the locked nix-packages compiler's; with no `--toolchain`, a
 link tries `arm-eabi-gcc` and then `arm-none-eabi-gcc`, the name the
 distributions and Arm's own releases give the same GCC (D532). Executable
 requests require the explicit
@@ -1378,7 +1378,7 @@ is given `platform/riscv/reference`, QEMU `sifive_e`'s map at the Cortex-M
 reference's capacities (D661), and a description names one of the RISC-V
 cores, `hazard3`, `sifive-e31`, `esp-rv32imc` or `esp-rv32imac-clic`, whose
 interrupt model decides which mcause codes a handler's slot may be (D662).
-The toolchain identity is `riscv64-elf`, GNAT's riscv64-elf archive; with
+The toolchain identity is `riscv64-elf`, the locked nix-packages compiler's; with
 no `--toolchain`, a link tries `riscv64-elf-gcc` and then
 `riscv64-unknown-elf-gcc`. C signatures, records and varargs are
 disabled; D920 enabled Cortex-M's and left RV32's refused. The [RV32 emulator recipe](../environments/cortex-m/README.md)

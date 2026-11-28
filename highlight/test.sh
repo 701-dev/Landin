@@ -72,14 +72,11 @@ else
     skip textmate "TextMate test dependencies absent; tokenizer smoke skipped (npm ci in highlight/textmate installs them)"
 fi
 
-#  The pinned CLI is the grammar package's own, as the gate installs it, or
-#  the one `nix develop` puts on PATH -- the same release, which the gate
-#  and the flake each hold to the checksum in environments/pins.sh before
-#  it gets here.  Nothing here checks a checksum: a candidate is taken on
-#  the version it prints, so one that `npm install`'s own script
-#  downloaded is taken unverified, which is why the grammar package's
-#  README does not give that command.  Another version on PATH is not the
-#  pinned CLI.
+#  The pinned CLI is the grammar package's own, or the one `nix develop`
+#  puts on PATH, the flake's, which the gate's editor-grammar job takes
+#  from the nix-packages cache.  A candidate is taken on the version it
+#  prints, so one that `npm install`'s own script downloaded is taken
+#  unverified.  Another version on PATH is not the pinned CLI.
 tree_pin=$(sed -n 's/^LANDIN_TREE_SITTER_VERSION=//p' "$root/environments/pins.sh")
 #  The grammar package's own comes first, but only when it runs and is the
 #  pinned version: on NixOS the binary npm installs there is linked for a

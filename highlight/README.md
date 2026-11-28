@@ -225,13 +225,13 @@ for: `--integration` without it exits non-zero rather than reporting a corpus
 pass that did not run. It was made so after the grammar was found to have
 drifted from the enabled kernel unnoticed, 48 of 846 sources failing,
 because the pass could be requested and skipped in the same run. The gate's
-`editor-grammar` job runs it on each full gate run with the release binary of the
-CLI version `tree-sitter/package.json` names, checked against the sha256 in
-`environments/pins.sh`, and fails if regenerating the parser changes the
-committed one. `nix develop` puts the same release binary, held to the same
-checksum for its own system, on `PATH`, where the suite takes it when the
-grammar package has no CLI of its own; without Node it generates through the
-CLI's built-in QuickJS, which reproduces the committed parser byte for byte.
+`editor-grammar` job runs it on each full gate run with the flake's tree-sitter,
+nixpkgs' build of the CLI version `tree-sitter/package.json` names and
+`environments/pins.sh` pins, served by the nix-packages cache, and fails if
+regenerating the parser changes the committed one. `nix develop` puts the same
+CLI on `PATH`, where the suite takes it when the grammar package has no CLI of
+its own; without Node it generates through the CLI's built-in QuickJS, which
+reproduces the committed parser byte for byte.
 The [gate reference](../docs/process.md#the-mechanical-gate) describes the
 verified explanatory-only reuse exception. Each editor directory contains the shortest installation path for
 that editor.

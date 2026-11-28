@@ -447,17 +447,19 @@ package body Landin.Backend.Toolchain is
       then
          return "install the Arm embedded GCC (Debian and Ubuntu:"
            & " `apt install gcc-arm-none-eabi`; Fedora:"
-           & " `dnf install arm-none-eabi-gcc-cs`; or the GNAT arm-elf"
-           & " archive refine is tested with, which gives arm-eabi-gcc),"
-           & " or name a driver with --toolchain=NAME" & Without;
+           & " `dnf install arm-none-eabi-gcc-cs`; or the gcc-arm-eabi"
+           & " that refine is tested with, from 701-dev/nix-packages,"
+           & " which gives arm-eabi-gcc), or name a driver with"
+           & " --toolchain=NAME" & Without;
       elsif Landin.Targets.Capabilities.Backend_For (Facts)
         = Landin.Targets.Capabilities.RV32_ELF
       then
          return "install a bare-metal RISC-V GCC (Debian and Ubuntu:"
            & " `apt install gcc-riscv64-unknown-elf`, which gives"
-           & " riscv64-unknown-elf-gcc; or the GNAT riscv64-elf archive"
-           & " refine is tested with, which gives riscv64-elf-gcc), or name"
-           & " a driver with --toolchain=NAME" & Without;
+           & " riscv64-unknown-elf-gcc; or the gcc-riscv64-elf that"
+           & " refine is tested with, from 701-dev/nix-packages, which"
+           & " gives riscv64-elf-gcc), or name a driver with"
+           & " --toolchain=NAME" & Without;
       elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
         = Landin.Targets.Capabilities.Windows
       then

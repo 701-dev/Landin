@@ -741,11 +741,12 @@ PINS = ["environments/images/contributor.Containerfile",
         "environments/pins.sh",
         "highlight/tree-sitter/package.json",
         "highlight/tree-sitter/package-lock.json",
-        #  The Cortex-M lane's arm-elf archive's two readers.
+        #  The shell, and the lock of the Cortex-M and RV32 lanes' tools.
         "flake.nix",
-        "environments/cortex-m/setup.py",
-        #  The workflow that runs the pinned actionlint.
+        "environments/cortex-m/tools.lock.json",
+        #  The workflows whose jobs take the pinned tools from the flake.
         ".github/workflows/gate.yml",
+        ".github/workflows/links.yml",
         #  The user image's recipe, held to the same base image.
         "environments/images/user.Containerfile"]
 
@@ -817,9 +818,8 @@ class PinnedToolchain(unittest.TestCase):
                  "the lockfile's tree-sitter-cli is not 0.26.9"),
                 (PINS[2], "LANDIN_CLANG_NIX=19.1.7", "LANDIN_CLANG_NIX=19.1.8",
                  "LANDIN_CLANG_NIX 19.1.8 is not recorded"),
-                (PINS[2], "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX=9ce8",
-                 "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX=0ce8",
-                 "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX 0ce8"),
+                (PINS[2], "LANDIN_LYCHEE_VERSION=0.24.2", "LANDIN_LYCHEE_VERSION=0.24.3",
+                 "LANDIN_LYCHEE_VERSION 0.24.3 is not recorded"),
                 (PINS[2], "LANDIN_TREE_SITTER_VERSION=", "LANDIN_TREE_SITTER_RELEASE=",
                  "LANDIN_TREE_SITTER_VERSION is not pinned")):
             with self.subTest(fragment=fragment), tree(copied=PINS) as root:
@@ -831,24 +831,26 @@ class PinnedToolchain(unittest.TestCase):
                 self.assertTrue(any(fragment in why for why in said), said)
 
 
-    def test_the_arm_elf_archive_is_read_from_the_pins(self):
-        #  Each break is named: the record missing the version, a reader
-        #  writing it out, and a reader no longer reading its pin.
+    def test_the_bare_metal_compilers_are_locked_and_recorded(self):
+        #  Each break is named: the record missing an archive, the lock
+        #  holding two GCC versions, an archive unpacked elsewhere, and the
+        #  shell fetching its own compiler.
         from check_controls import tree
         for relative, old, new, fragment in (
                 ("compiler/ada/TOOLCHAIN.md",
-                 "`gnat-arm-elf-darwin-aarch64-16.1.0-1.tar.gz`",
-                 "`gnat-arm-elf-darwin-aarch64-16.1.0-2.tar.gz`",
-                 "gnat-arm-elf-darwin-aarch64-16.1.0-1.tar.gz is not recorded"),
-                ("flake.nix", 'armElfVersion = pin "LANDIN_GNAT_ARM_ELF_VERSION";',
-                 'armElfVersion = "16.1.0-1";',
-                 "flake.nix does not read pin \"LANDIN_GNAT_ARM_ELF_VERSION\""),
-                ("flake.nix", 'armElfVersion = pin "LANDIN_GNAT_ARM_ELF_VERSION";',
-                 'armElfVersion = pin "LANDIN_GNAT_ARM_ELF_VERSION"; # 16.1.0-1',
-                 "names the arm-elf archive's 16.1.0-1 literally"),
-                ("environments/cortex-m/setup.py",
-                 '"LANDIN_GNAT_ARM_ELF_SHA256_X86_64_LINUX"', '"9e6bb669"',
-                 "does not read \"LANDIN_GNAT_ARM_ELF_SHA256_X86_64_LINUX\"")):
+                 "`gcc-riscv64-elf-16.1.0-x86_64-linux.tar.xz`",
+                 "`gcc-riscv64-elf-16.1.1-x86_64-linux.tar.xz`",
+                 "gcc-riscv64-elf-16.1.0-x86_64-linux.tar.xz is not recorded"),
+                ("environments/cortex-m/tools.lock.json",
+                 '"file": "gcc-arm-eabi-16.1.0-x86_64-linux.tar.xz"',
+                 '"file": "gcc-arm-eabi-16.2.0-x86_64-linux.tar.xz"',
+                 "compilers are GCC 16.1.0 and 16.2.0, not one version"),
+                ("environments/cortex-m/tools.lock.json",
+                 '"into": "gcc-riscv64-elf"', '"into": "gnat-riscv64-elf"',
+                 "is not unpacked into gcc-riscv64-elf"),
+                ("flake.nix", "inputs.nix-packages.packages.${system}.gcc-arm-eabi;",
+                 "fromArchive { };",
+                 "does not take the shell's arm-eabi compiler from nix-packages")):
             with self.subTest(fragment=fragment), tree(copied=PINS) as root:
                 path = root / relative
                 text = path.read_text()
@@ -873,18 +875,12 @@ class PinnedToolchain(unittest.TestCase):
                 path.write_text(text.replace(old, new, 1))
                 said = [why for _, _, why in checker.check_pinned_toolchain(True)]
                 self.assertTrue(any(fragment in why for why in said), said)
-        #  The shell's tree-sitter CLI, read from the pins as the gate's is;
-        #  its banner on standard error; its bash with completion.
+        #  The shell's banner on standard error; its bash with completion.
         for old, new, fragment in (
                 ("PATH\" >&2\n", "PATH\"\n",
                  "the shell hook writes to standard output"),
                 ("pkgs.bashInteractive", "pkgs.bash",
-                 "the shell has no pkgs.bashInteractive"),
-                ('pin "LANDIN_TREE_SITTER_VERSION"', '"0.26.9"',
-                 "does not take the shell's tree-sitter CLI"),
-                ('pin "LANDIN_TREE_SITTER_SHA256_${suffix}"',
-                 '"9ce82137caa65864e7ca8b869fd391cef88c9bd2a01c4371b9c4dd26c2585efb"',
-                 "names LANDIN_TREE_SITTER_SHA256_X86_64_LINUX's 9ce8")):
+                 "the shell has no pkgs.bashInteractive")):
             with self.subTest(fragment=fragment), tree(copied=copied) as root:
                 path = root / "flake.nix"
                 text = path.read_text()
@@ -892,41 +888,26 @@ class PinnedToolchain(unittest.TestCase):
                 path.write_text(text.replace(old, new, 1))
                 said = [why for _, _, why in checker.check_pinned_toolchain(True)]
                 self.assertTrue(any(fragment in why for why in said), said)
-        #  The workflows' actionlint: recorded, read by the shell from the
-        #  pins, and run by the gate through the script that reads them.
+        #  The editor grammar's CLI, the workflows' actionlint and the
+        #  shellcheck it runs, and the link checker: nixpkgs' packages, held
+        #  by the flake to their pins and taken by their jobs from it.
         for relative, old, new, fragment in (
-                ("environments/pins.sh", "LANDIN_ACTIONLINT_SHA256_AARCH64_LINUX=325e",
-                 "LANDIN_ACTIONLINT_SHA256_AARCH64_LINUX=025e",
-                 "LANDIN_ACTIONLINT_SHA256_AARCH64_LINUX 025e"),
-                ("environments/pins.sh", "LANDIN_ACTIONLINT_VERSION=",
-                 "LANDIN_ACTIONLINT_RELEASE=", "LANDIN_ACTIONLINT_VERSION is not pinned"),
-                ("flake.nix", 'pin "LANDIN_ACTIONLINT_SHA256_${suffix}"',
-                 '"8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"',
-                 "does not take the shell's actionlint"),
-                ("flake.nix", 'actionlintVersion = pin "LANDIN_ACTIONLINT_VERSION";',
-                 'actionlintVersion = pin "LANDIN_ACTIONLINT_VERSION"; # 1.7.12',
+                ("flake.nix", 'pin "LANDIN_TREE_SITTER_VERSION"', '"0.26.9"',
+                 "does not hold its package set to LANDIN_TREE_SITTER_VERSION"),
+                ("flake.nix", '(pin "LANDIN_ACTIONLINT_VERSION")', '"1.7.12"',
                  "names LANDIN_ACTIONLINT_VERSION's 1.7.12 literally"),
-                (".github/workflows/gate.yml", "python3 scripts/actionlint.py --install",
-                 "actionlint",
-                 "the gate does not run the pinned actionlint"),
-                (".github/workflows/gate.yml", "python3 scripts/actionlint.py --install",
-                 "ACTIONLINT=1.7.12 python3 scripts/actionlint.py --install",
-                 "gate.yml names LANDIN_ACTIONLINT_VERSION's 1.7.12 literally"),
-                #  The shellcheck actionlint runs, held the same way.
-                ("environments/pins.sh", "LANDIN_SHELLCHECK_SHA256_AARCH64_DARWIN=56af",
-                 "LANDIN_SHELLCHECK_SHA256_AARCH64_DARWIN=06af",
-                 "LANDIN_SHELLCHECK_SHA256_AARCH64_DARWIN 06af"),
                 ("environments/pins.sh", "LANDIN_SHELLCHECK_VERSION=",
                  "LANDIN_SHELLCHECK_RELEASE=", "LANDIN_SHELLCHECK_VERSION is not pinned"),
-                ("flake.nix", 'pin "LANDIN_SHELLCHECK_RELEASES"',
-                 '"https://example.invalid"',
-                 "does not take the shell's shellcheck"),
-                ("flake.nix", 'shellcheckVersion = pin "LANDIN_SHELLCHECK_VERSION";',
-                 'shellcheckVersion = pin "LANDIN_SHELLCHECK_VERSION"; # 0.11.0',
-                 "names LANDIN_SHELLCHECK_VERSION's 0.11.0 literally"),
-                (".github/workflows/gate.yml", "python3 scripts/actionlint.py --install",
-                 "SHELLCHECK=0.11.0 python3 scripts/actionlint.py --install",
-                 "gate.yml names LANDIN_SHELLCHECK_VERSION's 0.11.0 literally")):
+                ("flake.nix", 'pin "LANDIN_LYCHEE_VERSION"', '"0.24.2"',
+                 "does not hold its package set to LANDIN_LYCHEE_VERSION"),
+                (".github/workflows/gate.yml", "packages: actionlint shellcheck",
+                 "packages: actionlint",
+                 "gate.yml does not take its tool from the flake"),
+                (".github/workflows/gate.yml", "packages: tree-sitter neovim emacs-nox",
+                 "packages: neovim emacs-nox",
+                 "gate.yml does not take its tool from the flake"),
+                (".github/workflows/links.yml", "packages: lychee", "packages: lychee-bin",
+                 "links.yml does not take its tool from the flake")):
             with self.subTest(fragment=fragment), tree(copied=copied) as root:
                 path = root / relative
                 text = path.read_text()

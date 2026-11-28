@@ -260,55 +260,32 @@ the build sets. The installation record inventories
 the compiler, both chip plugins and the Xtensa emulator alongside the other
 embedded tools.
 
-### Editor grammar CLI
+### Editor grammar CLI, workflow linter and link checker
 
-The structural editor grammar's CLI is not a compiler tool, but the gate
-fetches it, so it is pinned the same way: tree-sitter `0.26.9`, the version
-`highlight/tree-sitter/package.json` names, as the release binary below.
-The gate fetches the Linux x86-64 binary; `nix develop` puts its own
-system's on `PATH`.
+Four tools the gate runs that are not compiler tools are pinned by version
+in `environments/pins.sh`: tree-sitter `0.26.9`, the structural editor
+grammar's CLI and the version `highlight/tree-sitter/package.json` names;
+actionlint `1.7.12`, the workflows' linter; shellcheck `0.11.0`, which
+actionlint runs over every `run:` script; and lychee `0.24.2`, the link
+checker. Each is nixpkgs' package at `flake.lock`'s revision, built from
+its source and served by the
+[701-dev/nix-packages](https://github.com/701-dev/nix-packages) cache:
+`flake.nix` refuses a lock whose package is another version, so moving the
+lock moves them on purpose, and `nix develop` puts all four on `PATH`. The
+gate's `editor-grammar`, `scripts` and `links` jobs take them through
+`.github/actions/nix-tools`, so no job downloads a release binary or an
+npm package. actionlint is nix-packages' build of nixpkgs' recipe without
+the wrapper that adds a Python and a second shellcheck to its closure.
+nixpkgs' tree-sitter regenerates the committed parser byte for byte, with
+its built-in JavaScript runtime.
 
-| platform | archive | sha256 |
-|---|---|---|
-| Linux x86-64 | `tree-sitter-linux-x64.gz` | `9ce82137caa65864e7ca8b869fd391cef88c9bd2a01c4371b9c4dd26c2585efb` |
-| Linux arm64 | `tree-sitter-linux-arm64.gz` | `c8feeb32115958cb44442ca4d68f6d66cf7605dbd65681e62342181ebdd6db3b` |
-| macOS arm64 | `tree-sitter-macos-arm64.gz` | `e46725b2417c085b0761948abc0cc240bff6a3ab5d2128e3ad0de467ded3388d` |
-
-### Workflow linter
-
-The workflows are held to actionlint `1.7.12`, the release binary its
-publisher builds, pinned the same way as the editor grammar's CLI:
-`environments/pins.sh` names the version, the release URL and the archive
-checksums below. `scripts/actionlint.py` runs it over every file under
+`scripts/actionlint.py` runs actionlint over every file under
 `.github/workflows` with `.github/actionlint.yaml`, which names the two
 runner labels GitHub does not host, `landin-rig` and RISE's
-`ubuntu-24.04-riscv`. It refuses an actionlint of another version. Its
-shellcheck pass runs the shellcheck pinned beside it, named to actionlint
-by its path, over every `run:` script, so the verdict does not depend on
-what a host's `PATH` holds; its pyflakes pass is turned off, since no step
-runs Python as its shell and pyflakes publishes no release binary to pin.
-The gate's scripts job runs `python3 scripts/actionlint.py --install DIR`,
-which fetches both Linux x86-64 archives and verifies each before
-unpacking it; `nix develop` puts its own system's on `PATH`. Outside the
-shell, a missing actionlint or shellcheck is refused with both routes.
-
-| platform | archive | sha256 |
-|---|---|---|
-| Linux x86-64 | `actionlint_1.7.12_linux_amd64.tar.gz` | `8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8` |
-| Linux arm64 | `actionlint_1.7.12_linux_arm64.tar.gz` | `325e971b6ba9bfa504672e29be93c24981eeb1c07576d730e9f7c8805afff0c6` |
-| macOS arm64 | `actionlint_1.7.12_darwin_arm64.tar.gz` | `aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f` |
-
-The shellcheck is `0.11.0`, the static release binary its publisher
-builds. Its release publishes no checksum file, so the checksums below are
-the archives' own, taken when they were fetched from the release page; a
-new version is pinned the same way, by fetching each archive and recording
-its SHA-256.
-
-| platform | archive | sha256 |
-|---|---|---|
-| Linux x86-64 | `shellcheck-v0.11.0.linux.x86_64.tar.xz` | `8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198` |
-| Linux arm64 | `shellcheck-v0.11.0.linux.aarch64.tar.xz` | `12b331c1d2db6b9eb13cfca64306b1b157a86eb69db83023e261eaa7e7c14588` |
-| macOS arm64 | `shellcheck-v0.11.0.darwin.aarch64.tar.xz` | `56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79` |
+`ubuntu-24.04-riscv`. It refuses an actionlint or a shellcheck of another
+version, and names the pinned shellcheck to actionlint by its path, so the
+verdict does not depend on what a host's `PATH` holds; its pyflakes pass is
+turned off, since no step runs Python as its shell.
 
 The release jobs run the packaged Linux compiler on Alpine `3.24.4`'s
 minirootfs, a musl system with no glibc (`scripts/static_check.py`). The
@@ -450,63 +427,47 @@ with LLDB sessions and Mach-O debug artifacts.
 
 ## External embedded environment tools
 
-The Cortex-M lane assembles and links with GNAT's arm-elf archive from the
-release the host GNAT comes from, GCC `16.1.0` with GNU Binutils
-`2.46.1`, whose driver is `arm-eabi-gcc`. `environments/pins.sh` pins it as
-`LANDIN_GNAT_ARM_ELF_VERSION` `16.1.0-1` with a checksum per host, which
-`environments/cortex-m/setup.py` and the nix shell read; its multilibs
-cover ARMv6-M through Armv8.1-M with MVE. Its GDB is built without Python,
-which the debugger sessions run, so QEMU and GDB are pinned in
-`environments/cortex-m/tools.lock.json`, each an archive that
-[701-dev/nix-packages](https://github.com/701-dev/nix-packages) built from
-upstream's source and serves from its cache with the sources it was built
-from (D2572):
+The Cortex-M lane assembles and links with GCC `16.1.0`, GNU Binutils
+`2.46.1` and newlib `4.4.0.20231231` for `arm-eabi`, whose driver is
+`arm-eabi-gcc`, and the RV32 lanes with the same three for `riscv64-elf`,
+whose driver is `riscv64-elf-gcc` (D660). Both are
+[701-dev/nix-packages](https://github.com/701-dev/nix-packages)' builds,
+configured as GNAT-FSF-builds configures its `gnat-arm-elf` and
+`gnat-riscv64-elf` archives of release 16.1.0-1, which the lanes used
+until D3134, for the C language alone, and static, so they need nothing of
+the host's. The arm-eabi multilibs cover ARMv6-M through Armv8.1-M with
+MVE; the riscv64-elf ones include `rv32im/ilp32`, which
+`-march=rv32imc_zicsr_zifencei -mabi=ilp32` selects, and `rv32imac/ilp32`.
+`environments/cortex-m/tools.lock.json` locks their Linux x86-64 archives,
+and `nix develop` takes its own system's builds from the flake's
+nix-packages input. The lock also holds QEMU and GDB, each an archive
+nix-packages built from upstream's source and serves from its cache with
+the sources it was built from (D2572):
 
 | tool | archive | sha256 |
 |---|---|---|
 | QEMU 10.0.13, `arm-softmmu`, microbit and MPS2 machines, TCG plugins | `qemu-arm-10.0.13-x86_64-linux.tar.xz` | `e6d296decd5abee0855ed706a91c153c72e7a0e0cb933cbe059e2e800c36a093` |
 | GDB 16.3 for Arm and RISC-V, Python 3.13, static | `gdb-16.3-x86_64-linux.tar.xz` | `9862b2f8263407d6665f5767af157bbf799a2b1937afba21ddb8791ad98ff4ba` |
+| GCC 16.1.0, Binutils 2.46.1 and newlib for `arm-eabi`, static | `gcc-arm-eabi-16.1.0-x86_64-linux.tar.xz` | `f350aa91334945c92c73c73bc91452d93421622d888c82e1bafea040e24a8c37` |
+| GCC 16.1.0, Binutils 2.46.1 and newlib for `riscv64-elf`, static | `gcc-riscv64-elf-16.1.0-x86_64-linux.tar.xz` | `aeed42e1946e2b2ca2285b8b57fab29e5ed9ca431a9a6e055fbe6279a2bcd2e6` |
 
 The [profile guide](../../environments/cortex-m/README.md) gives exact
-versions, options and reproduction on any glibc 2.35 Linux x86-64 host.
+versions, options and reproduction on any glibc 2.17 Linux x86-64 host.
 None of them is an Ada bootstrap dependency.
 
 `refine` itself looks for `arm-eabi-gcc` and then `arm-none-eabi-gcc`, the
 name Debian, Ubuntu, Fedora, Homebrew and Arm's own releases give the same
 bare-metal GCC (D532), so a distribution's links without a flag; the gate's
-`outside-user-stock` job links firmware with Ubuntu's.
-
-| platform | archive | sha256 |
-|---|---|---|
-| Linux x86-64 | `gnat-arm-elf-linux64-x86_64-16.1.0-1.tar.gz` | `9e6bb6696de1b84e26a3fbeebd67d5e7c9aad28a6bdee4cb8e59328b6fd99078` |
-| Linux arm64 | `gnat-arm-elf-linux64-aarch64-16.1.0-1.tar.gz` | `6f09f8efe4f36cc4a8c1f9da1c554bca043722fd11bb8475dbe100f03543b2a3` |
-| macOS arm64 | `gnat-arm-elf-darwin-aarch64-16.1.0-1.tar.gz` | `10fc8bc6b6a67def53c2497e21b06289bfadf845a609f6a3679cad06c8bbf5d4` |
-
-The RV32 target's lanes assemble and link with GNAT's riscv64-elf archive
-from the same release, GCC `16.1.0` with GNU Binutils `2.46.1`, whose
-driver is `riscv64-elf-gcc` (D660). `environments/pins.sh` pins it as
-`LANDIN_GNAT_RISCV64_ELF_VERSION` `16.1.0-1` with a checksum per host,
-which the nix shell reads. Its multilibs include `rv32im/ilp32`, which
-`-march=rv32imc_zicsr_zifencei -mabi=ilp32` selects, and
-`rv32imac/ilp32`. `refine` looks for `riscv64-elf-gcc` and then
-`riscv64-unknown-elf-gcc`, the name Debian's and Ubuntu's
-`gcc-riscv64-unknown-elf` gives the same bare-metal GCC.
-`environments/cortex-m/setup.py` installs the Linux x86-64 one for the RV32
-emulator lanes, which run on Espressif's QEMU, locked in
-`environments/cortex-m/tools.lock.json` as the same nix-packages archive
-the Xtensa lanes use (D695, D2571).
-
-| platform | archive | sha256 |
-|---|---|---|
-| Linux x86-64 | `gnat-riscv64-elf-linux64-x86_64-16.1.0-1.tar.gz` | `01cb5e97d6b51ed21f677912bc09bd6caca430515d09c8feda171c17b4fa95db` |
-| Linux arm64 | `gnat-riscv64-elf-linux64-aarch64-16.1.0-1.tar.gz` | `e08cbbf929ffcb9ca931ad41d7fd6d9a95a2ab46ad2830daf9e3a4ea11104a32` |
-| macOS arm64 | `gnat-riscv64-elf-darwin-aarch64-16.1.0-1.tar.gz` | `c4b76df21e1518b9b3ba9a34a515ef951f8a1a333640df2d5f2382e5c23d6df3` |
-
+`outside-user-stock` job links firmware with Ubuntu's. For RV32 it looks
+for `riscv64-elf-gcc` and then `riscv64-unknown-elf-gcc`, the name Debian's
+and Ubuntu's `gcc-riscv64-unknown-elf` gives the same bare-metal GCC. The
+RV32 emulator lanes run on Espressif's QEMU, locked as the same
+nix-packages archive the Xtensa lanes use (D695, D2571).
 
 ## Cortex-M emitted-code runtime
 
-The Cortex-M backend's external execution harness uses the pinned arm-elf
-archive above. Generated arithmetic may require its GCC 16.1.0
+The Cortex-M backend's external execution harness uses the locked arm-eabi
+compiler above. Generated arithmetic may require its GCC 16.1.0
 `thumb/v6-m/nofp/libgcc.a` multilib. This is a target runtime dependency, not an Ada bootstrap dependency
 or a C backend. Each linked test records its archive hash, requested helpers,
 map members, ELF attributes and unresolved-symbol check. The

@@ -208,10 +208,14 @@ jobs:
       - name: scripts/tests
         run: python3 scripts/script_tests.py
 
-      #  Every workflow held to the actionlint environments/pins.sh pins,
-      #  which the script fetches and verifies before it runs it.
+      #  Every workflow held to the actionlint and shellcheck
+      #  environments/pins.sh pins, the flake's, from the nix-packages cache.
+      - name: Install actionlint and shellcheck
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: actionlint shellcheck
       - name: actionlint
-        run: python3 scripts/actionlint.py --install "$RUNNER_TEMP/actionlint"
+        run: python3 scripts/actionlint.py
 
       - name: The determinism, quality and debugging controls
         run: |
@@ -871,9 +875,8 @@ jobs:
           --refine "$PWD/compiler/ada/build/linux-amd64/debug/bin/refine"
 
   #  The structural editor grammar parses every positive, runtime and ABI
-  #  fixture and all of core, with the pinned CLI.  The npm package's own
-  #  install script would download the binary unverified, so it is not run:
-  #  the release binary is fetched and checked against its pin instead.
+  #  fixture and all of core, with the pinned CLI, the flake's tree-sitter
+  #  from the nix-packages cache; no Node or npm package is installed.
   #  Regenerating the parser must reproduce the committed one.  10 s.
   editor-grammar:
     needs: inputs
@@ -884,28 +887,13 @@ jobs:
         with:
           fetch-depth: 0 # compare shipped grammar and queries with the pinned commit
 
-      - name: Install the pinned tree-sitter CLI
-        working-directory: highlight/tree-sitter
-        run: |
-          set -eu
-          . ../../environments/pins.sh
-          npm ci --ignore-scripts --no-audit --no-fund
-          url="https://github.com/tree-sitter/tree-sitter/releases/download"
-          curl -fsSL -o "$RUNNER_TEMP/tree-sitter.gz" \
-            "$url/v$LANDIN_TREE_SITTER_VERSION/tree-sitter-linux-x64.gz"
-          echo "$LANDIN_TREE_SITTER_SHA256_X86_64_LINUX  $RUNNER_TEMP/tree-sitter.gz" \
-            | sha256sum -c -
-          gunzip -c "$RUNNER_TEMP/tree-sitter.gz" > node_modules/tree-sitter-cli/tree-sitter
-          chmod 755 node_modules/tree-sitter-cli/tree-sitter
-          ./node_modules/.bin/tree-sitter --version
-
-      #  Neovim and Emacs from the flake, before the pass, so that its
-      #  editor smokes run here too: Neovim's live parser smoke and LSP
-      #  opt-out control, and Emacs's tree-sitter mode and highlighting.
-      - name: Install Neovim and Emacs
+      #  The CLI, and Neovim and Emacs before the pass, so that its editor
+      #  smokes run here too: Neovim's live parser smoke and LSP opt-out
+      #  control, and Emacs's tree-sitter mode and highlighting.
+      - name: Install tree-sitter, Neovim and Emacs
         uses: ./.github/actions/nix-tools
         with:
-          packages: neovim emacs-nox
+          packages: tree-sitter neovim emacs-nox
 
       - name: The integration pass
         run: ./highlight/test.sh --integration
@@ -953,8 +941,21 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      #  The nix-packages cache beside cache.nixos.org: the shell holds its
+      #  bare-metal compilers (D3134), which no other cache has.
+      - name: The nix-packages cache and its key
+        id: nix-packages
+        run: |
+          set -eu
+          . ./environments/pins.sh
+          echo "cache=$LANDIN_NIX_PACKAGES_CACHE" >> "$GITHUB_OUTPUT"
+          echo "key=$LANDIN_NIX_PACKAGES_KEY" >> "$GITHUB_OUTPUT"
       - name: Install nix for the flake
         uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          extra_nix_config: |
+            extra-substituters = ${{ steps.nix-packages.outputs.cache }}
+            extra-trusted-public-keys = ${{ steps.nix-packages.outputs.key }}
 
       - name: Build the compiler, evaluate every output and enter the shell
         if: matrix.part == 'compiler'
@@ -1006,8 +1007,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      #  The nix-packages cache beside cache.nixos.org: the shell holds its
+      #  bare-metal compilers (D3134), which no other cache has.
+      - name: The nix-packages cache and its key
+        id: nix-packages
+        run: |
+          set -eu
+          . ./environments/pins.sh
+          echo "cache=$LANDIN_NIX_PACKAGES_CACHE" >> "$GITHUB_OUTPUT"
+          echo "key=$LANDIN_NIX_PACKAGES_KEY" >> "$GITHUB_OUTPUT"
       - name: Install nix for the pinned linkers
         uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          extra_nix_config: |
+            extra-substituters = ${{ steps.nix-packages.outputs.cache }}
+            extra-trusted-public-keys = ${{ steps.nix-packages.outputs.key }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: linux-release
@@ -1148,8 +1162,8 @@ jobs:
             -C compiler/ada/build/linux-amd64/release
           ./scripts/build.sh -q
 
-      #  The arm-elf and riscv64-elf archives, QEMU, Espressif's QEMU and
-      #  GDB, as every part's lanes use.
+      #  The arm-eabi and riscv64-elf compilers, QEMU, Espressif's QEMU and
+      #  GDB, nix-packages archives, as every part's lanes use.
       - name: Install the locked Cortex-M and RV32 tools
         id: tools
         run: python3 environments/cortex-m/setup.py --tools "$RUNNER_TEMP/cortex-m"
@@ -1197,12 +1211,12 @@ jobs:
         run: |
           python3 devices/test.py --require-inputs \
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
-            --toolchain "$RUNNER_TEMP/cortex-m/gnat-arm-elf/bin/arm-eabi-gcc"
+            --toolchain "$RUNNER_TEMP/cortex-m/gcc-arm-eabi/bin/arm-eabi-gcc"
 
       - name: Build every board port without hardware
         if: matrix.part == 'programs'
         run: |
-          export PATH="$RUNNER_TEMP/cortex-m/gnat-arm-elf/bin:$RUNNER_TEMP/cortex-m/gnat-riscv64-elf/bin:$RUNNER_TEMP/cortex-m/xtensa-esp-elf/bin:$PATH"
+          export PATH="$RUNNER_TEMP/cortex-m/gcc-arm-eabi/bin:$RUNNER_TEMP/cortex-m/gcc-riscv64-elf/bin:$RUNNER_TEMP/cortex-m/xtensa-esp-elf/bin:$PATH"
           python3 environments/boards/build.py \
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --mode=both --records=report --output "$RUNNER_TEMP/board-images"
@@ -3509,7 +3523,7 @@ jobs:
 
       - name: Build every board's bundles against its hardware records
         run: |
-          export PATH="$RUNNER_TEMP/cortex-m/gnat-arm-elf/bin:$RUNNER_TEMP/cortex-m/gnat-riscv64-elf/bin:$RUNNER_TEMP/cortex-m/xtensa-esp-elf/bin:$PATH"
+          export PATH="$RUNNER_TEMP/cortex-m/gcc-arm-eabi/bin:$RUNNER_TEMP/cortex-m/gcc-riscv64-elf/bin:$RUNNER_TEMP/cortex-m/xtensa-esp-elf/bin:$PATH"
           python3 environments/boards/build.py \
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --mode=both --records=strict --output "$RUNNER_TEMP/board-bundles"
@@ -3517,7 +3531,7 @@ jobs:
       - name: Build the timing runs' images of every firmware workload and profile
         if: needs.inputs.outputs.timing == 'true'
         run: |
-          export PATH="$RUNNER_TEMP/cortex-m/gnat-arm-elf/bin:$RUNNER_TEMP/cortex-m/gnat-riscv64-elf/bin:$RUNNER_TEMP/cortex-m/xtensa-esp-elf/bin:$PATH"
+          export PATH="$RUNNER_TEMP/cortex-m/gcc-arm-eabi/bin:$RUNNER_TEMP/cortex-m/gcc-riscv64-elf/bin:$RUNNER_TEMP/cortex-m/xtensa-esp-elf/bin:$PATH"
           python3 environments/boards/timing.py build \
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --output "$RUNNER_TEMP/board-bundles/timing"

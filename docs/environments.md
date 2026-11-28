@@ -89,10 +89,12 @@ it did before the switch.
 ### Tools from nix-packages
 
 A Linux job that needs Clang, LLD, LLDB's adapter, QEMU, the riscv64 cross
-driver, GDB, bubblewrap, Emacs or Neovim takes it through
-`.github/actions/nix-tools` with the flake's package names: `llvm-19`,
-`qemu-system`, `qemu-user`, `cross-riscv64`, `gdb-multiarch`, `bubblewrap`,
-`emacs-nox` and `neovim` (`flake.nix`, `ciTools`). They are the derivations
+driver, GDB, bubblewrap, Emacs, Neovim, the tree-sitter CLI, actionlint,
+shellcheck or lychee takes it through `.github/actions/nix-tools` with the
+flake's package names: `llvm-19`, `qemu-system`, `qemu-user`,
+`cross-riscv64`, `gdb-multiarch`, `bubblewrap`, `emacs-nox`, `neovim`,
+`tree-sitter`, `actionlint`, `shellcheck` and `lychee` (`flake.nix`,
+`ciTools`). They are the derivations
 `nix develop` holds, so a job and a contributor's shell run one tool. The
 action installs Nix with the binary cache of
 [701-dev/nix-packages](https://github.com/701-dev/nix-packages), the
@@ -426,12 +428,14 @@ same one. The Darwin shell does not pretend that its SDK is a
 Linux sysroot; run binding-generator tests through `scripts/linux-loop.sh`
 there.
 
-The shell also holds the editor grammar's tree-sitter CLI, the release
-binary of the version `environments/pins.sh` pins, checked against its
-checksum for each of the three systems, so `highlight/test.sh --integration`
-runs in it without `npm`, and actionlint and shellcheck likewise, the
-release binaries `scripts/actionlint.py` holds the workflows and their
-`run:` scripts to, as the gate's scripts job does. Its `bash` is nixpkgs' interactive one, because
+The shell also holds the editor grammar's tree-sitter CLI, nixpkgs' build
+of the version `environments/pins.sh` pins, so `highlight/test.sh
+--integration` runs in it without `npm`, and actionlint and shellcheck
+likewise, the versions `scripts/actionlint.py` holds the workflows and
+their `run:` scripts to, as the gate's scripts job does; the flake refuses
+a lock whose packages are other versions. It holds the Cortex-M and RV32
+lanes' `arm-eabi-gcc` and `riscv64-elf-gcc` as well, nix-packages' builds,
+static on Linux (D3134). Its `bash` is nixpkgs' interactive one, because
 stdenv's has no `compgen` or `complete` and the completion case of
 `scripts/tests/test_cli_native.py` needs both. Its two `landin:` banner
 lines go to standard error, so `nix develop -c cmd > file` captures only
@@ -456,10 +460,10 @@ AGENTS.md asks of related commands anyway.
 
 On Linux x86-64 it holds `landin-fhs`, an FHS environment of the store's
 glibc and libstdc++, which the Cortex-M, RV32 and Xtensa lanes run
-themselves again inside on NixOS, whose stub loader refuses the cross
-compilers' release binaries `environments/cortex-m/setup.py` installs; the
-emulators and GDB that `environments/cortex-m/tools.lock.json` locks need
-nothing of the host's, and `setup.py` installs everything from the shell
+themselves again inside on NixOS, whose stub loader refuses Espressif's
+Xtensa compiler, the release binary `environments/cortex-m/setup.py`
+installs; the compilers, emulators and GDB that
+`environments/cortex-m/tools.lock.json` locks need nothing of the host's, and `setup.py` installs everything from the shell
 too. See the
 [lanes' guide](../environments/cortex-m/README.md#on-nixos).
 

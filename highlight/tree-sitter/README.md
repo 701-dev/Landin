@@ -25,14 +25,12 @@ tree-sitter test
 tree-sitter highlight ../tests/structural.ldn
 ```
 
-Without Nix, take the CLI as the gate's `editor-grammar` job does: `npm ci
---ignore-scripts`, then the release binary of the version
-`environments/pins.sh` names, held to the checksum beside it there and
-unpacked to `node_modules/tree-sitter-cli/tree-sitter`; `npm run generate`
-and `npm test` then run it. A plain `npm install` runs the CLI package's own
-install script, which downloads that binary and compares it with nothing,
-and `../test.sh` takes whatever CLI prints the pinned version, so a binary
-fetched that way would generate the committed parser unverified.
+The gate's `editor-grammar` job takes the same CLI from the flake, nixpkgs'
+build of the version `environments/pins.sh` names, through the nix-packages
+cache. Without Nix, any tree-sitter CLI that prints that version generates
+the committed parser, and `../test.sh` takes it from `PATH`; a plain `npm
+install` runs the CLI package's own install script, which downloads a
+release binary and compares it with nothing.
 
 A change to `grammar.js` or `queries/` takes two commits, because Helix, Zed
 and Emacs fetch this grammar by commit: commit the change, then run

@@ -21,44 +21,24 @@ LANDIN_BASE_IMAGE=docker.io/library/debian@sha256:f324c7ff54321e8d9c588493a20244
 #  the FreeBSD and Windows lanes cross-compile and link with, are nixpkgs'
 #  llvmPackages_19 at flake.lock's revision, served by the nix-packages
 #  cache; flake.nix refuses a lock whose Clang is another, and the jobs
-#  assert it.  compiler/ada/TOOLCHAIN.md records it.  The structural editor
-#  grammar's CLI is the release binary tree-sitter publishes for this version,
-#  checked against this sha256 before it replaces the npm package's
-#  unverified download; highlight/tree-sitter/package.json names the same
-#  version.  check.py holds all three to agreeing.  The nix shell fetches
-#  the same release binary for its own system, held to the same checksums.
+#  assert it.  compiler/ada/TOOLCHAIN.md records it.
 LANDIN_CLANG_NIX=19.1.7
+
+#  The structural editor grammar's CLI, the workflows' linter and the shell
+#  linter it runs over every workflow's `run:` scripts, and the link
+#  checker: nixpkgs' tree-sitter, actionlint, shellcheck and lychee at
+#  flake.lock's revision, built from source and served by the nix-packages
+#  cache like Clang.  flake.nix refuses a lock whose packages are other
+#  versions than these; the gate's editor-grammar, scripts and link jobs
+#  take them through .github/actions/nix-tools, and scripts/actionlint.py
+#  and highlight/test.sh refuse another version.
+#  highlight/tree-sitter/package.json names the same tree-sitter.  check.py
+#  holds compiler/ada/TOOLCHAIN.md, the grammar's package and flake.nix to
+#  these.
 LANDIN_TREE_SITTER_VERSION=0.26.9
-LANDIN_TREE_SITTER_SHA256_X86_64_LINUX=9ce82137caa65864e7ca8b869fd391cef88c9bd2a01c4371b9c4dd26c2585efb
-LANDIN_TREE_SITTER_SHA256_AARCH64_LINUX=c8feeb32115958cb44442ca4d68f6d66cf7605dbd65681e62342181ebdd6db3b
-LANDIN_TREE_SITTER_SHA256_AARCH64_DARWIN=e46725b2417c085b0761948abc0cc240bff6a3ab5d2128e3ad0de467ded3388d
-
-#  The workflows' linter: the release binary actionlint publishes for this
-#  version, checked against this sha256 before it runs.  The gate's scripts
-#  job fetches the Linux x86-64 one through scripts/actionlint.py, which
-#  refuses an actionlint of another version, and the nix shell fetches its
-#  own system's.  .github/actionlint.yaml names the runner labels GitHub
-#  does not host.  check.py holds compiler/ada/TOOLCHAIN.md and flake.nix
-#  to these.
 LANDIN_ACTIONLINT_VERSION=1.7.12
-LANDIN_ACTIONLINT_RELEASES=https://github.com/rhysd/actionlint/releases/download
-LANDIN_ACTIONLINT_SHA256_X86_64_LINUX=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-LANDIN_ACTIONLINT_SHA256_AARCH64_LINUX=325e971b6ba9bfa504672e29be93c24981eeb1c07576d730e9f7c8805afff0c6
-LANDIN_ACTIONLINT_SHA256_AARCH64_DARWIN=aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f
-
-#  The shell linter actionlint runs over every workflow's `run:` scripts:
-#  the release binary shellcheck publishes for this version, checked
-#  against this sha256 before it runs.  The release publishes no checksum
-#  file; these were taken from the archives fetched from its release page.
-#  scripts/actionlint.py fetches the Linux x86-64 one beside actionlint
-#  and names it to actionlint by its path, refusing a shellcheck of
-#  another version, and the nix shell fetches its own system's.  check.py
-#  holds compiler/ada/TOOLCHAIN.md and flake.nix to these.
 LANDIN_SHELLCHECK_VERSION=0.11.0
-LANDIN_SHELLCHECK_RELEASES=https://github.com/koalaman/shellcheck/releases/download
-LANDIN_SHELLCHECK_SHA256_X86_64_LINUX=8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
-LANDIN_SHELLCHECK_SHA256_AARCH64_LINUX=12b331c1d2db6b9eb13cfca64306b1b157a86eb69db83023e261eaa7e7c14588
-LANDIN_SHELLCHECK_SHA256_AARCH64_DARWIN=56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79
+LANDIN_LYCHEE_VERSION=0.24.2
 
 #  The musl system the gate's static-archive job runs the packaged Linux
 #  compiler on (scripts/static_check.py): Alpine's minirootfs for each
@@ -85,18 +65,13 @@ LANDIN_NIX_PACKAGES_KEY=701-nix-packages-1:Nb/iOvlOiXg+1FzHGZyyNI4nE5pxNuQybb8WI
 LANDIN_CROSS_QEMU_NIX=11.1.0
 LANDIN_CROSS_GCC_NIX=15.3.0
 
-#  The Cortex-M lane's GCC and binutils: GNAT's arm-elf archive from
-#  the release the host GNAT comes from, whose driver is `arm-eabi-gcc`.
-#  environments/cortex-m/setup.py installs the Linux x86-64 one and the nix
-#  shell its own system's; QEMU and the GDB whose Python the debugger
-#  sessions run are nix-packages archives in environments/cortex-m/tools.lock.json.
-LANDIN_GNAT_ARM_ELF_VERSION=16.1.0-1
-
-#  The RV32 lanes' GCC and binutils: GNAT's riscv64-elf archive from the
-#  same release, whose driver is `riscv64-elf-gcc` and whose multilibs
-#  hold rv32imc and rv32imac with the ilp32 ABI (D660).  The nix shell
-#  fetches its own system's; the RV32 lane installs the Linux x86-64 one.
-LANDIN_GNAT_RISCV64_ELF_VERSION=16.1.0-1
+#  The Cortex-M and RV32 lanes' GCC, binutils and newlib, `arm-eabi-gcc`
+#  and `riscv64-elf-gcc`, are 701-dev/nix-packages' builds, configured as
+#  GNAT-FSF-builds configures its arm-elf and riscv64-elf archives (the
+#  riscv64-elf multilibs hold rv32imc and rv32imac with the ilp32 ABI,
+#  D660): environments/cortex-m/tools.lock.json locks their Linux x86-64
+#  archives and the nix shell takes its own system's from the flake's
+#  nix-packages input, so neither is pinned here.
 
 #  Espressif's configured Xtensa compiler and binutils. The chip wrappers
 #  select distinct ISA plugins and matching windowed-ABI multilibs.
@@ -128,12 +103,6 @@ LANDIN_GNAT_SHA256_AARCH64_DARWIN=657cf254323eb91f79768918e8bd8887d6da7ac6056732
 LANDIN_GPRBUILD_SHA256_AARCH64_DARWIN=6bf7d80c8a9702d851c5b992d7c72a07a9dbf13e8de9947b80927ea2667b6be8
 LANDIN_GNAT_SHA256_AARCH64_LINUX=8e297497f2d6d6845920a363a277b6ef5bc454e48a66d0d606b89d71e31ee623
 LANDIN_GPRBUILD_SHA256_AARCH64_LINUX=c125424447144944973d24de43a53b3e7008dbda306e0d540db07e635dea24e4
-LANDIN_GNAT_ARM_ELF_SHA256_X86_64_LINUX=9e6bb6696de1b84e26a3fbeebd67d5e7c9aad28a6bdee4cb8e59328b6fd99078
-LANDIN_GNAT_ARM_ELF_SHA256_AARCH64_LINUX=6f09f8efe4f36cc4a8c1f9da1c554bca043722fd11bb8475dbe100f03543b2a3
-LANDIN_GNAT_ARM_ELF_SHA256_AARCH64_DARWIN=10fc8bc6b6a67def53c2497e21b06289bfadf845a609f6a3679cad06c8bbf5d4
-LANDIN_GNAT_RISCV64_ELF_SHA256_X86_64_LINUX=01cb5e97d6b51ed21f677912bc09bd6caca430515d09c8feda171c17b4fa95db
-LANDIN_GNAT_RISCV64_ELF_SHA256_AARCH64_LINUX=e08cbbf929ffcb9ca931ad41d7fd6d9a95a2ab46ad2830daf9e3a4ea11104a32
-LANDIN_GNAT_RISCV64_ELF_SHA256_AARCH64_DARWIN=c4b76df21e1518b9b3ba9a34a515ef951f8a1a333640df2d5f2382e5c23d6df3
 
 #  Installs the pinned toolchain for one platform into $1, verifying each
 #  archive against the checksum above before unpacking it.  A mismatch is

@@ -8,13 +8,13 @@ import threading
 import unittest
 
 from run import HERE, Run, oracle
-from setup import AREAS, arm_archive, riscv_archive
+from setup import ARM, AREAS, BUILDER, RISCV, gcc_version
 
 #  Every version a supervised run requires its tools to print, in one
 #  answer a mocked `Run.command` gives every version query.
-VERSIONS = '10.0.13 (GNAT-FSF-builds) %s 2.46.1 16.3 9.2.2 (esp_develop_9.2.2_20260417)' % (
-    arm_archive()['version'].rsplit('-', 1)[0])
-assert riscv_archive()['version'] == arm_archive()['version'], 'one GCC version answers both'
+VERSIONS = '10.0.13 (%s) %s 2.46.1 16.3 9.2.2 (esp_develop_9.2.2_20260417)' % (
+    BUILDER, gcc_version(ARM))
+assert gcc_version(RISCV) == gcc_version(ARM), 'one GCC version answers both'
 
 
 class ProbeFailures(unittest.TestCase):
@@ -23,7 +23,7 @@ class ProbeFailures(unittest.TestCase):
         import importlib
         from unittest.mock import patch
         from run import HERE
-        from setup import arm_archive, riscv_archive, sha
+        from setup import sha
         calls=[]
         lanes=[('abi','execute'),('memory','execute'),('packed','execute'),
                ('rv32_controls','execute_suite'),
@@ -37,8 +37,6 @@ class ProbeFailures(unittest.TestCase):
             root=Path(directory)
             (root/'installation.json').write_text(json.dumps({
                 'lock_sha256':sha(HERE/'tools.lock.json'),
-                'arm':{key:arm_archive()[key] for key in ('version','sha256')},
-                'riscv':{key:riscv_archive()[key] for key in ('version','sha256')},
                 'files':{area:{} for area in AREAS}}))
             stack.enter_context(patch('run.supported_host'))
             stack.enter_context(patch('run.inventory',return_value={}))
@@ -1481,7 +1479,7 @@ class ProbeFailures(unittest.TestCase):
         from contextlib import ExitStack
         from unittest.mock import patch
         from run import LANES, selection
-        from setup import arm_archive, riscv_archive, sha
+        from setup import sha
         self.assertEqual(selection(['evidence']), ['driver', 'evidence'])
         self.assertEqual(selection(['sifive-e']), ['rv32-controls', 'sifive-e'])
         self.assertEqual(selection(None), list(LANES))
@@ -1496,8 +1494,6 @@ class ProbeFailures(unittest.TestCase):
             root = Path(directory)
             (root/'installation.json').write_text(json.dumps({
                 'lock_sha256': sha(HERE/'tools.lock.json'),
-                'arm': {key: arm_archive()[key] for key in ('version', 'sha256')},
-                'riscv': {key: riscv_archive()[key] for key in ('version', 'sha256')},
                 'files': {area: {} for area in AREAS}}))
             stack.enter_context(patch('run.supported_host'))
             stack.enter_context(patch('run.inventory', return_value={}))
@@ -1643,15 +1639,15 @@ class ProbeFailures(unittest.TestCase):
         from setup import supported_host
         with patch('platform.system', return_value='Darwin'), self.assertRaises(RuntimeError):
             supported_host()
-        # The pinned cross compilers ask for glibc 2.35; an older one, or
-        # another C library, cannot load them, whatever the distribution.
-        for libc in (('glibc', '2.34'), ('glibc', '2.9'), ('musl', '1.2.5'), ('', '')):
+        # Espressif's pinned Xtensa compiler asks for glibc 2.17; an older
+        # one, or another C library, cannot load it, whatever the distribution.
+        for libc in (('glibc', '2.16'), ('glibc', '2.9'), ('musl', '1.2.5'), ('', '')):
             with patch('platform.system', return_value='Linux'), \
                     patch('platform.machine', return_value='x86_64'), \
                     patch('platform.libc_ver', return_value=libc), \
                     self.assertRaises(RuntimeError):
                 supported_host()
-        for libc in (('glibc', '2.35'), ('glibc', '2.39'), ('glibc', '3.0')):
+        for libc in (('glibc', '2.17'), ('glibc', '2.39'), ('glibc', '3.0')):
             with patch('platform.system', return_value='Linux'), \
                     patch('platform.machine', return_value='x86_64'), \
                     patch('platform.libc_ver', return_value=libc), \
@@ -1821,7 +1817,7 @@ class RV32Lanes(unittest.TestCase):
                 self.assertIn('-mabi=ilp32', flags)
                 self.assertFalse([f for f in flags if f.startswith(('-mcpu', '-mthumb'))])
                 self.assertEqual(tool(run, level, 'gcc'),
-                                 Path('/tools/gnat-riscv64-elf/bin/riscv64-elf-gcc'))
+                                 Path('/tools/gcc-riscv64-elf/bin/riscv64-elf-gcc'))
                 self.assertEqual((LEVELS[level]['machine'], LEVELS[level]['lane']),
                                  (machine, lane))
         #  The esp32c3 machine's core loses A, F and D, which the C3 has not;
@@ -1831,7 +1827,7 @@ class RV32Lanes(unittest.TestCase):
             self.assertIn(off, LEVELS['rv32imc']['cpu'].split(','))
         self.assertNotIn('cpu', LEVELS['rv32imac'])
         self.assertEqual(target('armv6-m'), 'cortex-m0')
-        self.assertEqual(tool(run, 'armv6-m', 'nm'), Path('/tools/gnat-arm-elf/bin/arm-eabi-nm'))
+        self.assertEqual(tool(run, 'armv6-m', 'nm'), Path('/tools/gcc-arm-eabi/bin/arm-eabi-nm'))
         #  The esp32c3 lane compiles with its entry-module file; sifive-e is
         #  the RV32 reference's map, which a program reaching no
         #  description is given.
@@ -1933,30 +1929,30 @@ class RV32Lanes(unittest.TestCase):
                          {'rv32imc', 'rv32imac'})
 
     def test_the_lock_is_nix_packages_archives_only(self):
-        from setup import (AREAS, ESPRESSIF, ESPRESSIF_XTENSA, GDB, LOCKED, QEMU_ARM,
-                           riscv_archive, xtensa_archive)
+        from setup import (ARM, AREAS, ESPRESSIF, ESPRESSIF_XTENSA, GDB, LOCKED, QEMU_ARM, RISCV,
+                           gcc_version, xtensa_archive)
         lock = json.loads((HERE / 'tools.lock.json').read_text())
         #  No Debian package is left (D2572): the emulators and GDB are
-        #  archives 701-dev/nix-packages built, each unpacked into its area.
+        #  archives 701-dev/nix-packages built, each unpacked into its area,
+        #  and so are the two bare-metal compilers (D3134).
         self.assertEqual({item['kind'] for item in lock}, {'tar.xz'})
         self.assertEqual([item['into'] for item in lock],
-                         [[ESPRESSIF, ESPRESSIF_XTENSA], QEMU_ARM, GDB])
+                         [[ESPRESSIF, ESPRESSIF_XTENSA], QEMU_ARM, GDB, ARM, RISCV])
         self.assertTrue(set(LOCKED) <= set(AREAS))
         pinned = {
             'qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz':
                 'cf503257027d34a77867ef833d17c5a74aac37eca60a48737b1e409e1c11f54d',
             'qemu-arm-10.0.13-x86_64-linux.tar.xz': 'e6d296decd5abee0855ed706a91c153c72e7a0e0cb933cbe059e2e800c36a093',
             'gdb-16.3-x86_64-linux.tar.xz': '9862b2f8263407d6665f5767af157bbf799a2b1937afba21ddb8791ad98ff4ba',
+            'gcc-arm-eabi-16.1.0-x86_64-linux.tar.xz': 'f350aa91334945c92c73c73bc91452d93421622d888c82e1bafea040e24a8c37',
+            'gcc-riscv64-elf-16.1.0-x86_64-linux.tar.xz': 'aeed42e1946e2b2ca2285b8b57fab29e5ed9ca431a9a6e055fbe6279a2bcd2e6',
         }
         self.assertEqual({item['file']: item['sha256'] for item in lock}, pinned)
         for item in lock:
             self.assertEqual(item['url'], 'https://701-nix-packages.nbg1.your-objectstorage.com'
                              '/exports/%s/%s' % (item['file'][:-len('.tar.xz')], item['file']))
             self.assertEqual(set(item), {'url', 'file', 'sha256', 'kind', 'into'})
-        archive = riscv_archive()
-        self.assertEqual(archive['file'],
-                         'gnat-riscv64-elf-linux64-x86_64-%s.tar.gz' % archive['version'])
-        self.assertTrue(archive['url'].endswith('/gnat-%s/%s' % (archive['version'], archive['file'])))
+        self.assertEqual((gcc_version(ARM), gcc_version(RISCV)), ('16.1.0', '16.1.0'))
         archive = xtensa_archive()
         self.assertEqual(archive['file'],
                          'xtensa-esp-elf-16.1.0_20260609-x86_64-linux-gnu.tar.xz')
@@ -2014,11 +2010,11 @@ class RV32Lanes(unittest.TestCase):
             for area in setup.AREAS:
                 self.assertEqual(record['files'][area], setup.inventory(root / area))
                 self.assertTrue(record['files'][area])
-            for name, archive in [('arm', setup.arm_archive()), ('riscv', setup.riscv_archive()),
-                                  ('xtensa', setup.xtensa_archive())]:
-                self.assertEqual(record[name], {key: archive[key] for key in ('version', 'sha256')})
+            archive = setup.xtensa_archive()
+            self.assertEqual(record['xtensa'], {key: archive[key] for key in ('version', 'sha256')})
+            self.assertNotIn('arm', record)
             self.assertEqual({call.args[1].name: call.args[2] for call in unpacked.call_args_list},
-                             {setup.ARM: '-xzf', setup.RISCV: '-xzf', setup.XTENSA: '-xJf',
+                             {setup.ARM: '-xJf', setup.RISCV: '-xJf', setup.XTENSA: '-xJf',
                               setup.ESPRESSIF: '-xJf', setup.ESPRESSIF_XTENSA: '-xJf',
                               setup.QEMU_ARM: '-xJf', setup.GDB: '-xJf'})
             (root / setup.XTENSA / 'installed').write_bytes(b'changed compiler')

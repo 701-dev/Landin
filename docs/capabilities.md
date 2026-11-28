@@ -1478,7 +1478,9 @@ C ABI and debugger verdicts; RV64 Linux runs under QEMU's user emulation, as
 above. On a push to `main`, daily and by dispatch it also runs all eight
 board ports on the physical rig, each RAM run followed by its boot check.
 The gate's scripts job holds every workflow to the pinned actionlint, which
-runs the pinned shellcheck over every `run:` script. The
+runs the pinned shellcheck over every `run:` script; both, the editor
+grammar's tree-sitter CLI and the link checker come from the nix-packages
+cache, so no gate job downloads a release binary or an npm package. The
 [gate reference](process.md#the-mechanical-gate) describes every job.
 The recorded boundaries stand as measured: the 32 KiB capacity verdicts, linked again against RP2040's,
 RP2350's and the STM32H753's derived scripts, the lines-and-functions Cortex-M
